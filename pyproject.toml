@@ -5,9 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "commitizen>=4.10.0",
     "databases>=0.9.0",
     "fastapi[standard]>=0.122.0",
     "passlib>=1.7.4",
+    "pre-commit>=4.5.0",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
@@ -18,3 +20,58 @@ dependencies = [
     "sqlalchemy-citext>=1.8.0",
     "uvicorn>=0.38.0",
 ]
+
+[tool.commitizen]
+name = "cz_customize"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.commitizen.customize]
+message_template = "{{change_type}}:{% if jira_ticket %} {{jira_ticket}}{% endif %} {{message}}{% if show_message %} {{body_message}}{% endif %}"
+example = "feat: JIRA-123 add new feature"
+schema = "<prefix>: <jira_ticket> <commit message>"
+# Note the regex change to ([A-Z0-9]+-\\d+\\s)?
+schema_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](\\s?)([A-Z0-9]+-\\d+\\s)?(.+)$"
+bump_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)"
+bump_map = {"feat" = "MINOR", "fix" = "PATCH", "build" = "PATCH", "chore" = "PATCH", "ci" = "PATCH", "docs" = "PATCH", "style" = "PATCH", "refactor" = "PATCH", "perf" = "PATCH", "test" = "PATCH", "revert" = "PATCH", "feat!" = "MAJOR", "fix!" = "MAJOR"}
+change_type_order = ["BREAKING CHANGE", "feat", "fix", "build", "chore", "ci", "docs", "style", "refactor", "perf", "test", "revert"]
+commit_parser = "^(?P<change_type>feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](?P<jira_ticket>[A-Z0-9]+-\\d+)\\s(?P<message>.*)?"
+changelog_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)?(!)?"
+change_type_map = {"feat" = "Feat", "fix" = "Fix", "build" = "Build", "chore" = "Chore", "ci" = "CI", "docs" = "Docs", "style" = "Style", "refactor" = "Refactor", "perf" = "Perf", "test" = "Test", "revert" = "Revert"}
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+choices = [
+    {value = "feat", name = "feat: Introduces a new feature."},
+    {value = "fix", name = "fix: A bug fix."},
+    {value = "build", name = "build: Changes to the build system or external dependencies."},
+    {value = "chore", name = "chore: Routine tasks (maintenance, cleanup)."},
+    {value = "ci", name = "ci: Changes to CI configuration."},
+    {value = "docs", name = "docs: Documentation-only changes."},
+    {value = "style", name = "style: Code changes that don't affect meaning (formatting, whitespace)."},
+    {value = "refactor", name = "refactor: Code changes that neither fix bugs nor add features."},
+    {value = "perf", name = "perf: Code changes that improve performance."},
+    {value = "test", name = "test: Adding or modifying tests."},
+    {value = "revert", name = "revert: Reverts a previous commit."}
+]
+message = "Select the type of change you are committing"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "jira_ticket"
+message = "Jira Ticket ID (If the branch is related to a ticket - press Enter to skip):"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "message"
+message = "Short commit message (e.g., add user login feature)"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "body_message"
+# 4. OPTIONAL: User can just press Enter to skip this
+message = "Body message (Optional - press Enter to skip)"
