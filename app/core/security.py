@@ -1,20 +1,40 @@
-from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends
-from typing import Annotated
+# from passlib.context import CryptContext
+from datetime import datetime, timedelta, timezone
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+from pwdlib import PasswordHash
+from app.core.config import get_settings
+from app.dependencies import get_user
+import jwt
 
-
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-
-def decode_token(token):
-    return
+password_hash = PasswordHash.recommended()
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    user = None  # TODO decode
+def verify_password(plain_password, hashed_password):
+    return password_hash.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return password_hash.hash(password)
+
+
+def authenticate_user(fake_db, username: str, password: str):
+    user = get_user(fake_db, username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
     return user
+
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(
+        to_encode, get_settings().secret_key, algorithm=get_settings().algorithm
+    )
+    return encoded_jwt
