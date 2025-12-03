@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import get_settings
 from app.internal import admin
 from app.routers import user, auth
 
