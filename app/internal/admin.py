@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
 from typing import Annotated
-from app.dependencies import oauth2_scheme
+from app.dependencies import validate_current_user
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["internal"], dependencies=[Depends(validate_current_user)])
 
 
 @router.get("/admins/")
-def get_admins(token: Annotated[str, Depends(oauth2_scheme)]):
-    return {"token": token}
+def get_admins():
+
+    return {"admins": ""}
