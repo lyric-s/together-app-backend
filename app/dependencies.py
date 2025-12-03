@@ -1,7 +1,7 @@
 # from app.database.database import SessionLocal
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from app.models.user import User, UserInDB
+from app.models.user import UserInDB
 from typing import Annotated
 from app.models.token import TokenData
 import jwt
