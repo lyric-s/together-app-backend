@@ -5,19 +5,15 @@ description = "REST API of the Together platform"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "commitizen>=4.10.0",
+    "asyncpg>=0.31.0",
     "databases>=0.9.0",
     "fastapi[standard]>=0.122.0",
-    "pre-commit>=4.5.0",
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
     "pyjwt[crypto]>=2.10.1",
-    "pyright>=1.1.407",
-    "pytest>=9.0.1",
     "python-dotenv>=1.2.1",
-    "ruff>=0.14.6",
     "sqlalchemy-citext>=1.8.0",
     "sqlmodel>=0.0.27",
     "uvicorn>=0.38.0",
@@ -82,3 +78,12 @@ type = "input"
 name = "body_message"
 # 4. OPTIONAL: User can just press Enter to skip this
 message = "Body message (Optional - press Enter to skip)"
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.10.0",
+    "prek>=0.2.19",
+    "pyright>=1.1.407",
+    "pytest>=9.0.1",
+    "ruff>=0.14.8",
+]
