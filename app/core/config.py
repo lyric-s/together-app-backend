@@ -1,14 +1,19 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import HttpUrl
 
 
 class Settings(BaseSettings):
-    database_url: str
-    secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
+    DATABASE_URL: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int
+    BACKEND_CORS_ORIGINS: list[HttpUrl] = []
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
-    model_config = SettingsConfigDict(env_file_encoding="utf-8", env_file=".env")
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8", env_file=".env", extra="ignore"
+    )
 
 
 # Workaroud to avoid missing arguments warnings from :

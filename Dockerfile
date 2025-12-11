@@ -1,26 +1,28 @@
-FROM python:3.13-slim
+# STAGE 1: Builder
 
-# Create a user to avoid running as root
-RUN useradd -m appuser
-USER appuser
-
+# We use this stage to compile and install everything into the virtual environment
+# So that we get a small image with only the necessary
+FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Change the working directory to the `app` directory
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --frozen --no-cache --no-dev
+
+# STAGE 2: Runner (Production)
+FROM python:3.12-slim
+
+RUN useradd -m appuser
+USER appuser
 WORKDIR /app
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project
+# Copy the FULLY HYDRATED venv from builder
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+# Copy app code
+COPY --chown=appuser:appuser . .
 
-# Copy the project into the image
-ADD . /app
+# Add venv to PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Sync the project
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen
-
-# Run with uvicorn
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["gunicorn", "app.main:app", "-c", "gunicorn_conf.py"]

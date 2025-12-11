@@ -3,11 +3,21 @@ name = "together-app-backend"
 version = "0.1.0"
 description = "REST API of the Together platform"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "asyncpg>=0.31.0",
     "databases>=0.9.0",
     "fastapi[standard]>=0.122.0",
+    "gunicorn>=23.0.0",
+    "loguru>=0.7.3",
+    "opentelemetry-distro>=0.60b1",
+    "opentelemetry-exporter-otlp>=1.39.1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
+    "opentelemetry-instrumentation-asyncpg>=0.60b1",
+    "opentelemetry-instrumentation-fastapi>=0.60b1",
+    "opentelemetry-instrumentation-logging>=0.60b1",
+    "opentelemetry-instrumentation-psycopg2>=0.60b1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.60b1",
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",
     "pydantic>=2.12.4",
@@ -44,6 +54,9 @@ change_type_order = ["BREAKING CHANGE", "feat", "fix", "build", "chore", "ci", "
 commit_parser = "^(?P<change_type>feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](?P<jira_ticket>[A-Z0-9]+-\\d+)\\s(?P<message>.*)?"
 changelog_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)?(!)?"
 change_type_map = {"feat" = "Feat", "fix" = "Fix", "build" = "Build", "chore" = "Chore", "ci" = "CI", "docs" = "Docs", "style" = "Style", "refactor" = "Refactor", "perf" = "Perf", "test" = "Test", "revert" = "Revert"}
+
+[tool.pyrefly]
+infer-with-first-use = false
 
 [[tool.commitizen.customize.questions]]
 type = "list"
@@ -82,8 +95,9 @@ message = "Body message (Optional - press Enter to skip)"
 [dependency-groups]
 dev = [
     "commitizen>=4.10.0",
+    "pre-commit>=4.5.0",
     "prek>=0.2.19",
-    "pyright>=1.1.407",
+    "pyrefly>=0.45.1",
     "pytest>=9.0.1",
     "ruff>=0.14.8",
 ]

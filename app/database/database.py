@@ -8,7 +8,7 @@
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base = declarative_base()
 from typing import Annotated
-
+from app.core.config import settings
 from fastapi import Depends
 from sqlmodel import Field, Session, SQLModel, create_engine
 
@@ -24,7 +24,9 @@ sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args)
+# engine = create_engine(sqlite_url, connect_args=connect_args)
+# echo=False is crucial; we rely on OTel for query logging, not print statements.
+engine = create_engine(settings.DATABASE_URL, echo=False, pool_pre_ping=True)
 
 
 def create_db_and_tables():

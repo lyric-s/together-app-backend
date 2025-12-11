@@ -1,10 +1,59 @@
 services:
-  api:
+  # DATABASE (Simulated for Dev)
+  postgres:
+    image: postgres:17.6
+    container_name: dev-postgres
+    environment:
+      - POSTGRES_USER=api_user
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_DB=together
+    ports:
+      - "5432:5432"
+    networks:
+      - api_db
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_user -d together"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API (Dev Mode)
+  fastapi:
     build: .
+    container_name: dev-api
     ports:
       - "8000:8000"
+
+    env_file:
+      - .env
+
+    # Override connection string to point to the local docker container
     environment:
-      - UVICORN_RELOAD=true
+      - DEPLOYMENT_ENV=development
+      - DATABASE_URL=postgresql://api_user:dev_pass@postgres:5432/together
+      - LOG_LEVEL=debug
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development
+      - OTEL_PYTHON_LOG_LEVEL=debug
+
     volumes:
       - .:/app
-    tty: true
+      - /app/.venv
+
+    # Override the Prod CMD to use Reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - api_db
+
+networks:
+  api_db:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
