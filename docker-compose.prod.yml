@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/fastapi-backend:${IMAGE_TAG:-latest}
+
+    # SWARM DEPLOY CONFIG
+    deploy:
+      replicas: 2
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+    env_file:
+      - .env
+
+    ports:
+      - "8000:8000"
+
+    networks:
+      - overlay_net
+
+networks:
+  overlay_net:
+    driver: overlay

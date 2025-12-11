@@ -43,7 +43,7 @@ async def validate_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(
-            token, get_settings().secret_key, algorithms=[get_settings().algorithm]
+            token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
         )
         username = payload.get("sub")
         if username is None:
