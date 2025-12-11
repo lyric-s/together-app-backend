@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+  workflow_call:
+
+jobs:
+  test:
+    name: Test application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "☁️ Checkout repository"
+        uses: actions/checkout@v2
+
+      - name: "🔧 Set up python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: "⬇️ Install uv"
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.16"
+
+      - name: "⚙️ Enable caching"
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: "📦 Install dependendies"
+        run: uv sync --locked --all-extras --dev
+
+      - name: "🔍 Run tests"
+        run: uv run pytest tests
+
+  quality:
+    name: Test application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v5
+
+      - name: "🔧 Set up python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: "⬇️ Install uv"
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.16"
+
+      - name: "⚙️ Enable caching"
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: "📦 Install dependendies"
+        run: uv sync --locked --all-extras --dev
+
+      - name: "📝 Commits check on branch"
+        run: cz check --rev-range HEAD~~~..
+
+      - name: "✅ Typing check"
+        run: uv run pyrefly --summarize-errors
+
+      - name: "🔍 Syntax check"
+        run: uv run ruff check --fix
+
+      - name: "🧹 Lint code"
+        run: uv run ruff format
