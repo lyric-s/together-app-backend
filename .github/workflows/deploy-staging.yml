@@ -1,0 +1,108 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Short SHA
+        run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create .env file
+        uses: spicypizza/create-envfile@v2.0
+        with:
+          # --- STAGING SPECIFIC ---
+          envkey_DEBUG: true
+          envkey_LOG_LEVEL: debug
+          envkey_DEPLOYMENT_ENV: staging
+
+          # --- SECURITY & TOKENS ---
+          envkey_SECRET_KEY: ${{ secrets.STAGING_SECRET_KEY }}
+          envkey_BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
+          envkey_ALGORITHM: ${{ vars.ALGORITHM }}
+          envkey_ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
+          envkey_REFRESH_TOKEN_EXPIRE_DAYS: ${{ vars.REFRESH_TOKEN_EXPIRE_DAYS }}
+
+          # --- DATABASE ---
+          envkey_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+          # --- OBSERVABILITY ---
+          envkey_OTEL_SERVICE_NAME: "fastapi-backend-staging"
+          envkey_OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          envkey_OTEL_EXPORTER_OTLP_PROTOCOL: ${{ vars.OTEL_EXPORTER_OTLP_PROTOCOL }}
+          envkey_OTEL_TRACES_EXPORTER: ${{ vars.OTEL_TRACES_EXPORTER }}
+          envkey_OTEL_METRICS_EXPORTER: ${{ vars.OTEL_METRICS_EXPORTER }}
+          envkey_OTEL_LOGS_EXPORTER: ${{ vars.OTEL_LOGS_EXPORTER }}
+          envkey_OTEL_EXPORTER_OTLP_INSECURE: ${{ vars.OTEL_EXPORTER_OTLP_INSECURE }}
+          envkey_OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=staging,service.version=${{ env.IMAGE_TAG }}"
+
+          # --- SERVER CONFIG ---
+          envkey_WEB_CONCURRENCY: ${{ vars.WEB_CONCURRENCY }}
+          envkey_GUNICORN_TIMEOUT: ${{ vars.GUNICORN_TIMEOUT }}
+          envkey_GUNICORN_GRACEFUL_TIMEOUT: ${{ vars.GUNICORN_GRACEFUL_TIMEOUT }}
+          envkey_GUNICORN_KEEPALIVE: ${{ vars.GUNICORN_KEEPALIVE }}
+
+          file_name: .env
+          fail_on_empty: false
+
+      # 6. COPY FILES
+      - name: Copy files to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: ".env,docker-compose.yml"
+          target: "/opt/my-api-staging/"
+
+      # 7. DEPLOY TO SWARM
+      - name: Deploy Stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: IMAGE_TAG, REGISTRY, IMAGE_NAME, GITHUB_ACTOR
+          script: |
+            cd /opt/my-api-staging
+            chmod 600 .env
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            export IMAGE_TAG=$IMAGE_TAG
+            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+            docker stack deploy -c docker-compose.yml --with-registry-auth together_api_staging_stack
+            docker system prune -af --filter "until=24h"
