@@ -52,10 +52,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.16"
-
-      - name: "⚙️ Enable caching"
-        uses: astral-sh/setup-uv@v7
-        with:
           enable-cache: true
 
       - name: "📦 Install dependendies"
