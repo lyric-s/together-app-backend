@@ -3,7 +3,7 @@
 # We use this stage to compile and install everything into the virtual environment
 # So that we get a small image with only the necessary
 FROM python:3.12-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.16 /uv /uvx /bin/
 
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
@@ -13,9 +13,9 @@ RUN uv sync --frozen --no-cache --no-dev
 # STAGE 2: Runner (Production)
 FROM python:3.12-slim
 
-RUN useradd -m appuser
-USER appuser
+RUN useradd -m -u 1000 appuser
 WORKDIR /app
+USER appuser
 
 # Copy the FULLY HYDRATED venv from builder
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv

@@ -80,7 +80,7 @@ jobs:
           envkey_GUNICORN_KEEPALIVE: ${{ vars.GUNICORN_KEEPALIVE }}
 
           file_name: .env
-          fail_on_empty: false
+          fail_on_empty: true
 
       # 6. TRANSFER FILES
       - name: Copy files to Server
@@ -107,4 +107,8 @@ jobs:
             export IMAGE_TAG=$APP_VERSION
             export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
             docker stack deploy -c docker-compose.prod.yml --with-registry-auth together_api_production_stack
+            if [ $? -ne 0 ]; then
+              echo "Stack deployment failed"
+              exit 1
+            fi
             docker system prune -af --filter "until=24h"

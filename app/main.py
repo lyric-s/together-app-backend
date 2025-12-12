@@ -1,3 +1,4 @@
+from pathlib import Path
 from app.utils.logger import setup_logging
 from contextlib import asynccontextmanager
 from app.core.config import settings
@@ -8,6 +9,8 @@ from app.internal import admin
 from app.routers import auth
 from app.core.telemetry import setup_telemetry
 from loguru import logger
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @asynccontextmanager
@@ -36,7 +39,7 @@ app.add_middleware(
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("favicon.ico")
+    return FileResponse(BASE_DIR / "favicon.ico")
 
 
 @app.get("/health")

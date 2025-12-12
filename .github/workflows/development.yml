@@ -11,12 +11,12 @@ on:
 
 jobs:
   test:
-    name: Test application
+    name: Code quality checks
     runs-on: ubuntu-latest
 
     steps:
       - name: "☁️ Checkout repository"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: "🔧 Set up python"
         uses: actions/setup-python@v6
@@ -27,10 +27,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.9.16"
-
-      - name: "⚙️ Enable caching"
-        uses: astral-sh/setup-uv@v7
-        with:
           enable-cache: true
 
       - name: "📦 Install dependendies"

@@ -10,6 +10,8 @@
 
 #     return {"access_token": user.username, "token_type": "bearer"}
 
+from app.core.config import Settings
+from sqlmodel import Session
 from datetime import timedelta
 from typing import Annotated
 
@@ -27,15 +29,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/token")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Token:
-    user = authenticate_user(get_db(), form_data.username, form_data.password)
+    user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )

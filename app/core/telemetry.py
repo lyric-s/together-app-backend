@@ -27,7 +27,7 @@ def setup_telemetry(app: FastAPI):
         resource = Resource.create(
             {
                 "service.name": os.getenv("OTEL_SERVICE_NAME", "unset"),
-                "deployment.environment": os.getenv("DEPLOYMENT_ENV", "production"),
+                "deployment.environment": os.getenv("DEPLOYMENT_ENV", "development"),
             }
         )
 
@@ -46,10 +46,15 @@ def setup_telemetry(app: FastAPI):
         )
         metrics.set_meter_provider(meter_provider)
 
-        FastAPIInstrumentor.instrument_app(app, excluded_urls="/health,/metrics")
-        SQLAlchemyInstrumentor().instrument(enable_commenter=True)  # type: ignore
-        AsyncPGInstrumentor().instrument()  # type: ignore
-        Psycopg2Instrumentor().instrument(enable_commenter=True, skip_dep_check=True)  # type: ignore
+        # Track instrumentation state to prevent double instrumentation
+        if not hasattr(setup_telemetry, "_instrumented"):
+            FastAPIInstrumentor.instrument_app(app, excluded_urls="/health,/metrics")
+            SQLAlchemyInstrumentor().instrument(enable_commenter=True)  # type: ignore
+            AsyncPGInstrumentor().instrument()  # type: ignore
+            Psycopg2Instrumentor().instrument(  # type: ignore
+                enable_commenter=True, skip_dep_check=True
+            )
+            setup_telemetry._instrumented = True  # type: ignore
 
         logger.info("Traces & Metrics Active.")
 
