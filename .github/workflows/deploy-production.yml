@@ -90,7 +90,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: ".env,docker-compose.prod.yml" # Ensure you copy the PROD compose file
-          target: "/opt/my-api-project/"
+          target: "/opt/together_api_production/"
 
       # 7. DEPLOY TO SWARM
       - name: Deploy Swarm Stack
@@ -101,7 +101,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: APP_VERSION, REGISTRY, IMAGE_NAME
           script: |
-            cd /opt/my-api-project
+            cd /opt/together_api_production
             chmod 600 .env
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             export IMAGE_TAG=$APP_VERSION
