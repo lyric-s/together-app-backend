@@ -54,4 +54,3 @@ class MissionUpdate(SQLModel):
     capacity_min: int | None = None
     capacity_max: int | None = None
     image_url: str | None = None
-    image_url: str | None = None

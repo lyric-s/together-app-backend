@@ -22,18 +22,11 @@ dependencies = [
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
     "pyjwt[crypto]>=2.10.1",
-    "pytest>=9.0.1",
     "python-dotenv>=1.2.1",
-    "requests>=2.32.5",
     "sqlalchemy-citext>=1.8.0",
     "sqlmodel>=0.0.27",
     "uvicorn>=0.38.0",
 ]
-
-[tool.pyright]
-# link pyright to local .venv
-venvPath = "."
-venv = ".venv"
 
 [tool.commitizen]
 name = "cz_customize"
@@ -100,5 +93,6 @@ dev = [
     "prek>=0.2.19",
     "pyrefly>=0.45.1",
     "pytest>=9.0.1",
+    "requests>=2.32.5",
     "ruff>=0.14.8",
 ]

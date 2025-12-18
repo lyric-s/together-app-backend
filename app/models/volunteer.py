@@ -23,7 +23,7 @@ class VolunteerBase(SQLModel):
 
 class Volunteer(VolunteerBase, table=True):
     id_volunteer: int | None = Field(default=None, primary_key=True)
-    id_user: int | None = Field(default=None, foreign_key="user.id_user", unique=True)
+    id_user: int = Field(foreign_key="user.id_user", unique=True)
     active_missions_count: int = Field(default=0)
     finished_missions_count: int = Field(default=0)
     user: "User" = Relationship(back_populates="volunteer_profile")
@@ -47,7 +47,7 @@ class VolunteerPublic(VolunteerBase):
 
 
 class VolunteerUpdate(SQLModel):
-    user: "UserUpdate"
+    user: "UserUpdate" | None = None
     last_name: str | None = None
     first_name: str | None = None
     phone_number: str | None = None
