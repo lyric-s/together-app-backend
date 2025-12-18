@@ -4,7 +4,6 @@ from sqlmodel import Session, SQLModel, create_engine
 engine = create_engine(
     get_settings().DATABASE_URL,
     pool_pre_ping=True,
-    connect_args={"check_same_thread": False},
 )
 
 
