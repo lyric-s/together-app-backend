@@ -15,7 +15,7 @@ from app.models.admin import Admin
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
-async def get_current_user(
+def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: Session = Depends(get_session),
 ) -> User:
@@ -28,8 +28,9 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        settings = get_settings()
         payload = jwt.decode(
-            token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         username: str | None = payload.get("sub")
         if username is None or payload.get("type") != "access":
@@ -45,7 +46,7 @@ async def get_current_user(
     return user
 
 
-async def get_current_admin(
+def get_current_admin(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: Session = Depends(get_session),
 ) -> Admin:
@@ -56,8 +57,9 @@ async def get_current_admin(
     )
 
     try:
+        settings = get_settings()
         payload = jwt.decode(
-            token, get_settings().SECRET_KEY, algorithms=[get_settings().ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         username: str | None = payload.get("sub")
         mode: str | None = payload.get("mode")

@@ -8,8 +8,8 @@ if TYPE_CHECKING:
 class AdminBase(SQLModel):
     first_name: str = Field(max_length=50)
     last_name: str = Field(max_length=50)
-    email: str = Field(index=True)
-    username: str = Field(unique=True, index=True)
+    email: str = Field(max_length=255, index=True)
+    username: str = Field(max_length=50, unique=True, index=True)
 
 
 class Admin(AdminBase, table=True):

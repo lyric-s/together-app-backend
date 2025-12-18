@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class UserBase(SQLModel):
     username: str = Field(unique=True, index=True)
-    email: str = Field(index=True)
+    email: str = Field(unique=True, index=True)
     user_type: UserType = Field(index=True)
 
 
@@ -27,16 +27,16 @@ class User(UserBase, table=True):
     )
     reports_made: list["Report"] = Relationship(
         back_populates="reporter",
-        sa_relationship_kwargs={"foreign_keys": "[Reports.id_user_reporter]"},
+        sa_relationship_kwargs={"foreign_keys": "[Report.id_user_reporter]"},
     )
     reports_received: list["Report"] = Relationship(
         back_populates="reported_user",
-        sa_relationship_kwargs={"foreign_keys": "[Reports.id_user_reported]"},
+        sa_relationship_kwargs={"foreign_keys": "[Report.id_user_reported]"},
     )
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=8)
 
 
 class UserPublic(UserBase):

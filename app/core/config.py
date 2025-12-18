@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     )
 
 
-@lru_cache
+@lru_cache()
+# get_settings.cach_clear() may be needed for tests that modify env vars
 def get_settings():
     """Get the useful settings/secrets from ENV variable"""
     return Settings()

@@ -6,11 +6,11 @@ if TYPE_CHECKING:
 
 
 class LocationBase(SQLModel):
-    address: str | None = None
+    address: str | None = Field(default=None, max_length=255)
     country: str | None = Field(default=None, max_length=50)
     zip_code: str | None = Field(default=None, max_length=50)
-    lat: float | None = None
-    longitude: float | None = Field(default=None, alias="long")
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, alias="long", ge=-180, le=180)
 
 
 class Location(LocationBase, table=True):
@@ -23,12 +23,12 @@ class LocationCreate(LocationBase):
 
 
 class LocationPublic(LocationBase):
-    pass
+    id_location: int
 
 
 class LocationUpdate(SQLModel):
-    address: str | None = None
+    address: str | None = Field(default=None, max_length=255)
     country: str | None = Field(default=None, max_length=50)
     zip_code: str | None = Field(default=None, max_length=50)
-    lat: float | None = None
-    longitude: float | None = Field(default=None, alias="long")
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, alias="long", ge=-180, le=180)

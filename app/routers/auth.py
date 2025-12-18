@@ -48,6 +48,7 @@ async def login_for_access_token(
     )
 
 
+# TODO rate limit on refresh token to prevent bruteforce
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
     request_data: TokenRefreshRequest,
@@ -74,7 +75,7 @@ async def refresh_token(
         if username is None or token_type != "refresh":
             raise credentials_exception
         # TODO Optional: Check if user still exists / is active in DB (ex: banned -> disabled == true)
-        # For now this isn't implemented in the DB
+        # For now this isn't implemented in the DB, so it should be
         user = session.exec(select(User).where(User.username == username)).first()
         if not user:
             raise credentials_exception
