@@ -30,6 +30,18 @@ def login_admin(
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ):
+    """
+    Authenticate an admin user and issue a JWT bearer access token.
+
+    Parameters:
+        form_data (OAuth2PasswordRequestForm): OAuth2 form data containing `username` and `password`.
+
+    Returns:
+        Token: Token object with `access_token` set to the issued JWT and `token_type` set to `"bearer"`.
+
+    Raises:
+        HTTPException: Raised with status 401 and detail "Incorrect admin username or password" when authentication fails.
+    """
     admin = authenticate_admin(session, form_data.username, form_data.password)
     if not admin:
         raise HTTPException(
@@ -50,6 +62,18 @@ def create_new_admin(
     session: Session = Depends(get_session),
     admin_in: AdminCreate,
 ):
+    """
+    Create a new admin account and persist it to the database.
+
+    Parameters:
+        admin_in (AdminCreate): Input data for the new admin (including plaintext password).
+
+    Returns:
+        Admin: The created admin record with hashed password and populated persistence fields.
+
+    Raises:
+        HTTPException: Raised with status 400 if the username or email already exists.
+    """
     hashed_pwd = get_password_hash(admin_in.password)
 
     db_admin = Admin.model_validate(admin_in, update={"hashed_password": hashed_pwd})

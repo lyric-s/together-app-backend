@@ -18,6 +18,14 @@ class InterceptHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         # CRITICAL FIX: Ignore OTel internal logs to prevent recursion loops
+        """
+        Forward a standard logging.LogRecord to Loguru while avoiding OpenTelemetry recursion.
+
+        Ignores any record whose logger name starts with "opentelemetry". Maps the record's logging level to a Loguru level when possible, determines the correct caller frame depth to preserve original callsite information, and emits the message to Loguru including any exception information from the record.
+
+        Parameters:
+            record (logging.LogRecord): The log record to be forwarded to Loguru.
+        """
         if record.name.startswith("opentelemetry"):
             return
 
@@ -38,6 +46,14 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logging():
+    """
+    Configure application logging to route Python's standard logging through Loguru and, when configured, export logs to OpenTelemetry (OTLP).
+
+    This replaces the root logging handlers with an InterceptHandler, attaches InterceptHandler to common framework loggers (uvicorn, gunicorn, fastapi, sqlalchemy), and configures Loguru to write colorized, asynchronous logs to stderr. If the environment variable OTEL_EXPORTER_OTLP_ENDPOINT is set, also initializes an OpenTelemetry LoggerProvider and OTLPLogExporter (using OTEL_SERVICE_NAME, DEPLOYMENT_ENV, and OTEL_EXPORTER_OTLP_INSECURE) and attaches an OpenTelemetry logging handler to Loguru; failures during OTLP setup are printed to stderr but do not raise.
+
+    Returns:
+        logger: The configured Loguru logger object.
+    """
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(logging.INFO)
 

@@ -19,22 +19,33 @@ password_hash = PasswordHash.recommended()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verifies a plain password against the hashed version.
+    Verify that a plaintext password matches a stored hashed password.
+
+    Returns:
+        `true` if the plaintext password matches the hashed password, `false` otherwise.
     """
     return password_hash.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
     """
-    Hashes a password using the recommended algorithm (Argon2).
+    Hash a plaintext password using the recommended hashing algorithm (Argon2).
+
+    Parameters:
+        password (str): Plaintext password to hash.
+
+    Returns:
+        str: Password hash suitable for secure storage.
     """
     return password_hash.hash(password)
 
 
 def authenticate_user(session: Session, username: str, password: str) -> User | None:
     """
-    Checks if user exists in DB and if password matches.
-    Returns the User object if successful, None otherwise.
+    Authenticate a user by username and password.
+
+    Returns:
+        User if authentication succeeds, `None` otherwise.
     """
     # Query the database for the user
     statement = select(User).where(User.username == username)
@@ -49,7 +60,10 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
 
 def authenticate_admin(session: Session, username: str, password: str) -> Admin | None:
     """
-    Specific authentication for the Admin table.
+    Authenticate an admin by username and password.
+
+    Returns:
+        Admin: The matching Admin object if credentials are valid, `None` otherwise.
     """
     statement = select(Admin).where(Admin.username == username)
     admin = session.exec(statement).first()
@@ -64,6 +78,20 @@ def authenticate_admin(session: Session, username: str, password: str) -> Admin 
 def create_token(
     data: dict, expires_delta: timedelta, type: Literal["access", "refresh"]
 ) -> str:
+    """
+    Create a JSON Web Token with the given payload, expiration, and token type.
+
+    Parameters:
+        data (dict): Payload claims to include in the token.
+        expires_delta (timedelta): Time span from now after which the token expires.
+        type (Literal["access", "refresh"]): Token classification included in the token claims.
+
+    Returns:
+        token (str): Encoded JWT string.
+
+    Raises:
+        HTTPException: HTTP 500 error if the token cannot be generated.
+    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire, "type": type})
@@ -79,6 +107,16 @@ def create_token(
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Create a JWT access token containing the provided payload.
+
+    Parameters:
+        data (dict): Claims to include in the token payload.
+        expires_delta (timedelta | None): Optional time until expiration. If `None`, the expiration is set using ACCESS_TOKEN_EXPIRE_MINUTES from application settings.
+
+    Returns:
+        str: Encoded JWT access token string.
+    """
     expires_delta = (
         expires_delta
         if expires_delta
@@ -88,6 +126,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 
 def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Create a JWT refresh token containing the provided payload.
+
+    Parameters:
+        data (dict): Claims to include in the token payload.
+        expires_delta (timedelta | None): Time until the token expires; if None, uses REFRESH_TOKEN_EXPIRE_DAYS from settings.
+
+    Returns:
+        str: Encoded JWT refresh token.
+    """
     expires_delta = (
         expires_delta
         if expires_delta
