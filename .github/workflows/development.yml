@@ -66,7 +66,7 @@ jobs:
         run: uv run pyrefly check --summarize-errors
 
       - name: "🔍 Syntax check"
-        run: uv run ruff check --fix
+        run: uv run ruff check
 
       - name: "🧹 Lint code"
-        run: uv run ruff format
+        run: uv run ruff format --check
