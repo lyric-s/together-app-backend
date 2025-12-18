@@ -37,7 +37,7 @@ update_changelog_on_bump = true
 major_version_zero = true
 
 [tool.commitizen.customize]
-message_template = "{{change_type}}:{% if jira_ticket %} {{jira_ticket}}{% endif %} {{message}}{% if show_message %} {{body_message}}{% endif %}"
+message_template = "{{change_type}}:{% if jira_ticket %} {{jira_ticket}}{% endif %} {{message}}"
 example = "feat: JIRA-123 add new feature"
 schema = "<prefix>: <jira_ticket> <commit message>"
 # Note the regex change to ([A-Z0-9]+-\\d+\\s)?
@@ -45,7 +45,7 @@ schema_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert
 bump_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)"
 bump_map = {"feat" = "MINOR", "fix" = "PATCH", "build" = "PATCH", "chore" = "PATCH", "ci" = "PATCH", "docs" = "PATCH", "style" = "PATCH", "refactor" = "PATCH", "perf" = "PATCH", "test" = "PATCH", "revert" = "PATCH", "feat!" = "MAJOR", "fix!" = "MAJOR"}
 change_type_order = ["BREAKING CHANGE", "feat", "fix", "build", "chore", "ci", "docs", "style", "refactor", "perf", "test", "revert"]
-commit_parser = "^(?P<change_type>feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](?P<jira_ticket>[A-Z0-9]+-\\d+)\\s(?P<message>.*)?"
+commit_parser = "^(?P<change_type>feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](\\s?)(?P<jira_ticket>[A-Z0-9]+-\\d+)?\\s?(?P<message>.*)"
 changelog_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)?(!)?"
 change_type_map = {"feat" = "Feat", "fix" = "Fix", "build" = "Build", "chore" = "Chore", "ci" = "CI", "docs" = "Docs", "style" = "Style", "refactor" = "Refactor", "perf" = "Perf", "test" = "Test", "revert" = "Revert"}
 
