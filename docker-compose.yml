@@ -31,7 +31,7 @@ services:
 
     # Override connection string to point to the local docker container
     environment:
-      - DEPLOYMENT_ENV=development
+      - ENVIRONMENT=development
       - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
       - LOG_LEVEL=debug
       - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=development

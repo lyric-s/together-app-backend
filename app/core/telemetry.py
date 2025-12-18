@@ -10,15 +10,18 @@ from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
 from loguru import logger
 
 
 def setup_telemetry(app: FastAPI):
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    environment = os.getenv("ENVIRONMENT")
     if not endpoint:
         logger.warning("No endpoint configured. Telemetry disabled.")
+        return
+    if environment != "production" or environment != "staging":
+        logger.info("Telemetry disabled due to current environment.")
         return
 
     try:
@@ -48,7 +51,6 @@ def setup_telemetry(app: FastAPI):
         if not hasattr(setup_telemetry, "_instrumented"):
             FastAPIInstrumentor.instrument_app(app, excluded_urls="/health,/metrics")
             SQLAlchemyInstrumentor().instrument(enable_commenter=True)  # type: ignore
-            AsyncPGInstrumentor().instrument()  # type: ignore
             Psycopg2Instrumentor().instrument(  # type: ignore
                 enable_commenter=True, skip_dep_check=True
             )
