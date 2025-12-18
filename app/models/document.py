@@ -8,16 +8,16 @@ if TYPE_CHECKING:
     from app.models.association import Association
 
 
-class DocumentBase(SQLModel, table=True):
+class DocumentBase(SQLModel):
     doc_name: str
     url_doc: str
-    date_upload: datetime
+    date_upload: datetime = Field(default_factory=datetime.now)
     verif_state: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
     id_admin: int | None = Field(default=None, foreign_key="admin.id_admin")
     id_asso: int = Field(foreign_key="association.id_asso")
 
 
-class Document(DocumentBase):
+class Document(DocumentBase, table=True):
     id_doc: int | None = Field(default=None, primary_key=True)
     admin: "Admin" = Relationship(back_populates="documents")
     association: "Association" = Relationship(back_populates="documents")

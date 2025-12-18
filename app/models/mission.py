@@ -18,7 +18,7 @@ class MissionBase(SQLModel):
     date_start: date
     date_end: date
     skills: str = Field(max_length=50)
-    description: str
+    description: str = Field(max_length=3000)
     capacity_min: int
     capacity_max: int
     image_url: str | None = None
@@ -45,6 +45,7 @@ class MissionPublic(MissionBase):
 class MissionUpdate(SQLModel):
     id_location: int | None = None
     id_categ: int | None = None
+    id_asso: int | None = None
     name: str | None = Field(default=None, max_length=50)
     date_start: date | None = None
     date_end: date | None = None
@@ -52,4 +53,5 @@ class MissionUpdate(SQLModel):
     description: str | None = None
     capacity_min: int | None = None
     capacity_max: int | None = None
+    image_url: str | None = None
     image_url: str | None = None

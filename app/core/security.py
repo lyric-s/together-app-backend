@@ -35,33 +35,26 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
     # Query the database for the user
     statement = select(User).where(User.username == username)
     user = session.exec(statement).first()
-
-    # If user doesn't exist, return None
-    if not user:
-        return None
-
-    # Verify the password
-    if not verify_password(password, user.hashed_password):
-        return None
-
-    return user
+    hash_to_verify = (
+        user.hashed_password if user else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
+    )
+    if user and verify_password(password, hash_to_verify):
+        return user
+    return None
 
 
 def authenticate_admin(session: Session, username: str, password: str) -> Admin | None:
     """
     Specific authentication for the Admin table.
     """
-    # 1. Query the ADMIN table (not User)
     statement = select(Admin).where(Admin.username == username)
     admin = session.exec(statement).first()
-
-    # 2. Verify password
-    if not admin:
-        return None
-    if not verify_password(password, admin.hashed_password):
-        return None
-
-    return admin
+    hash_to_verify = (
+        admin.hashed_password if admin else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
+    )
+    if admin and verify_password(password, hash_to_verify):
+        return admin
+    return None
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

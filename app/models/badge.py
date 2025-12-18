@@ -7,9 +7,9 @@ if TYPE_CHECKING:
 
 
 class BadgeBase(SQLModel):
-    title: str = Field(max_length=50, unique=True, index=True)
-    condition: int
-    reward: str = Field(max_length=50)
+    title: str = Field(min_length=1, max_length=50, unique=True, index=True)
+    condition: int = Field(gt=0)
+    reward: str = Field(min_length=1, max_length=50)
 
 
 class Badge(BadgeBase, table=True):
@@ -28,6 +28,6 @@ class BadgePublic(BadgeBase):
 
 
 class BadgeUpdate(SQLModel):
-    title: str | None
-    condition: int | None
-    reward: str | None
+    title: str | None = None
+    condition: int | None = None
+    reward: str | None = None
