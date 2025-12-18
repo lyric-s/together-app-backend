@@ -29,7 +29,7 @@ jobs:
           version: "0.9.17"
           enable-cache: true
 
-      - name: "📦 Install dependendies"
+      - name: "📦 Install dependencies"
         run: uv sync --locked --all-extras --dev
 
       - name: "🔍 Run tests"
@@ -63,7 +63,7 @@ jobs:
         run: uv run cz check --rev-range origin/${{ github.base_ref }}..HEAD
 
       - name: "✅ Typing check"
-        run: uv run pyrefly --summarize-errors
+        run: uv run pyrefly check --summarize-errors
 
       - name: "🔍 Syntax check"
         run: uv run ruff check --fix
