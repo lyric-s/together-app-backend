@@ -29,7 +29,7 @@ A high-performance, containerized, and observable Python REST API built with **F
 ```text
 .
 ├── app
-│   ├── core         # Config, Security, Dependencies
+│   ├── core         # Config, Security, Dependencies, Telemtry
 │   ├── database     # DB connection (database.py)
 │   ├── internal     # Admin/Internal routers
 │   ├── models       # SQLModel tables and Pydantic schemas
@@ -38,9 +38,10 @@ A high-performance, containerized, and observable Python REST API built with **F
 │   ├── utils        # Utilities (logger.py, etc.)
 │   └── main.py      # Application entrypoint
 ├── tests            # Unit and Integration tests
-├── alembic          # Database migrations
-├── compose.yaml     # Docker orchestration
+├── alembic          # Database migrations (Not yet implemented)
+├── compose.yml      # Related Or Equivalent: Docker orchestration
 ├── pyproject.toml   # Project configuration
+├── gunicorn_conf.py # Gunicorn configuration file
 └── uv.lock          # Dependency lock file
 ```
 
@@ -62,7 +63,7 @@ cd together-app-backend
 # Create virtualenv
 uv venv
 
-# activate the .venv depending on you OS/Terminal afterwards if you want
+# activate the .venv afterwards depending on your OS/Terminal for convenience
 
 # Install dependencies
 uv sync
@@ -156,7 +157,7 @@ uv run pytest
 
 ## 📊 Observability (SigNoz)
 
-We use **OpenTelemetry** to instrument the application (only on production servers currently, the following is not up to date).
+We use **OpenTelemetry** to instrument the application (only on production servers currently, the following can be skipped until the next part).
 
 1.  Open SigNoz at `http://localhost:3301`.
 2.  Create an admin account (first run only).
