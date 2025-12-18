@@ -189,7 +189,7 @@ The project includes a **GitHub Actions** workflow that:
 `JIRA-1` is an example **meant to be replaced** by the actual ticket name, in capital letters, related to the work being done on the branch. \
 If the branch you are committing on is **not linked** to a JIRA ticket, just write the message; otherwise, you **must** include the ticket name.
 
-`commit message` is **meant to be replaced** and must have **no capital letters**. It should be no more than a **short, but clear, sentence**.
+`commit message` is **meant to be replaced**. It should be no more than a **short, but clear, sentence**.
 
 ## 📝 Expected prefixes
 
