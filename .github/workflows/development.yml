@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Code quality checks
+    name: Test application
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +26,7 @@ jobs:
       - name: "⬇️ Install uv"
         uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.16"
+          version: "0.9.17"
           enable-cache: true
 
       - name: "📦 Install dependendies"
@@ -36,7 +36,7 @@ jobs:
         run: uv run pytest tests
 
   quality:
-    name: Test application
+    name: Code quality checks
     runs-on: ubuntu-latest
 
     steps:
@@ -54,7 +54,7 @@ jobs:
           version: "0.9.16"
           enable-cache: true
 
-      - name: "📦 Install dependendies"
+      - name: "📦 Install dependencies"
         run: uv sync --locked --all-extras --dev
 
       - name: "📝 Commits check on branch"

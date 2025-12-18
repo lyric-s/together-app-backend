@@ -9,12 +9,12 @@ if TYPE_CHECKING:
 
 class AssociationBase(SQLModel):
     name: str = Field(index=True, max_length=50)
-    address: str
-    country: str = Field(max_length=50)
-    zip_code: str = Field(max_length=10)
-    rna_code: str = Field(max_length=50)
-    company_name: str
-    description: str
+    address: str = Field(index=True, max_length=200)
+    country: str = Field(index=True, max_length=50)
+    zip_code: str = Field(index=True, max_length=10)
+    rna_code: str = Field(index=True, max_length=50)
+    company_name: str = Field(index=True, max_length=200)
+    description: str = Field(max_length=1000)
 
 
 class Association(AssociationBase, table=True):

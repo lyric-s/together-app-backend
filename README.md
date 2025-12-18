@@ -29,7 +29,7 @@ A high-performance, containerized, and observable Python REST API built with **F
 ```text
 .
 ├── app
-│   ├── core         # Config, Security, Dependencies, Telemtry
+│   ├── core         # Config, Security, Dependencies, Telemetry
 │   ├── database     # DB connection (database.py)
 │   ├── internal     # Admin/Internal routers
 │   ├── models       # SQLModel tables and Pydantic schemas

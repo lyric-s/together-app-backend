@@ -26,8 +26,6 @@ class InterceptHandler(logging.Handler):
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
-
-        # Find caller from where originated the logged message
         frame: FrameType | None = logging.currentframe()
         depth = 2
         while frame and frame.f_code.co_filename == logging.__file__:
@@ -40,8 +38,6 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logging():
-    # 1. REMOVE STANDARD HANDLERS (Fixes Double Logs)
-    # We strip Uvicorn/FastAPI of their default behaviors
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(logging.INFO)
 
@@ -61,12 +57,10 @@ def setup_logging():
         log.propagate = False
         log.addHandler(InterceptHandler())  # Redirect to Loguru
 
-    # 2. CONFIGURE LOGURU (Console Sink)
     logger.remove()  # Remove default handler
     logger.add(
         sys.stderr,
         level="INFO",
-        # Beautiful colors for local dev
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{level}</level>: <cyan>[{name}:{line}]</cyan> - <level>{message}</level>",
         colorize=True,
         enqueue=True,  # Async safety
