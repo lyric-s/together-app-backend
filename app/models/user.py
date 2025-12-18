@@ -1,37 +1,50 @@
-from pydantic import BaseModel
+from datetime import datetime
+from typing import TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
+from .enums import UserType
 
-# class UserBase(BaseModel):
-#     username: str
-#     email: EmailStr
-#     full_name: str | None = None
-
-
-# class UserIn(UserBase):
-#     password: str
-
-
-# class UserOut(UserBase):
-#     pass
+if TYPE_CHECKING:
+    from app.models.volunteer import Volunteer
+    from app.models.association import Association
+    from app.models.report import Report
 
 
-# class UserInDB(UserBase):
-#     hashed_password: str
-
-# class Token(BaseModel):
-#     access_token: str
-#     token_type: str
+class UserBase(SQLModel):
+    username: str = Field(unique=True, index=True)
+    email: str = Field(index=True)
+    user_type: UserType = Field(index=True)
 
 
-# class TokenData(BaseModel):
-#     username: str | None = None
-
-
-class User(BaseModel):
-    username: str
-    email: str | None = None
-    full_name: str | None = None
-    disabled: bool | None = None
-
-
-class UserInDB(User):
+class User(UserBase, table=True):
+    id_user: int | None = Field(default=None, primary_key=True)
     hashed_password: str
+    date_creation: datetime = Field(default_factory=datetime.now)
+    volunteer_profile: "Volunteer" = Relationship(
+        back_populates="user", sa_relationship_kwargs={"uselist": False}
+    )
+    association_profile: "Association" = Relationship(
+        back_populates="user", sa_relationship_kwargs={"uselist": False}
+    )
+    reports_made: list["Report"] = Relationship(
+        back_populates="reporter",
+        sa_relationship_kwargs={"foreign_keys": "[Reports.id_user_reporter]"},
+    )
+    reports_received: list["Report"] = Relationship(
+        back_populates="reported_user",
+        sa_relationship_kwargs={"foreign_keys": "[Reports.id_user_reported]"},
+    )
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserPublic(UserBase):
+    id_user: int
+    date_creation: datetime
+
+
+class UserUpdate(SQLModel):
+    email: str | None = None
+    user_type: UserType | None = None
+    password: str | None = None

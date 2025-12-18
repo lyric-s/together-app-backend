@@ -1,32 +1,8 @@
-# from sqlmodel import create_engine
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy.orm import sessionmaker
-# from app.core.config import get_settings
-
-
-# engine = create_engine(get_settings().database_url)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# Base = declarative_base()
-from typing import Annotated
-from app.core.config import settings
-from fastapi import Depends
-from sqlmodel import Field, Session, SQLModel, create_engine
-
-
-class Hero(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    age: int | None = Field(default=None, index=True)
-    secret_name: str
-
-
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+from app.core.config import get_settings
+from sqlmodel import Session, SQLModel, create_engine
 
 connect_args = {"check_same_thread": False}
-# engine = create_engine(sqlite_url, connect_args=connect_args)
-# echo=False is crucial; we rely on OTel for query logging, not print statements.
-engine = create_engine(settings.DATABASE_URL, echo=False, pool_pre_ping=True)
+engine = create_engine(get_settings().DATABASE_URL, echo=False, pool_pre_ping=True)
 
 
 def create_db_and_tables():
@@ -36,6 +12,3 @@ def create_db_and_tables():
 def get_session():
     with Session(engine) as session:
         yield session
-
-
-SessionDep = Annotated[Session, Depends(get_session)]

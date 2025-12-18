@@ -67,7 +67,7 @@ def setup_logging():
         sys.stderr,
         level="INFO",
         # Beautiful colors for local dev
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | <cyan>[{name}</cyan>:<cyan>{line}]</cyan> - <level>{message}</level>",
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{level}</level>: <cyan>[{name}</cyan>:<cyan>{line}]</cyan> - <level>{message}</level>",
         colorize=True,
         enqueue=True,  # Async safety
     )
