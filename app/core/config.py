@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import HttpUrl
 
@@ -16,11 +17,7 @@ class Settings(BaseSettings):
     )
 
 
-# Workaroud to avoid missing arguments warnings from :
-# https://github.com/pydantic/pydantic/issues/3753#issuecomment-2516682968
-settings = Settings()
-
-
+@lru_cache
 def get_settings():
     """Get the useful settings/secrets from ENV variable"""
     return Settings()

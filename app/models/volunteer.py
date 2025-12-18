@@ -1,0 +1,57 @@
+from datetime import date
+from typing import TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
+from app.models.assign import Assign
+from app.models.engagement import Engagement
+
+if TYPE_CHECKING:
+    from app.models.user import User, UserPublic, UserCreate, UserUpdate
+    from app.models.badge import Badge
+    from app.models.mission import Mission
+
+
+class VolunteerBase(SQLModel):
+    last_name: str = Field(max_length=50)
+    first_name: str = Field(max_length=50)
+    phone_number: str = Field(max_length=50)
+    birthdate: date
+    skills: str
+    address: str | None = Field(default=None)
+    zip_code: str | None = Field(max_length=50)
+    bio: str | None = None
+    active_missions_count: int = Field(default=0)
+    finished_missions_count: int = Field(default=0)
+
+
+class Volunteer(VolunteerBase, table=True):
+    id_volunteer: int | None = Field(default=None, primary_key=True)
+    id_user: int | None = Field(default=None, foreign_key="user.id_user")
+    user: "User" = Relationship(back_populates="volunteer_profile")
+    badges: list["Badge"] = Relationship(back_populates="volunteers", link_model=Assign)
+    missions: list["Mission"] = Relationship(
+        back_populates="volunteers", link_model=Engagement
+    )
+
+
+class VolunteerCreate(VolunteerBase):
+    user: "UserCreate"
+
+
+class VolunteerPublic(VolunteerBase):
+    id_volunteer: int
+    id_user: int
+    user: "UserPublic"
+
+
+class VolunteerUpdate(SQLModel):
+    user: "UserUpdate"
+    last_name: str | None = None
+    first_name: str | None = None
+    phone_number: str | None = None
+    birthdate: date | None = None
+    skills: str | None = None
+    address: str | None = None
+    zip_code: str | None = None
+    bio: str | None = None
+    active_missions_count: int | None = None
+    finished_missions_count: int | None = None
