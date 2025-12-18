@@ -20,7 +20,13 @@ def get_current_user(
     session: Session = Depends(get_session),
 ) -> User:
     """
-    Validates the JWT token and fetches the current user from the database.
+    Resolve the authenticated user from an access JWT.
+
+    Returns:
+        user (User): The User whose username matches the token's subject.
+
+    Raises:
+        HTTPException: 401 Unauthorized if the token is invalid, not an access token, missing the subject, or if no matching user is found.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,6 +56,17 @@ def get_current_admin(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: Session = Depends(get_session),
 ) -> Admin:
+    """
+    Validate an access JWT for an administrator and return the corresponding Admin.
+
+    Validates that the token payload contains a username (`sub`), that `mode` equals "admin", and that `type` equals "access". On success, retrieves and returns the Admin record matching the token's username.
+
+    Returns:
+        Admin: The Admin model instance matching the token's `sub` claim.
+
+    Raises:
+        HTTPException: 401 Unauthorized if the token is invalid, missing required claims, or no matching admin is found.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate admin credentials",

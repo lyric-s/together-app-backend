@@ -20,5 +20,12 @@ class Settings(BaseSettings):
 @lru_cache()
 # get_settings.cach_clear() may be needed for tests that modify env vars
 def get_settings():
-    """Get the useful settings/secrets from ENV variable"""
+    """
+    Load application settings from environment variables and the configured .env file.
+
+    This function is cached, so repeated calls return the same Settings instance until the cache is cleared.
+
+    Returns:
+        Settings: A Settings instance populated from environment variables and the `.env` file according to the model configuration.
+    """
     return Settings()

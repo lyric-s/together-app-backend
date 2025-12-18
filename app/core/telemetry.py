@@ -15,6 +15,14 @@ from loguru import logger
 
 
 def setup_telemetry(app: FastAPI):
+    """
+    Initialize OpenTelemetry tracing and metrics when an OTLP endpoint is configured.
+
+    Creates and registers tracer and meter providers using OTLP exporters configured via environment variables (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME, ENVIRONMENT, OTEL_EXPORTER_OTLP_INSECURE), and instruments the provided FastAPI app plus SQLAlchemy and Psycopg2 once. If no endpoint is configured, telemetry is left disabled; setup failures are logged but not raised.
+
+    Parameters:
+        app (FastAPI): FastAPI application to instrument (excludes /health and /metrics).
+    """
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     if not endpoint:
         logger.warning("No endpoint configured. Telemetry disabled.")

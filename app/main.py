@@ -15,6 +15,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Perform application startup tasks before the FastAPI app begins serving requests.
+
+    Runs logging setup, creates the database and tables, and initializes telemetry using the provided FastAPI application. This function is intended to be used as an async lifespan context manager and yields control after startup actions complete.
+    """
     setup_logging()
     create_db_and_tables()
     setup_telemetry(app)
@@ -38,11 +43,23 @@ app.add_middleware(
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
+    """
+    Serve the application's favicon file.
+
+    Returns:
+        FileResponse: The `favicon.ico` file served from the project's base directory (`BASE_DIR / "favicon.ico"`).
+    """
     return FileResponse(BASE_DIR / "favicon.ico")
 
 
 @app.get("/health", include_in_schema=False)
 def health_check():
+    """
+    Provide the application's liveness state for health checks.
+
+    Returns:
+        dict: A mapping with key "status" and value "ok" indicating the service is healthy.
+    """
     return {"status": "ok"}
 
 
