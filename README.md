@@ -103,6 +103,7 @@ docker compose up -d --build
 ```
 
 ### Services Overview
+
 | Service | URL | Description |
 | :--- | :--- | :--- |
 | **API** | `http://localhost:8000` | The FastAPI Backend |
