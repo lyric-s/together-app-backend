@@ -3,9 +3,10 @@ import sys
 
 def test_python_version():
     """
-    Verifies we are running on the expected Python version (e.g., 3.12+).
-    Currently just for workflows to pass
-    TEMPORARY !!!
+    Check that the running Python interpreter is Python 3.12.
+
+    Raises:
+        AssertionError: If the interpreter's minor version is less than 12 or is 13 or greater.
     """
     assert sys.version_info.minor >= 12
     assert sys.version_info.minor < 13

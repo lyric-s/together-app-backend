@@ -27,6 +27,15 @@ async def login_for_access_token(
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ):
+    """
+    Authenticate user credentials from the OAuth2 form and issue a new access token and refresh token.
+
+    Returns:
+        Token: A Token object containing `access_token`, `refresh_token`, and `token_type` set to "bearer".
+
+    Raises:
+        HTTPException: Raised with 401 Unauthorized if the provided username or password is incorrect.
+    """
     user = authenticate_user(session, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -56,8 +65,18 @@ async def refresh_token(
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     """
-    The mobile app calls this when the Access Token expires.
-    Expects JSON: {"refresh_token": "..."}
+    Validate a refresh token and issue a new access token.
+
+    Validates the provided refresh token, ensures it belongs to an existing user and is of type "refresh", then returns a Token containing a newly created access token and the original refresh token.
+
+    Parameters:
+        request_data (TokenRefreshRequest): Request body containing the `refresh_token` string.
+
+    Returns:
+        Token: An object with `access_token` (newly issued), `refresh_token` (the incoming token), and `token_type` set to "bearer".
+
+    Raises:
+        HTTPException: 401 Unauthorized if the refresh token is invalid, expired, missing required claims, or the user does not exist.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
