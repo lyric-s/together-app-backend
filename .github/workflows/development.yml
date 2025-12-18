@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: "☁️ Checkout repository"
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: "🔧 Set up python"
         uses: actions/setup-python@v6
@@ -58,7 +60,7 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: "📝 Commits check on branch"
-        run: uv run cz check --rev-range HEAD~~~..
+        run: uv run cz check --rev-range origin/${{ github.base_ref }}..HEAD
 
       - name: "✅ Typing check"
         run: uv run pyrefly --summarize-errors
