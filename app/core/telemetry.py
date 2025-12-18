@@ -20,15 +20,14 @@ def setup_telemetry(app: FastAPI):
     if not endpoint:
         logger.warning("No endpoint configured. Telemetry disabled.")
         return
-    if environment != "production" or environment != "staging":
-        logger.info("Telemetry disabled due to current environment.")
+    elif environment != "production" and environment != "staging":
+        logger.info("Non-production or Non-staging environment. Telemetry disabled.")
         return
-
     try:
         resource = Resource.create(
             {
                 "service.name": os.getenv("OTEL_SERVICE_NAME", "unset"),
-                "deployment.environment": os.getenv("DEPLOYMENT_ENV", "development"),
+                "deployment.environment": environment,
             }
         )
 
@@ -59,4 +58,4 @@ def setup_telemetry(app: FastAPI):
         logger.info("Traces & Metrics Active.")
 
     except Exception as e:
-        logger.error(f"Setup Failed: {e}")
+        logger.error(f"Logs & Traces & Metrics Setup Failed: {e}")
