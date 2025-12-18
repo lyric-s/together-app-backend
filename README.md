@@ -107,7 +107,7 @@ docker compose up -d --build
 | :--- | :--- | :--- |
 | **API** | `http://localhost:8000` | The FastAPI Backend |
 | **Swagger UI** | `http://localhost:8000/docs` | Interactive API Documentation |
-| **SigNoz** | `http://localhost:3301` | Metrics, Traces, and Logs Dashboard (Not locally yet) |
+| **SigNoz** | `http://localhost:3301` | Metrics, Traces, and Logs Dashboard (Not locally yet, so skip it for now) |
 | **PostgreSQL** | `localhost:5432` | Main Database |
 
 ---
