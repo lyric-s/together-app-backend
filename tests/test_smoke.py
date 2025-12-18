@@ -4,6 +4,7 @@ import sys
 def test_python_version():
     """
     Check that the running Python interpreter is Python 3.12.
+    Currently just for workflows to pass. Very likely temporary.
 
     Raises:
         AssertionError: If the interpreter's minor version is less than 12 or is 13 or greater.
