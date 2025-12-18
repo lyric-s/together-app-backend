@@ -1,3 +1,4 @@
+from datetime import timezone
 from datetime import datetime
 from typing import TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
@@ -18,7 +19,7 @@ class ReportBase(SQLModel):
 class Report(ReportBase, table=True):
     id_report: int | None = Field(default=None, primary_key=True)
     state: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
-    date_reporting: datetime = Field(default_factory=datetime.now)
+    date_reporting: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reporter: "User" = Relationship(
         back_populates="reports_made",
         sa_relationship_kwargs={"foreign_keys": "[Report.id_user_reporter]"},
