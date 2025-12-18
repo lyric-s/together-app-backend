@@ -82,7 +82,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     expires_delta = (
         expires_delta
         if expires_delta
-        else timedelta(get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
+        else timedelta(minutes=get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return create_token(data, expires_delta=expires_delta, type="access")
 
@@ -91,6 +91,6 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
     expires_delta = (
         expires_delta
         if expires_delta
-        else timedelta(get_settings().REFRESH_TOKEN_EXPIRE_DAYS)
+        else timedelta(days=get_settings().REFRESH_TOKEN_EXPIRE_DAYS)
     )
-    return create_token(data, expires_delta=expires_delta, type="access")
+    return create_token(data, expires_delta=expires_delta, type="refresh")
