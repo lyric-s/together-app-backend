@@ -16,18 +16,14 @@ from loguru import logger
 
 def setup_telemetry(app: FastAPI):
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    environment = os.getenv("ENVIRONMENT")
     if not endpoint:
         logger.warning("No endpoint configured. Telemetry disabled.")
-        return
-    elif environment != "production" and environment != "staging":
-        logger.info("Non-production or Non-staging environment. Telemetry disabled.")
         return
     try:
         resource = Resource.create(
             {
                 "service.name": os.getenv("OTEL_SERVICE_NAME", "unset"),
-                "deployment.environment": environment,
+                "deployment.environment": os.getenv("ENVIRONMENT", "unexpected"),
             }
         )
 
@@ -58,4 +54,4 @@ def setup_telemetry(app: FastAPI):
         logger.info("Traces & Metrics Active.")
 
     except Exception as e:
-        logger.error(f"Logs & Traces & Metrics Setup Failed: {e}")
+        logger.error(f"Traces & Metrics Setup Failed: {e}")

@@ -108,7 +108,7 @@ docker compose up -d --build
 | :--- | :--- | :--- |
 | **API** | `http://localhost:8000` | The FastAPI Backend |
 | **Swagger UI** | `http://localhost:8000/docs` | Interactive API Documentation |
-| **SigNoz** | `http://localhost:3301` | Metrics, Traces, and Logs Dashboard (Not locally yet, so skip it for now) |
+| **SigNoz** | `http://endpoint_given_in_env:3301` | Metrics, Traces, and Logs Dashboard (If you don't have a signoz server to point to, skip this part) |
 | **PostgreSQL** | `localhost:5432` | Main Database |
 
 ---
@@ -158,9 +158,9 @@ uv run pytest
 
 ## 📊 Observability (SigNoz)
 
-We use **OpenTelemetry** to instrument the application (only on production servers currently, the following can be skipped until the next part).
+We use **OpenTelemetry** to instrument the application (the following steps can be skipped if you're not using this tool).
 
-1.  Open SigNoz at `http://localhost:3301`.
+1.  Open SigNoz at `http://endpoint_given_in_env:3301`.
 2.  Create an admin account (first run only).
 3.  Navigate to the **Traces** tab.
 4.  Filter by service: `fastapi-app`.
