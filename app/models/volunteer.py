@@ -48,13 +48,13 @@ class VolunteerPublic(VolunteerBase):
 
 class VolunteerUpdate(SQLModel):
     user: "UserUpdate" | None = None
-    last_name: str | None = None
-    first_name: str | None = None
-    phone_number: str | None = None
+    last_name: str | None = Field(default=None, max_length=50)
+    first_name: str | None = Field(default=None, max_length=50)
+    phone_number: str | None = Field(default=None, max_length=50)
     birthdate: date | None = None
-    skills: str | None = None
+    skills: str | None = Field(default=None, max_length=500)
     address: str | None = None
-    zip_code: str | None = None
-    bio: str | None = None
+    zip_code: str | None = Field(default=None, max_length=50)
+    bio: str | None = Field(default=None, max_length=200)
     # active_missions_count and finished_missions_count should
     # be handled in the database

@@ -1,3 +1,7 @@
+from jwt.exceptions import PyJWTError
+from fastapi.exceptions import HTTPException
+from fastapi import status
+from typing import Literal
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -57,29 +61,36 @@ def authenticate_admin(session: Session, username: str, password: str) -> Admin 
     return None
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_token(
+    data: dict, expires_delta: timedelta, type: Literal["access", "refresh"]
+) -> str:
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=get_settings().ACCESS_TOKEN_EXPIRE_MINUTES
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode.update({"exp": expire, "type": type})
+    try:
+        return jwt.encode(
+            to_encode, get_settings().SECRET_KEY, algorithm=get_settings().ALGORITHM
         )
-    to_encode.update({"exp": expire, "type": "access"})
-    return jwt.encode(
-        to_encode, get_settings().SECRET_KEY, algorithm=get_settings().ALGORITHM
+    except PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not generate authentication token.",
+        )
+
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    expires_delta = (
+        expires_delta
+        if expires_delta
+        else timedelta(get_settings().ACCESS_TOKEN_EXPIRE_MINUTES)
     )
+    return create_token(data, expires_delta=expires_delta, type="access")
 
 
 def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            days=get_settings().REFRESH_TOKEN_EXPIRE_DAYS
-        )
-    to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(
-        to_encode, get_settings().SECRET_KEY, algorithm=get_settings().ALGORITHM
+    expires_delta = (
+        expires_delta
+        if expires_delta
+        else timedelta(get_settings().REFRESH_TOKEN_EXPIRE_DAYS)
     )
+    return create_token(data, expires_delta=expires_delta, type="access")
