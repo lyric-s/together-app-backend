@@ -61,8 +61,6 @@ def setup_logging():
         "uvicorn",
         "uvicorn.error",
         "uvicorn.access",
-        "gunicorn.error",
-        "gunicorn.access",
         "fastapi",
         "sqlalchemy.engine",
     ]

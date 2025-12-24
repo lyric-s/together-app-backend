@@ -25,4 +25,4 @@ COPY --chown=appuser:appuser . .
 # Add venv to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-CMD ["gunicorn", "app.main:app", "-c", "gunicorn_conf.py"]
+CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
