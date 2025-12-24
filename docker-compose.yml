@@ -40,7 +40,7 @@ services:
       - /app/.venv
 
     # Override the Prod CMD to use Reload
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
     depends_on:
       postgres:
