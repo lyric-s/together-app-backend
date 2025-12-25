@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/ricix/together-app-backend:latest
+    build: .
     restart: always
     ports:
       - "8000:8000"

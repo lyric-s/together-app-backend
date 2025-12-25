@@ -1,4 +1,4 @@
-name: Build
+name: Quality checks
 
 on:
   pull_request:
