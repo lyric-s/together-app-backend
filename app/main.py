@@ -2,7 +2,7 @@ from app.database.database import create_db_and_tables
 from pathlib import Path
 from app.utils.logger import setup_logging
 from contextlib import asynccontextmanager
-from app.core.config import get_settings
+from app.core.config import get_settings, parse_comma_separated_origins
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -34,7 +34,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[str(origin) for origin in get_settings().BACKEND_CORS_ORIGINS],
+    allow_origins=[
+        str(origin)
+        for origin in parse_comma_separated_origins(get_settings().BACKEND_CORS_ORIGINS)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
