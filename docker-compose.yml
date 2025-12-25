@@ -25,27 +25,19 @@ services:
     container_name: dev-api
     ports:
       - "8000:8000"
-
     env_file:
       - .env
-
-    # Override connection string to point to the local docker container
     environment:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
       - LOG_LEVEL=debug
-
     volumes:
       - .:/app
       - /app/.venv
-
-    # Override the Prod CMD to use Reload
     command: fastapi dev app/main.py --host 0.0.0.0 --port 8000
-
     depends_on:
       postgres:
         condition: service_healthy
-
     networks:
       - api_db
 
