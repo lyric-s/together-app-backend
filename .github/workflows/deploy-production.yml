@@ -3,14 +3,14 @@ name: Deploy Production
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tags (e.g., v1.0.0)
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,8 +21,10 @@ jobs:
 
       - name: Get Version
         id: get_version
-        run: |
-          echo "APP_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -31,84 +33,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create .env file
-        uses: spicypizza/create-envfile@v2.0
-        with:
-          # --- APP CONFIG ---
-          envkey_DEBUG: false
-          envkey_LOG_LEVEL: info
-          envkey_DEPLOYMENT_ENV: production
-
-          # --- SECURITY & TOKENS ---
-          envkey_SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          envkey_BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
-          envkey_ALGORITHM: ${{ vars.ALGORITHM }}
-          envkey_ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.ACCESS_TOKEN_EXPIRE_MINUTES }}
-          envkey_REFRESH_TOKEN_EXPIRE_DAYS: ${{ vars.REFRESH_TOKEN_EXPIRE_DAYS }}
-
-          # --- DATABASE ---
-          envkey_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-          # --- OBSERVABILITY ---
-          envkey_OTEL_SERVICE_NAME: "fastapi-backend-prod"
-          envkey_OTEL_EXPORTER_OTLP_ENDPOINT: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
-          envkey_OTEL_EXPORTER_OTLP_PROTOCOL: ${{ vars.OTEL_EXPORTER_OTLP_PROTOCOL }}
-          envkey_OTEL_TRACES_EXPORTER: ${{ vars.OTEL_TRACES_EXPORTER }}
-          envkey_OTEL_METRICS_EXPORTER: ${{ vars.OTEL_METRICS_EXPORTER }}
-          envkey_OTEL_LOGS_EXPORTER: ${{ vars.OTEL_LOGS_EXPORTER }}
-          envkey_OTEL_EXPORTER_OTLP_INSECURE: ${{ vars.OTEL_EXPORTER_OTLP_INSECURE }}
-          envkey_OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=production,service.version=${{ env.APP_VERSION }}"
-
-          # --- SERVER CONFIG ---
-          envkey_WEB_CONCURRENCY: ${{ vars.PROD_WEB_CONCURRENCY }}
-          envkey_GUNICORN_TIMEOUT: ${{ vars.GUNICORN_TIMEOUT }}
-          envkey_GUNICORN_GRACEFUL_TIMEOUT: ${{ vars.GUNICORN_GRACEFUL_TIMEOUT }}
-          envkey_GUNICORN_KEEPALIVE: ${{ vars.GUNICORN_KEEPALIVE }}
-
-          file_name: .env
-          fail_on_empty: true
-
-      # 6. TRANSFER FILES
-      - name: Copy files to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: ".env,docker-compose.prod.yml" # Ensure you copy the PROD compose file
-          target: "/opt/together_api_production/"
-
-      # 7. DEPLOY TO SWARM
-      - name: Deploy Swarm Stack
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: APP_VERSION, REGISTRY, IMAGE_NAME
-          script: |
-            cd /opt/together_api_production
-            chmod 600 .env
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            export IMAGE_TAG=$APP_VERSION
-            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
-            docker stack deploy -c docker-compose.prod.yml --with-registry-auth together_api_production_stack
-            if [ $? -ne 0 ]; then
-              echo "Stack deployment failed"
-              exit 1
-            fi
-            docker system prune -af --filter "until=24h"
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify Deployment
+        run: |
+          curl --request GET '${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}'
