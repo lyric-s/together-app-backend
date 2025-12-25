@@ -1,6 +1,6 @@
 services:
   api:
-    build: .
+    image: ghcr.io/lyric-s/together-app-backend:latest
     restart: always
     ports:
       - "8000:8000"

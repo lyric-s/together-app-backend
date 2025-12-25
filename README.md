@@ -12,7 +12,7 @@ A high-performance, containerized, and observable Python REST API built with **F
 
 ### Backend & Server
 * **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
-* **Server:** [Gunicorn](https://gunicorn.org/) with [Uvicorn](https://uvicorn.dev/) workers
+* **Server:** [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/) (with Uvicorn)
 * **Database:** PostgreSQL with [SQLModel](https://sqlmodel.tiangolo.com/) (ORM)
 * **Migrations:** [Alembic](https://alembic.sqlalchemy.org/)
 * **Security:** OAuth2 (JWT) & CORS Configuration
@@ -62,7 +62,11 @@ cd together-app-backend
 # Create virtualenv
 uv venv
 
-# activate the .venv afterwards depending on your OS/Terminal for convenience
+# Activate the virtual environment
+# On macOS/Linux: source .venv/bin/activate
+# On Windows: .venv\Scripts\activate
+# (Recommended for IDE integration and tools like pyrefly or pre-commit)
+# See: https://docs.astral.sh/uv/pip/environments/#using-a-virtual-environment
 
 # Install dependencies
 uv sync
@@ -87,7 +91,7 @@ uv run alembic upgrade head
 Start the API with hot-reload enabled:
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run fastapi dev app/main.py
 ```
 The API will be available at `http://127.0.0.1:8000`.
 
