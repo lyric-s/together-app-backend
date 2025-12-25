@@ -4,6 +4,20 @@ from pydantic import HttpUrl
 
 
 def parse_comma_separated_origins(comma_list: str) -> list[HttpUrl]:
+    """
+    Parse a comma-separated string into a list of validated HttpUrl origins.
+
+    Empty or falsy input returns an empty list. Each non-empty, comma-separated item is validated and converted to an HttpUrl.
+
+    Parameters:
+        comma_list (str): Comma-separated origins (may be empty or falsy).
+
+    Returns:
+        list[HttpUrl]: A list of parsed and validated HttpUrl objects.
+
+    Raises:
+        ValueError: If any origin cannot be parsed as an HttpUrl; the error message includes the invalid origin and the underlying reason.
+    """
     if not comma_list:
         return []
     # Split by comma and strip whitespace
