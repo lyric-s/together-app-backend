@@ -50,4 +50,4 @@ jobs:
     steps:
       - name: Trigger Coolify Deployment
         run: |
-          curl --request GET '${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}'
+          curl --fail --show-error --request GET '${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}'
