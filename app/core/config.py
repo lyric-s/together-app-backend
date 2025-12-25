@@ -3,18 +3,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import HttpUrl
 
 
+def parse_comma_separated_origins(comma_list: str) -> list[HttpUrl]:
+    if not comma_list:
+        return []
+    # Split by comma and strip whitespace
+    origins = [
+        HttpUrl(origin.strip()) for origin in comma_list.split(",") if origin.strip()
+    ]
+    return origins
+
+
+# Read the env file not present in the repo for security reasons,
+# overrides the attributes above based on the env file content
+model_config = SettingsConfigDict(
+    env_file_encoding="utf-8", env_file=".env", extra="ignore"
+)
+
+
 class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-    BACKEND_CORS_ORIGINS: list[HttpUrl] = []
-    # Read the env file not present in the repo for security reasons,
-    # overrides the attributes above based on the env file content
-    model_config = SettingsConfigDict(
-        env_file_encoding="utf-8", env_file=".env", extra="ignore"
-    )
+    BACKEND_CORS_ORIGINS: str
 
 
 @lru_cache()
