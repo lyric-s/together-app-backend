@@ -41,7 +41,6 @@ A high-performance, containerized, and observable Python REST API built with **F
 ├── alembic          # Database migrations (Not yet implemented)
 ├── compose.yml      # Related Or Equivalent: Docker orchestration
 ├── pyproject.toml   # Project configuration
-├── gunicorn_conf.py # Gunicorn configuration file
 └── uv.lock          # Dependency lock file
 ```
 
@@ -96,7 +95,7 @@ The API will be available at `http://127.0.0.1:8000`.
 
 ## 🐋 Running the Full Stack (Docker)
 
-To start the API, PostgreSQL Database, and the **SigNoz Observability Suite** together (SigNoz is currently only on the production servers):
+To start the API and PostgreSQL Database together:
 
 ```bash
 docker compose up -d --build
@@ -108,7 +107,6 @@ docker compose up -d --build
 | :--- | :--- | :--- |
 | **API** | `http://localhost:8000` | The FastAPI Backend |
 | **Swagger UI** | `http://localhost:8000/docs` | Interactive API Documentation |
-| **SigNoz** | `http://endpoint_given_in_env:3301` | Metrics, Traces, and Logs Dashboard (If you don't have a signoz server to point to, skip this part) |
 | **PostgreSQL** | `localhost:5432` | Main Database |
 
 ---
@@ -158,26 +156,41 @@ uv run pytest
 
 ## 📊 Observability (SigNoz)
 
-We use **OpenTelemetry** to instrument the application (the following steps can be skipped if you're not using this tool).
+We use **OpenTelemetry** to instrument the application. While the local development environment does not include the full SigNoz stack by default to keep it lightweight, the application is fully configured to export traces, metrics, and **logs** to a SigNoz instance which has to be implemented aside.
 
-1.  Open SigNoz at `http://endpoint_given_in_env:3301`.
-2.  Create an admin account (first run only).
-3.  Navigate to the **Traces** tab.
-4.  Filter by service: `fastapi-app`.
-5.  View:
-    * Request Latency (P99, P95)
-    * Database Query Performance
-    * Error Rates and Stack Traces
+For configuration details (endpoints, service names, etc.), please refer to the **Observability** section in `.env.example`.
+
+Once connected, you can view:
+*   **Request Latency** (P99, P95)
+*   **Database Query Performance**
+*   **Error Rates and Stack Traces**
+*   **Application Logs** (Aggregated and Filterable)
 
 ---
 
 ## 🚀 Workflow (CI/CD)
 
-The project includes a **GitHub Actions** workflow that:
-1.  Installs `uv`.
-2.  Runs `ruff` and `pyrefly` checks.
-3.  Runs `pytest`.
-4.  Runs `commitizen` to validate commits name on branch.
+The project includes a comprehensive CI/CD pipeline:
+
+### Continuous Integration (GitHub Actions)
+*   **PR Validation**: Installs `uv`, runs `ruff` (linting), `pyrefly` (type check), and `pytest` (tests).
+*   **Commit Validation**: Uses `commitizen` to ensure conventional commit messages.
+
+### Deployment (Coolify)
+We use a **Hybrid Deployment Strategy** managed by [Coolify](https://coolify.io/):
+
+1.  **Preview Deployments (Pull Requests)**:
+    *   Automatically built and deployed by Coolify on every PR.
+    *   Provides a unique URL for testing changes in isolation.
+
+2.  **Staging (`dev` branch)**:
+    *   Automatically deployed when code merges to `dev`.
+    *   Built from source on the staging server for quick updates.
+
+3.  **Production (Tags)**:
+    *   Triggered when a version tag (e.g., `v1.0.0`) is pushed.
+    *   **CI Build**: GitHub Actions builds the Docker image and pushes it to GitHub Container Registry.
+    *   **CD Deploy**: Coolify pulls the pre-built, tested image for maximum stability.
 
 ---
 
