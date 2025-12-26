@@ -9,6 +9,7 @@ dependencies = [
     "databases>=0.9.0",
     "fastapi[standard]>=0.122.0",
     "loguru>=0.7.3",
+    "minio>=7.2.20",
     "opentelemetry-distro>=0.60b1",
     "opentelemetry-exporter-otlp>=1.39.1",
     "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
