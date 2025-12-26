@@ -5,6 +5,7 @@ description = "REST API of the Together platform"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.17.2",
     "databases>=0.9.0",
     "fastapi[standard]>=0.122.0",
     "loguru>=0.7.3",
