@@ -1,4 +1,6 @@
+from typing import Literal
 from pydantic.types import SecretStr
+from pydantic.networks import AnyUrl
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import HttpUrl
@@ -43,12 +45,13 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: str
     FIRST_SUPERUSER_PASSWORD: SecretStr
     FIRST_SUPERUSER_USERNAME: str = "superadmin"
-    ENVIRONMENT: str
+    ENVIRONMENT: Literal["development", "staging", "production"]
     UPLOADS_BUCKET: str
     AVATARS_BUCKET: str
-    MINIO_ENDPOINT: str
-    MINIO_ACCESS_KEY: str
-    MINIO_SECRET_KEY: str
+    MINIO_ENDPOINT: AnyUrl
+    MINIO_ACCESS_KEY: SecretStr
+    MINIO_SECRET_KEY: SecretStr
+    MINIO_SECURE: bool
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
