@@ -4,11 +4,13 @@ from app.utils.logger import setup_logging
 from contextlib import asynccontextmanager
 from app.core.config import get_settings, parse_comma_separated_origins
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from app.internal import admin
 from app.routers import auth
 from app.core.telemetry import setup_telemetry
+from app.services.storage import storage_service
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,6 +24,7 @@ async def lifespan(app: FastAPI):
     """
     setup_logging()
     create_db_and_tables()
+    storage_service.ensure_bucket_exists()
     setup_telemetry(app)
     yield
 
@@ -43,6 +46,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mounting the 'static' folder to serve generic assets
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -52,7 +58,7 @@ async def favicon():
     Returns:
         FileResponse: The `favicon.ico` file served from the project's base directory (`BASE_DIR / "favicon.ico"`).
     """
-    return FileResponse(BASE_DIR / "favicon.ico")
+    return FileResponse(BASE_DIR / "static/favicon.ico")
 
 
 @app.get("/health", include_in_schema=False)

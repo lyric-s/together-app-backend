@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: str
     FIRST_SUPERUSER_PASSWORD: SecretStr
     FIRST_SUPERUSER_USERNAME: str = "superadmin"
+    ENVIRONMENT: str
+    UPLOADS_BUCKET: str
+    AVATARS_BUCKET: str
+    MINIO_ENDPOINT: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
