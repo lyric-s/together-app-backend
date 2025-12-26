@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 from typing import Optional, BinaryIO
-
+import os
 from minio import Minio
 from minio.error import S3Error
 from app.core.config import get_settings
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 class StorageService:
     def __init__(self):
         self.client = Minio(
-            settings.MINIO_ENDPOINT,
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            secure=settings.ENVIRONMENT != "development",
+            str(settings.MINIO_ENDPOINT),
+            access_key=str(settings.MINIO_ACCESS_KEY),
+            secret_key=str(settings.MINIO_SECRET_KEY),
+            secure=settings.MINIO_SECURE,
         )
         self.bucket_name = settings.AVATARS_BUCKET
 
@@ -41,18 +41,29 @@ class StorageService:
         """
         Uploads a file and returns the Object Name (Key) to store in the DB.
         """
+        if not file_data:
+            raise ValueError("file_data cannot be None")
+        if not file_name or not file_name.strip():
+            raise ValueError("file_name cannot be empty")
+
+        # Sanitize file_name to prevent path traversal
+        # Use only the basename and reject any path separators
+        sanitized_name = os.path.basename(file_name)
+        if not sanitized_name or sanitized_name != file_name:
+            raise ValueError(f"Invalid file_name: {file_name}")
+
         try:
             self.client.put_object(
                 bucket_name=self.bucket_name,
-                object_name=file_name,
+                object_name=sanitized_name,
                 data=file_data,
                 length=size,
                 content_type=content_type,
                 # Part size 10MB ensures better performance for larger files
                 part_size=10 * 1024 * 1024,
             )
-            logger.info(f"File '{file_name}' uploaded successfully.")
-            return file_name
+            logger.info(f"File '{sanitized_name}' uploaded successfully.")
+            return sanitized_name
         except S3Error as e:
             logger.error(f"Failed to upload file to MinIO: {e}")
             raise

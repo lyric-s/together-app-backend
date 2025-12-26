@@ -46,8 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure static directory exists
+static_dir = BASE_DIR / "static"
+static_dir.mkdir(exist_ok=True)
+
 # Mounting the 'static' folder to serve generic assets
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+app.mount("/static", StaticFiles(directory=static_dir, html=False), name="static")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
