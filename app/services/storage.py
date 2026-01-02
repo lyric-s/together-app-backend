@@ -71,7 +71,7 @@ class StorageService:
         if not file_name or not file_name.strip():
             raise ValueError("file_name cannot be empty")
         # Enforce maximum file size
-        if size <= 0:
+        if size < 0:
             # Compute size from file_data
             file_data.seek(0, os.SEEK_END)  # Seek to end
             size = file_data.tell()
