@@ -33,7 +33,7 @@ def init_db(session: Session) -> None:
         try:
             session.add(admin)
             session.commit()
-            logger.info("First superuser already exists")
+            logger.info("First superuser created successfully")
         except Exception as e:
             session.rollback()
             logger.error(f"Failed to create first superuser: {e}")
