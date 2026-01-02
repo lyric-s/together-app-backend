@@ -34,3 +34,5 @@ class DocumentPublic(DocumentBase):
 class DocumentUpdate(SQLModel):
     doc_name: str | None = None
     url_doc: str | None = None
+    verif_state: ProcessingStatus | None = None
+    id_admin: int | None = None
