@@ -18,7 +18,7 @@ class StorageService:
             secret_key=str(settings.MINIO_SECRET_KEY),
             secure=settings.MINIO_SECURE,
         )
-        self.bucket_name = settings.AVATARS_BUCKET
+        self.bucket_name = settings.DOCUMENTS_BUCKET
 
     def ensure_bucket_exists(self):
         """

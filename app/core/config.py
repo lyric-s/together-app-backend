@@ -46,8 +46,7 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PASSWORD: SecretStr
     FIRST_SUPERUSER_USERNAME: str = "superadmin"
     ENVIRONMENT: Literal["development", "staging", "production"]
-    UPLOADS_BUCKET: str
-    AVATARS_BUCKET: str
+    DOCUMENTS_BUCKET: str
     MINIO_ENDPOINT: AnyUrl
     MINIO_ACCESS_KEY: SecretStr
     MINIO_SECRET_KEY: SecretStr
