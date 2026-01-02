@@ -12,7 +12,6 @@ def init() -> None:
 
 
 def main() -> None:
-    # Remove default handler and add stdout handler
     logger.info("Creating initial data")
     init()
     logger.info("Initial data created")

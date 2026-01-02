@@ -8,7 +8,11 @@ from app.core.security import get_password_hash
 
 def init_db(session: Session) -> None:
     settings = get_settings()
-    if not settings.FIRST_SUPERUSER_EMAIL or not settings.FIRST_SUPERUSER_PASSWORD:
+    if (
+        not settings.FIRST_SUPERUSER_EMAIL
+        or not settings.FIRST_SUPERUSER_PASSWORD.get_secret_value()
+        or not settings.FIRST_SUPERUSER_USERNAME
+    ):
         logger.warning("First superuser not configured. Skipping creation.")
         return
 
@@ -20,15 +24,19 @@ def init_db(session: Session) -> None:
         admin = Admin(
             email=settings.FIRST_SUPERUSER_EMAIL,
             username=settings.FIRST_SUPERUSER_USERNAME,
-            hashed_password=get_password_hash(settings.FIRST_SUPERUSER_PASSWORD),
+            hashed_password=get_password_hash(
+                settings.FIRST_SUPERUSER_PASSWORD.get_secret_value()
+            ),
             first_name="Initial",
             last_name="Admin",
         )
-        session.add(admin)
-        session.commit()
-        session.refresh(admin)
-        logger.info(f"First superuser created: {admin.email}")
+        try:
+            session.add(admin)
+            session.commit()
+            logger.info("First superuser already exists")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to create first superuser: {e}")
+            raise
     else:
-        logger.info(
-            f"First superuser already exists: {settings.FIRST_SUPERUSER_USERNAME}"
-        )
+        logger.info("First superuser already exists")
