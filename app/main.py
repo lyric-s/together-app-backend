@@ -13,6 +13,9 @@ from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Ensure static directory exists before later mount
+static_dir = BASE_DIR / "static"
+static_dir.mkdir(exist_ok=True)
 
 
 @asynccontextmanager
@@ -46,12 +49,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ensure static directory exists
-static_dir = BASE_DIR / "static"
-static_dir.mkdir(exist_ok=True)
-
 # Mounting the 'static' folder to serve generic assets
-app.mount("/static", StaticFiles(directory=static_dir, html=False), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static"), html=False),
+    name="static",
+)
 
 
 @app.get("/favicon.ico", include_in_schema=False)

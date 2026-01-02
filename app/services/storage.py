@@ -88,15 +88,18 @@ class StorageService:
             logger.error(f"Failed to generate presigned URL: {e}")
             return None
 
-    def delete_file(self, object_name: str):
+    def delete_file(self, object_name: str) -> None:
         """
         Deletes a file. Useful when a user updates their avatar (cleanup old one).
         """
+        if not object_name:
+            raise ValueError("object_name cannot be empty")
         try:
             self.client.remove_object(self.bucket_name, object_name)
             logger.info(f"File '{object_name}' deleted.")
         except S3Error as e:
             logger.error(f"Failed to delete file: {e}")
+            raise
 
 
 # Singleton instance to be imported elsewhere
