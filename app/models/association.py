@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ class AssociationPublic(AssociationBase):
     id_asso: int
     id_user: int
     # TODO use .options(selectinload(Association.user)) in the query
-    user: "UserPublic" | None = None
+    user: Optional["UserPublic"] = None
 
 
 class AssociationUpdate(SQLModel):

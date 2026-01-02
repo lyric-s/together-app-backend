@@ -36,7 +36,9 @@ def get_current_user(
     try:
         settings = get_settings()
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token,
+            settings.SECRET_KEY.get_secret_value(),
+            algorithms=[settings.ALGORITHM],
         )
         username: str | None = payload.get("sub")
         if username is None or payload.get("type") != "access":
@@ -76,7 +78,9 @@ def get_current_admin(
     try:
         settings = get_settings()
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token,
+            settings.SECRET_KEY.get_secret_value(),
+            algorithms=[settings.ALGORITHM],
         )
         username: str | None = payload.get("sub")
         mode: str | None = payload.get("mode")

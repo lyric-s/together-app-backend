@@ -1,3 +1,4 @@
+from pydantic.types import SecretStr
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import HttpUrl
@@ -34,11 +35,14 @@ def parse_comma_separated_origins(comma_list: str) -> list[HttpUrl]:
 
 class Settings(BaseSettings):
     DATABASE_URL: str
-    SECRET_KEY: str
+    SECRET_KEY: SecretStr
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
     BACKEND_CORS_ORIGINS: str
+    FIRST_SUPERUSER_EMAIL: str | None = None
+    FIRST_SUPERUSER_PASSWORD: str | None = None
+    FIRST_SUPERUSER_USERNAME: str = "superadmin"
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content

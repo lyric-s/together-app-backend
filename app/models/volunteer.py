@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import date
 from typing import TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
@@ -43,11 +44,11 @@ class VolunteerPublic(VolunteerBase):
     id_user: int
     active_missions_count: int
     finished_missions_count: int
-    user: "UserPublic" | None = None
+    user: Optional["UserPublic"] = None
 
 
 class VolunteerUpdate(SQLModel):
-    user: "UserUpdate" | None = None
+    user: Optional["UserUpdate"] = None
     last_name: str | None = Field(default=None, max_length=50)
     first_name: str | None = Field(default=None, max_length=50)
     phone_number: str | None = Field(default=None, max_length=50)
