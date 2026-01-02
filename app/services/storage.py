@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Optional, BinaryIO
+from typing import BinaryIO
 import os
 import uuid
 from minio import Minio
@@ -43,7 +43,7 @@ class StorageService:
         content_type: str,
         size: int = -1,
         overwrite: bool = False,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
     ) -> str:
         """
         Uploads a file and returns the Object Name (Key) to store in the DB.
@@ -71,6 +71,12 @@ class StorageService:
         if not file_name or not file_name.strip():
             raise ValueError("file_name cannot be empty")
         # Enforce maximum file size
+        if size <= 0:
+            # Compute size from file_data
+            current_pos = file_data.tell()
+            file_data.seek(0, 2)  # Seek to end
+            size = file_data.tell()
+            file_data.seek(current_pos)  # Restore position
         max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         if size > max_size_bytes:
             raise ValueError(
@@ -132,7 +138,7 @@ class StorageService:
 
     def get_presigned_url(
         self, object_name: str, expires_in_hours: int = 1
-    ) -> Optional[str]:
+    ) -> None | str:
         """
         Generates a presigned GET URL for temporary access to a file.
         """
