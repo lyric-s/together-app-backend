@@ -70,7 +70,12 @@ class StorageService:
             raise ValueError("file_data cannot be None")
         if not file_name or not file_name.strip():
             raise ValueError("file_name cannot be empty")
-
+        # Enforce maximum file size
+        max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if size > max_size_bytes:
+            raise ValueError(
+                f"File size {size} bytes exceeds maximum allowed size of {max_size_bytes} bytes"
+            )
         # Sanitize file_name to prevent path traversal
         sanitized_name = os.path.basename(file_name)
         if (
@@ -84,7 +89,13 @@ class StorageService:
         # Validate user_id if provided
         if user_id is not None:
             user_id = user_id.strip()
-            if not user_id or "/" in user_id or "\\" in user_id:
+            if (
+                not user_id
+                or "/" in user_id
+                or "\\" in user_id
+                or user_id in (".", "..")
+                or ".." in user_id
+            ):
                 raise ValueError(f"Invalid user_id: {user_id}")
 
         # Generate final object name

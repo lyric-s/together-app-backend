@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     MINIO_ACCESS_KEY: SecretStr
     MINIO_SECRET_KEY: SecretStr
     MINIO_SECURE: bool
+    MAX_UPLOAD_SIZE_MB: int = 100
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
