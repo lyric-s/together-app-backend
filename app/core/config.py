@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
     BACKEND_CORS_ORIGINS: str
-    FIRST_SUPERUSER_EMAIL: str | None = None
-    FIRST_SUPERUSER_PASSWORD: str | None = None
+    FIRST_SUPERUSER_EMAIL: str
+    FIRST_SUPERUSER_PASSWORD: SecretStr
     FIRST_SUPERUSER_USERNAME: str = "superadmin"
 
     # Read the env file not present in the repo for security reasons,
