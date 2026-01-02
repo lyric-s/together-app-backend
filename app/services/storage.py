@@ -73,10 +73,9 @@ class StorageService:
         # Enforce maximum file size
         if size <= 0:
             # Compute size from file_data
-            current_pos = file_data.tell()
-            file_data.seek(0, 2)  # Seek to end
+            file_data.seek(0, os.SEEK_END)  # Seek to end
             size = file_data.tell()
-            file_data.seek(current_pos)  # Restore position
+            file_data.seek(0, os.SEEK_SET)  # Reset to beginning for upload
         max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         if size > max_size_bytes:
             raise ValueError(
