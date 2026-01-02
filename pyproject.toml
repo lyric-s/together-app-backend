@@ -51,6 +51,10 @@ change_type_map = {"feat" = "Feat", "fix" = "Fix", "build" = "Build", "chore" = 
 
 [tool.pyrefly]
 infer-with-first-use = false
+project_excludes = ["alembic/versions/*"]
+
+[tool.ruff]
+exclude = ["alembic/versions/*"]
 
 [[tool.commitizen.customize.questions]]
 type = "list"

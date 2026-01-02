@@ -97,7 +97,9 @@ def create_token(
     to_encode.update({"exp": expire, "type": type})
     try:
         return jwt.encode(
-            to_encode, get_settings().SECRET_KEY, algorithm=get_settings().ALGORITHM
+            to_encode,
+            get_settings().SECRET_KEY.get_secret_value(),
+            algorithm=get_settings().ALGORITHM,
         )
     except PyJWTError:
         raise HTTPException(

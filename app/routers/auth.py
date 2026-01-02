@@ -87,7 +87,9 @@ async def refresh_token(
 
     try:
         payload = jwt.decode(
-            incoming_refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            incoming_refresh_token,
+            settings.SECRET_KEY.get_secret_value(),
+            algorithms=[settings.ALGORITHM],
         )
         username: str | None = payload.get("sub")
         token_type: str | None = payload.get("type")

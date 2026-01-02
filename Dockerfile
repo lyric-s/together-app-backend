@@ -22,7 +22,11 @@ COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 # Copy app code
 COPY --chown=appuser:appuser . .
 
+# Make prestart script executable
+RUN chmod +x scripts/prestart.sh
+
 # Add venv to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
+ENTRYPOINT ["./scripts/prestart.sh"]
 CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
