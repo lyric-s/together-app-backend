@@ -34,16 +34,10 @@ target_metadata = SQLModel.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """
+    Run Alembic migrations using the configured SQLAlchemy URL without creating an Engine.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    Configures the Alembic context to render SQL with literal binds and named parameter style, enables type comparison against target metadata, and executes migrations within a transaction so the generated SQL is emitted rather than executed against a live DB.
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -59,11 +53,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """
+    Run migrations using a live database connection built from the Alembic configuration.
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
+    Configures the Alembic context with a connection and the module's target metadata, then executes migrations within a transactional boundary.
     """
     configuration = config.get_section(config.config_ini_section, {})
 
