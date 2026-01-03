@@ -23,10 +23,10 @@ def get_current_user(
     Resolve the authenticated user from an access JWT.
 
     Returns:
-        user (User): The User whose username matches the token's subject.
+        The User corresponding to the token's subject.
 
     Raises:
-        HTTPException: 401 Unauthorized if the token is invalid, not an access token, missing the subject, or if no matching user is found.
+        HTTPException: 401 Unauthorized if the token is invalid, missing the subject, not an access token, or if no matching user is found.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

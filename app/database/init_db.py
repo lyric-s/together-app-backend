@@ -7,6 +7,22 @@ from app.core.security import get_password_hash
 
 
 def init_db(session: Session) -> None:
+    """
+    Ensure the configured first superuser exists in the database.
+
+    Creates an Admin record from FIRST_SUPERUSER_EMAIL, FIRST_SUPERUSER_USERNAME, and
+    FIRST_SUPERUSER_PASSWORD in application settings when a user with the configured
+    username is not present. If required settings are missing, the function logs a
+    warning and returns without making changes. On successful creation the new user
+    is added and the transaction committed; if commit fails the transaction is
+    rolled back and the original exception is propagated.
+
+    Parameters:
+        session (Session): SQLModel session used to query, add, and commit the Admin.
+
+    Raises:
+        Exception: If adding or committing the new Admin fails.
+    """
     settings = get_settings()
     if (
         not settings.FIRST_SUPERUSER_EMAIL
