@@ -33,7 +33,10 @@ def init_db(session: Session) -> None:
         return
 
     admin = session.exec(
-        select(Admin).where(Admin.username == settings.FIRST_SUPERUSER_USERNAME)
+        select(Admin).where(
+            (Admin.username == settings.FIRST_SUPERUSER_USERNAME)
+            | (Admin.email == settings.FIRST_SUPERUSER_EMAIL)
+        )
     ).first()
 
     if not admin:
