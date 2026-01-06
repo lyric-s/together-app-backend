@@ -2,55 +2,79 @@
 
 import pytest
 from fastapi import HTTPException
-from sqlmodel import Session, create_engine, SQLModel
-from sqlmodel.pool import StaticPool
+from sqlmodel import Session
 
 from app.models.admin import Admin, AdminCreate, AdminUpdate
 from app.services import admin as admin_service
 from app.core.password import verify_password
 
+# Test data constants
+TEST_ADMIN_USERNAME = "adminuser"
+TEST_ADMIN_EMAIL = "admin@example.com"
+TEST_ADMIN_FIRST_NAME = "John"
+TEST_ADMIN_LAST_NAME = "Doe"
+TEST_ADMIN_PASSWORD = "AdminPass123"
+TEST_EMAIL_NEW = "newemail@example.com"
+TEST_EMAIL_UPDATED = "updated@example.com"
+NONEXISTENT_ID = 99999
+NONEXISTENT_USERNAME = "nonexistent"
+NONEXISTENT_EMAIL = "nonexistent@example.com"
 
-@pytest.fixture(name="session")
-def session_fixture():
-    """Create a fresh in-memory database for each test."""
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
 
-
+# Fixtures
 @pytest.fixture(name="sample_admin_create")
 def sample_admin_create_fixture():
     """Sample admin creation data."""
     return AdminCreate(
-        username="adminuser",
-        email="admin@example.com",
-        first_name="John",
-        last_name="Doe",
-        password="AdminPass123",
+        username=TEST_ADMIN_USERNAME,
+        email=TEST_ADMIN_EMAIL,
+        first_name=TEST_ADMIN_FIRST_NAME,
+        last_name=TEST_ADMIN_LAST_NAME,
+        password=TEST_ADMIN_PASSWORD,
     )
+
+
+@pytest.fixture(name="created_admin")
+def created_admin_fixture(session: Session, sample_admin_create: AdminCreate) -> Admin:
+    """Create and return an admin with ID assertion already done."""
+    admin = admin_service.create_admin(session, sample_admin_create)
+    assert admin.id_admin is not None
+    return admin
+
+
+@pytest.fixture(name="admin_factory")
+def admin_factory_fixture(session: Session):
+    """Factory fixture for creating multiple admins with unique data."""
+
+    def _create_admin(index: int = 0, **overrides) -> Admin:
+        """Create an admin with optional field overrides."""
+        data = {
+            "username": f"admin{index}",
+            "email": f"admin{index}@example.com",
+            "first_name": f"First{index}",
+            "last_name": f"Last{index}",
+            "password": "Password123",
+        }
+        data.update(overrides)
+        admin = admin_service.create_admin(session, AdminCreate(**data))
+        assert admin.id_admin is not None
+        return admin
+
+    return _create_admin
 
 
 class TestCreateAdmin:
     """Test admin creation."""
 
-    def test_create_admin_success(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_create_admin_success(self, created_admin: Admin):
         """Test successful admin creation with password hashing."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-
-        assert admin.id_admin is not None
-        assert admin.username == "adminuser"
-        assert admin.email == "admin@example.com"
-        assert admin.first_name == "John"
-        assert admin.last_name == "Doe"
-        assert admin.hashed_password != "AdminPass123"  # Password should be hashed
-        assert verify_password("AdminPass123", admin.hashed_password)
+        assert created_admin.id_admin is not None
+        assert created_admin.username == TEST_ADMIN_USERNAME
+        assert created_admin.email == TEST_ADMIN_EMAIL
+        assert created_admin.first_name == TEST_ADMIN_FIRST_NAME
+        assert created_admin.last_name == TEST_ADMIN_LAST_NAME
+        assert created_admin.hashed_password != TEST_ADMIN_PASSWORD
+        assert verify_password(TEST_ADMIN_PASSWORD, created_admin.hashed_password)
 
     def test_create_admin_duplicate_username(
         self, session: Session, sample_admin_create: AdminCreate
@@ -58,9 +82,8 @@ class TestCreateAdmin:
         """Test that duplicate username raises HTTPException."""
         admin_service.create_admin(session, sample_admin_create)
 
-        # Try to create another admin with same username
         duplicate_admin = AdminCreate(
-            username="adminuser",  # Same username
+            username=TEST_ADMIN_USERNAME,  # Same username
             email="different@example.com",
             first_name="Jane",
             last_name="Smith",
@@ -73,79 +96,70 @@ class TestCreateAdmin:
         assert exc_info.value.status_code == 400
         assert "already exists" in exc_info.value.detail
 
-    def test_create_admin_duplicate_email_allowed(
+    def test_create_admin_duplicate_email(
         self, session: Session, sample_admin_create: AdminCreate
     ):
-        """Test that duplicate email is allowed (email is not unique for admins)."""
+        """Test that duplicate email raises HTTPException."""
         admin_service.create_admin(session, sample_admin_create)
 
-        # Create another admin with same email but different username
         duplicate_email_admin = AdminCreate(
             username="differentadmin",
-            email="admin@example.com",  # Same email - this is allowed
+            email=TEST_ADMIN_EMAIL,  # Same email
             first_name="Jane",
             last_name="Smith",
             password="AnotherPass123",
         )
 
-        # Should succeed - email is not unique for admins
-        admin2 = admin_service.create_admin(session, duplicate_email_admin)
-        assert admin2.email == "admin@example.com"
+        with pytest.raises(HTTPException) as exc_info:
+            admin_service.create_admin(session, duplicate_email_admin)
+
+        assert exc_info.value.status_code == 400
+        assert "already exists" in exc_info.value.detail
 
 
 class TestGetAdmin:
     """Test admin retrieval operations."""
 
-    def test_get_admin_by_id_success(
-        self, session: Session, sample_admin_create: AdminCreate
+    @pytest.mark.parametrize(
+        "getter_func,getter_arg,expected_field",
+        [
+            (admin_service.get_admin, lambda admin: admin.id_admin, "id_admin"),
+            (
+                admin_service.get_admin_by_username,
+                lambda admin: admin.username,
+                "username",
+            ),
+            (admin_service.get_admin_by_email, lambda admin: admin.email, "email"),
+        ],
+    )
+    def test_get_admin_success(
+        self,
+        session: Session,
+        created_admin: Admin,
+        getter_func,
+        getter_arg,
+        expected_field,
     ):
-        """Test successful admin retrieval by ID."""
-        created_admin = admin_service.create_admin(session, sample_admin_create)
-        assert created_admin.id_admin is not None
-
-        retrieved_admin = admin_service.get_admin(session, created_admin.id_admin)
+        """Test successful admin retrieval by different fields."""
+        retrieved_admin = getter_func(session, getter_arg(created_admin))
 
         assert retrieved_admin is not None
         assert retrieved_admin.id_admin == created_admin.id_admin
-        assert retrieved_admin.username == created_admin.username
+        assert getattr(retrieved_admin, expected_field) == getattr(
+            created_admin, expected_field
+        )
 
-    def test_get_admin_by_id_not_found(self, session: Session):
+    @pytest.mark.parametrize(
+        "getter_func,not_found_arg",
+        [
+            (admin_service.get_admin, NONEXISTENT_ID),
+            (admin_service.get_admin_by_username, NONEXISTENT_USERNAME),
+            (admin_service.get_admin_by_email, NONEXISTENT_EMAIL),
+        ],
+    )
+    def test_get_admin_not_found(self, session: Session, getter_func, not_found_arg):
         """Test that non-existent admin returns None."""
-        admin = admin_service.get_admin(session, 99999)
-        assert admin is None
-
-    def test_get_admin_by_username_success(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
-        """Test successful admin retrieval by username."""
-        created_admin = admin_service.create_admin(session, sample_admin_create)
-
-        retrieved_admin = admin_service.get_admin_by_username(session, "adminuser")
-
-        assert retrieved_admin is not None
-        assert retrieved_admin.id_admin == created_admin.id_admin
-        assert retrieved_admin.username == "adminuser"
-
-    def test_get_admin_by_username_not_found(self, session: Session):
-        """Test that non-existent username returns None."""
-        admin = admin_service.get_admin_by_username(session, "nonexistent")
-        assert admin is None
-
-    def test_get_admin_by_email_success(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
-        """Test successful admin retrieval by email."""
-        created_admin = admin_service.create_admin(session, sample_admin_create)
-
-        retrieved_admin = admin_service.get_admin_by_email(session, "admin@example.com")
-
-        assert retrieved_admin is not None
-        assert retrieved_admin.id_admin == created_admin.id_admin
-        assert retrieved_admin.email == "admin@example.com"
-
-    def test_get_admin_by_email_not_found(self, session: Session):
-        """Test that non-existent email returns None."""
-        admin = admin_service.get_admin_by_email(session, "nonexistent@example.com")
+        admin = getter_func(session, not_found_arg)
         assert admin is None
 
 
@@ -157,192 +171,146 @@ class TestGetAdmins:
         admins = admin_service.get_admins(session)
         assert admins == []
 
-    def test_get_admins_multiple(self, session: Session):
+    def test_get_admins_multiple(self, session: Session, admin_factory):
         """Test retrieving multiple admins."""
-        # Create 3 admins
         for i in range(3):
-            admin_create = AdminCreate(
-                username=f"admin{i}",
-                email=f"admin{i}@example.com",
-                first_name=f"First{i}",
-                last_name=f"Last{i}",
-                password="Password123",
-            )
-            admin_service.create_admin(session, admin_create)
+            admin_factory(i)
 
         admins = admin_service.get_admins(session)
-
         assert len(admins) == 3
         assert all(isinstance(admin, Admin) for admin in admins)
 
-    def test_get_admins_pagination_offset(self, session: Session):
-        """Test pagination with offset."""
-        # Create 5 admins
-        for i in range(5):
-            admin_create = AdminCreate(
-                username=f"admin{i}",
-                email=f"admin{i}@example.com",
-                first_name=f"First{i}",
-                last_name=f"Last{i}",
-                password="Password123",
-            )
-            admin_service.create_admin(session, admin_create)
+    @pytest.mark.parametrize(
+        "total_count,offset,limit,expected_count",
+        [
+            (5, 2, None, 3),  # offset only
+            (5, None, 2, 2),  # limit only
+            (10, 3, 4, 4),  # offset and limit
+        ],
+    )
+    def test_get_admins_pagination(
+        self,
+        session: Session,
+        admin_factory,
+        total_count,
+        offset,
+        limit,
+        expected_count,
+    ):
+        """Test pagination with various offset and limit combinations."""
+        for i in range(total_count):
+            admin_factory(i)
 
-        admins = admin_service.get_admins(session, offset=2)
+        kwargs = {}
+        if offset is not None:
+            kwargs["offset"] = offset
+        if limit is not None:
+            kwargs["limit"] = limit
 
-        assert len(admins) == 3  # Should get admins 2, 3, 4
-
-    def test_get_admins_pagination_limit(self, session: Session):
-        """Test pagination with limit."""
-        # Create 5 admins
-        for i in range(5):
-            admin_create = AdminCreate(
-                username=f"admin{i}",
-                email=f"admin{i}@example.com",
-                first_name=f"First{i}",
-                last_name=f"Last{i}",
-                password="Password123",
-            )
-            admin_service.create_admin(session, admin_create)
-
-        admins = admin_service.get_admins(session, limit=2)
-
-        assert len(admins) == 2
-
-    def test_get_admins_pagination_offset_and_limit(self, session: Session):
-        """Test pagination with both offset and limit."""
-        # Create 10 admins
-        for i in range(10):
-            admin_create = AdminCreate(
-                username=f"admin{i}",
-                email=f"admin{i}@example.com",
-                first_name=f"First{i}",
-                last_name=f"Last{i}",
-                password="Password123",
-            )
-            admin_service.create_admin(session, admin_create)
-
-        admins = admin_service.get_admins(session, offset=3, limit=4)
-
-        assert len(admins) == 4
+        admins = admin_service.get_admins(session, **kwargs)
+        assert len(admins) == expected_count
 
 
 class TestUpdateAdmin:
     """Test admin update operations."""
 
-    def test_update_admin_email(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_update_admin_email(self, session: Session, created_admin: Admin):
         """Test updating admin email."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
+        assert created_admin.id_admin is not None
+        update_data = AdminUpdate(email=TEST_EMAIL_NEW)
+        updated_admin = admin_service.update_admin(
+            session, created_admin.id_admin, update_data
+        )
 
-        update_data = AdminUpdate(email="newemail@example.com")
-        updated_admin = admin_service.update_admin(session, admin.id_admin, update_data)
+        assert updated_admin.email == TEST_EMAIL_NEW
+        assert updated_admin.username == created_admin.username
 
-        assert updated_admin.email == "newemail@example.com"
-        assert updated_admin.username == admin.username  # Should remain unchanged
-
-    def test_update_admin_password(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_update_admin_password(self, session: Session, created_admin: Admin):
         """Test updating admin password with proper hashing."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
-        old_password_hash = admin.hashed_password
+        assert created_admin.id_admin is not None
+        old_password_hash = created_admin.hashed_password
 
-        update_data = AdminUpdate(password="NewAdminPass456")
-        updated_admin = admin_service.update_admin(session, admin.id_admin, update_data)
+        new_password = "NewAdminPass456"
+        update_data = AdminUpdate(password=new_password)
+        updated_admin = admin_service.update_admin(
+            session, created_admin.id_admin, update_data
+        )
 
         assert updated_admin.hashed_password != old_password_hash
-        assert verify_password("NewAdminPass456", updated_admin.hashed_password)
+        assert verify_password(new_password, updated_admin.hashed_password)
 
-    def test_update_admin_name(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_update_admin_name(self, session: Session, created_admin: Admin):
         """Test updating admin first and last name."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
+        assert created_admin.id_admin is not None
+        new_first_name = "Jane"
+        new_last_name = "Smith"
+        update_data = AdminUpdate(first_name=new_first_name, last_name=new_last_name)
+        updated_admin = admin_service.update_admin(
+            session, created_admin.id_admin, update_data
+        )
 
-        update_data = AdminUpdate(first_name="Jane", last_name="Smith")
-        updated_admin = admin_service.update_admin(session, admin.id_admin, update_data)
+        assert updated_admin.first_name == new_first_name
+        assert updated_admin.last_name == new_last_name
 
-        assert updated_admin.first_name == "Jane"
-        assert updated_admin.last_name == "Smith"
-
-    def test_update_admin_multiple_fields(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_update_admin_multiple_fields(self, session: Session, created_admin: Admin):
         """Test updating multiple fields at once."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
+        assert created_admin.id_admin is not None
+        new_first_name = "Jane"
+        new_last_name = "Smith"
+        new_password = "UpdatedPass789"
 
         update_data = AdminUpdate(
-            email="updated@example.com",
-            first_name="Jane",
-            last_name="Smith",
-            password="UpdatedPass789",
+            email=TEST_EMAIL_UPDATED,
+            first_name=new_first_name,
+            last_name=new_last_name,
+            password=new_password,
         )
-        updated_admin = admin_service.update_admin(session, admin.id_admin, update_data)
+        updated_admin = admin_service.update_admin(
+            session, created_admin.id_admin, update_data
+        )
 
-        assert updated_admin.email == "updated@example.com"
-        assert updated_admin.first_name == "Jane"
-        assert updated_admin.last_name == "Smith"
-        assert verify_password("UpdatedPass789", updated_admin.hashed_password)
+        assert updated_admin.email == TEST_EMAIL_UPDATED
+        assert updated_admin.first_name == new_first_name
+        assert updated_admin.last_name == new_last_name
+        assert verify_password(new_password, updated_admin.hashed_password)
 
     def test_update_admin_not_found(self, session: Session):
         """Test updating non-existent admin raises HTTPException."""
-        update_data = AdminUpdate(email="newemail@example.com")
+        update_data = AdminUpdate(email=TEST_EMAIL_NEW)
 
         with pytest.raises(HTTPException) as exc_info:
-            admin_service.update_admin(session, 99999, update_data)
+            admin_service.update_admin(session, NONEXISTENT_ID, update_data)
 
         assert exc_info.value.status_code == 404
         assert "not found" in exc_info.value.detail.lower()
 
-    def test_update_admin_duplicate_email_allowed(self, session: Session):
-        """Test that updating to duplicate email is allowed (email is not unique for admins)."""
-        # Create two admins
-        admin1_create = AdminCreate(
-            username="admin1",
-            email="admin1@example.com",
-            first_name="John",
-            last_name="Doe",
-            password="Password123",
-        )
-        admin2_create = AdminCreate(
-            username="admin2",
-            email="admin2@example.com",
-            first_name="Jane",
-            last_name="Smith",
-            password="Password123",
-        )
-        admin1 = admin_service.create_admin(session, admin1_create)
-        assert admin1.id_admin is not None
-        admin_service.create_admin(session, admin2_create)
+    def test_update_admin_duplicate_email(self, session: Session, admin_factory):
+        """Test that updating to duplicate email raises HTTPException."""
+        admin1 = admin_factory(1, username="admin1", email="admin1@example.com")
+        admin2_email = "admin2@example.com"
+        admin_factory(2, username="admin2", email=admin2_email)
 
-        # Update admin1's email to admin2's email - should succeed
-        update_data = AdminUpdate(email="admin2@example.com")
-        updated_admin = admin_service.update_admin(
-            session, admin1.id_admin, update_data
-        )
+        update_data = AdminUpdate(email=admin2_email)
 
-        assert updated_admin.email == "admin2@example.com"
+        with pytest.raises(HTTPException) as exc_info:
+            admin_service.update_admin(session, admin1.id_admin, update_data)
 
-    def test_update_admin_partial(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+        assert exc_info.value.status_code == 400
+        assert "already exists" in exc_info.value.detail
+
+    def test_update_admin_partial(self, session: Session, created_admin: Admin):
         """Test that only provided fields are updated (exclude_unset)."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
-        original_email = admin.email
-        original_last_name = admin.last_name
+        assert created_admin.id_admin is not None
+        original_email = created_admin.email
+        original_last_name = created_admin.last_name
 
-        # Only update first_name, other fields should remain unchanged
-        update_data = AdminUpdate(first_name="UpdatedName")
-        updated_admin = admin_service.update_admin(session, admin.id_admin, update_data)
+        new_first_name = "UpdatedName"
+        update_data = AdminUpdate(first_name=new_first_name)
+        updated_admin = admin_service.update_admin(
+            session, created_admin.id_admin, update_data
+        )
 
-        assert updated_admin.first_name == "UpdatedName"
+        assert updated_admin.first_name == new_first_name
         assert updated_admin.email == original_email
         assert updated_admin.last_name == original_last_name
 
@@ -350,24 +318,20 @@ class TestUpdateAdmin:
 class TestDeleteAdmin:
     """Test admin deletion."""
 
-    def test_delete_admin_success(
-        self, session: Session, sample_admin_create: AdminCreate
-    ):
+    def test_delete_admin_success(self, session: Session, created_admin: Admin):
         """Test successful admin deletion."""
-        admin = admin_service.create_admin(session, sample_admin_create)
-        assert admin.id_admin is not None
-        admin_id = admin.id_admin
+        assert created_admin.id_admin is not None
+        admin_id = created_admin.id_admin
 
         admin_service.delete_admin(session, admin_id)
 
-        # Verify admin is deleted
         deleted_admin = admin_service.get_admin(session, admin_id)
         assert deleted_admin is None
 
     def test_delete_admin_not_found(self, session: Session):
         """Test deleting non-existent admin raises HTTPException."""
         with pytest.raises(HTTPException) as exc_info:
-            admin_service.delete_admin(session, 99999)
+            admin_service.delete_admin(session, NONEXISTENT_ID)
 
         assert exc_info.value.status_code == 404
         assert "not found" in exc_info.value.detail.lower()

@@ -14,7 +14,9 @@ ADMIN_PASSWORD_MIN_LENGTH = 8
 class AdminBase(SQLModel):
     first_name: str = Field(max_length=ADMIN_NAME_MAX_LENGTH, nullable=False)
     last_name: str = Field(max_length=ADMIN_NAME_MAX_LENGTH, nullable=False)
-    email: str = Field(max_length=ADMIN_EMAIL_MAX_LENGTH, index=True, nullable=False)
+    email: str = Field(
+        max_length=ADMIN_EMAIL_MAX_LENGTH, unique=True, index=True, nullable=False
+    )
     username: str = Field(
         max_length=ADMIN_USERNAME_MAX_LENGTH, unique=True, index=True, nullable=False
     )

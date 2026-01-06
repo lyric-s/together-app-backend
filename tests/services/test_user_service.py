@@ -2,55 +2,76 @@
 
 import pytest
 from fastapi import HTTPException
-from sqlmodel import Session, create_engine, SQLModel
-from sqlmodel.pool import StaticPool
+from sqlmodel import Session
 
 from app.models.user import User, UserCreate, UserUpdate
 from app.models.enums import UserType
 from app.services import user as user_service
 from app.core.password import verify_password
 
-
-@pytest.fixture(name="session")
-def session_fixture():
-    """Create a fresh in-memory database for each test."""
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
+# Test data constants
+TEST_USER_USERNAME = "testuser"
+TEST_USER_EMAIL = "test@example.com"
+TEST_USER_PASSWORD = "SecurePass123"
+TEST_EMAIL_NEW = "newemail@example.com"
+TEST_EMAIL_UPDATED = "updated@example.com"
+NONEXISTENT_ID = 99999
+NONEXISTENT_USERNAME = "nonexistent"
+NONEXISTENT_EMAIL = "nonexistent@example.com"
 
 
+# Fixtures
 @pytest.fixture(name="sample_user_create")
 def sample_user_create_fixture():
     """Sample user creation data."""
     return UserCreate(
-        username="testuser",
-        email="test@example.com",
-        password="SecurePass123",
+        username=TEST_USER_USERNAME,
+        email=TEST_USER_EMAIL,
+        password=TEST_USER_PASSWORD,
         user_type=UserType.VOLUNTEER,
     )
+
+
+@pytest.fixture(name="created_user")
+def created_user_fixture(session: Session, sample_user_create: UserCreate) -> User:
+    """Create and return a user with ID assertion already done."""
+    user = user_service.create_user(session, sample_user_create)
+    assert user.id_user is not None
+    return user
+
+
+@pytest.fixture(name="user_factory")
+def user_factory_fixture(session: Session):
+    """Factory fixture for creating multiple users with unique data."""
+
+    def _create_user(index: int = 0, **overrides) -> User:
+        """Create a user with optional field overrides."""
+        data = {
+            "username": f"user{index}",
+            "email": f"user{index}@example.com",
+            "password": "Password123",
+            "user_type": UserType.VOLUNTEER,
+        }
+        data.update(overrides)
+        user = user_service.create_user(session, UserCreate(**data))
+        assert user.id_user is not None
+        return user
+
+    return _create_user
 
 
 class TestCreateUser:
     """Test user creation."""
 
-    def test_create_user_success(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_create_user_success(self, created_user: User):
         """Test successful user creation with password hashing."""
-        user = user_service.create_user(session, sample_user_create)
-
-        assert user.id_user is not None
-        assert user.username == "testuser"
-        assert user.email == "test@example.com"
-        assert user.user_type == UserType.VOLUNTEER
-        assert user.hashed_password != "SecurePass123"  # Password should be hashed
-        assert verify_password("SecurePass123", user.hashed_password)
-        assert user.date_creation is not None
+        assert created_user.id_user is not None
+        assert created_user.username == TEST_USER_USERNAME
+        assert created_user.email == TEST_USER_EMAIL
+        assert created_user.user_type == UserType.VOLUNTEER
+        assert created_user.hashed_password != TEST_USER_PASSWORD
+        assert verify_password(TEST_USER_PASSWORD, created_user.hashed_password)
+        assert created_user.date_creation is not None
 
     def test_create_user_duplicate_username(
         self, session: Session, sample_user_create: UserCreate
@@ -58,9 +79,8 @@ class TestCreateUser:
         """Test that duplicate username raises HTTPException."""
         user_service.create_user(session, sample_user_create)
 
-        # Try to create another user with same username
         duplicate_user = UserCreate(
-            username="testuser",  # Same username
+            username=TEST_USER_USERNAME,  # Same username
             email="different@example.com",
             password="AnotherPass123",
             user_type=UserType.VOLUNTEER,
@@ -78,10 +98,9 @@ class TestCreateUser:
         """Test that duplicate email raises HTTPException."""
         user_service.create_user(session, sample_user_create)
 
-        # Try to create another user with same email
         duplicate_user = UserCreate(
             username="differentuser",
-            email="test@example.com",  # Same email
+            email=TEST_USER_EMAIL,  # Same email
             password="AnotherPass123",
             user_type=UserType.VOLUNTEER,
         )
@@ -96,56 +115,42 @@ class TestCreateUser:
 class TestGetUser:
     """Test user retrieval operations."""
 
-    def test_get_user_by_id_success(
-        self, session: Session, sample_user_create: UserCreate
+    @pytest.mark.parametrize(
+        "getter_func,getter_arg,expected_field",
+        [
+            (user_service.get_user, lambda user: user.id_user, "id_user"),
+            (user_service.get_user_by_username, lambda user: user.username, "username"),
+            (user_service.get_user_by_email, lambda user: user.email, "email"),
+        ],
+    )
+    def test_get_user_success(
+        self,
+        session: Session,
+        created_user: User,
+        getter_func,
+        getter_arg,
+        expected_field,
     ):
-        """Test successful user retrieval by ID."""
-        created_user = user_service.create_user(session, sample_user_create)
-        assert created_user.id_user is not None
-
-        retrieved_user = user_service.get_user(session, created_user.id_user)
+        """Test successful user retrieval by different fields."""
+        retrieved_user = getter_func(session, getter_arg(created_user))
 
         assert retrieved_user is not None
         assert retrieved_user.id_user == created_user.id_user
-        assert retrieved_user.username == created_user.username
+        assert getattr(retrieved_user, expected_field) == getattr(
+            created_user, expected_field
+        )
 
-    def test_get_user_by_id_not_found(self, session: Session):
+    @pytest.mark.parametrize(
+        "getter_func,not_found_arg",
+        [
+            (user_service.get_user, NONEXISTENT_ID),
+            (user_service.get_user_by_username, NONEXISTENT_USERNAME),
+            (user_service.get_user_by_email, NONEXISTENT_EMAIL),
+        ],
+    )
+    def test_get_user_not_found(self, session: Session, getter_func, not_found_arg):
         """Test that non-existent user returns None."""
-        user = user_service.get_user(session, 99999)
-        assert user is None
-
-    def test_get_user_by_username_success(
-        self, session: Session, sample_user_create: UserCreate
-    ):
-        """Test successful user retrieval by username."""
-        created_user = user_service.create_user(session, sample_user_create)
-
-        retrieved_user = user_service.get_user_by_username(session, "testuser")
-
-        assert retrieved_user is not None
-        assert retrieved_user.id_user == created_user.id_user
-        assert retrieved_user.username == "testuser"
-
-    def test_get_user_by_username_not_found(self, session: Session):
-        """Test that non-existent username returns None."""
-        user = user_service.get_user_by_username(session, "nonexistent")
-        assert user is None
-
-    def test_get_user_by_email_success(
-        self, session: Session, sample_user_create: UserCreate
-    ):
-        """Test successful user retrieval by email."""
-        created_user = user_service.create_user(session, sample_user_create)
-
-        retrieved_user = user_service.get_user_by_email(session, "test@example.com")
-
-        assert retrieved_user is not None
-        assert retrieved_user.id_user == created_user.id_user
-        assert retrieved_user.email == "test@example.com"
-
-    def test_get_user_by_email_not_found(self, session: Session):
-        """Test that non-existent email returns None."""
-        user = user_service.get_user_by_email(session, "nonexistent@example.com")
+        user = getter_func(session, not_found_arg)
         assert user is None
 
 
@@ -157,161 +162,113 @@ class TestGetUsers:
         users = user_service.get_users(session)
         assert users == []
 
-    def test_get_users_multiple(self, session: Session):
+    def test_get_users_multiple(self, session: Session, user_factory):
         """Test retrieving multiple users."""
-        # Create 3 users
         for i in range(3):
-            user_create = UserCreate(
-                username=f"user{i}",
-                email=f"user{i}@example.com",
-                password="Password123",
-                user_type=UserType.VOLUNTEER,
-            )
-            user_service.create_user(session, user_create)
+            user_factory(i)
 
         users = user_service.get_users(session)
-
         assert len(users) == 3
         assert all(isinstance(user, User) for user in users)
 
-    def test_get_users_pagination_offset(self, session: Session):
-        """Test pagination with offset."""
-        # Create 5 users
-        for i in range(5):
-            user_create = UserCreate(
-                username=f"user{i}",
-                email=f"user{i}@example.com",
-                password="Password123",
-                user_type=UserType.VOLUNTEER,
-            )
-            user_service.create_user(session, user_create)
+    @pytest.mark.parametrize(
+        "total_count,offset,limit,expected_count",
+        [
+            (5, 2, None, 3),  # offset only
+            (5, None, 2, 2),  # limit only
+            (10, 3, 4, 4),  # offset and limit
+        ],
+    )
+    def test_get_users_pagination(
+        self, session: Session, user_factory, total_count, offset, limit, expected_count
+    ):
+        """Test pagination with various offset and limit combinations."""
+        for i in range(total_count):
+            user_factory(i)
 
-        users = user_service.get_users(session, offset=2)
+        kwargs = {}
+        if offset is not None:
+            kwargs["offset"] = offset
+        if limit is not None:
+            kwargs["limit"] = limit
 
-        assert len(users) == 3  # Should get users 2, 3, 4
-
-    def test_get_users_pagination_limit(self, session: Session):
-        """Test pagination with limit."""
-        # Create 5 users
-        for i in range(5):
-            user_create = UserCreate(
-                username=f"user{i}",
-                email=f"user{i}@example.com",
-                password="Password123",
-                user_type=UserType.VOLUNTEER,
-            )
-            user_service.create_user(session, user_create)
-
-        users = user_service.get_users(session, limit=2)
-
-        assert len(users) == 2
-
-    def test_get_users_pagination_offset_and_limit(self, session: Session):
-        """Test pagination with both offset and limit."""
-        # Create 10 users
-        for i in range(10):
-            user_create = UserCreate(
-                username=f"user{i}",
-                email=f"user{i}@example.com",
-                password="Password123",
-                user_type=UserType.VOLUNTEER,
-            )
-            user_service.create_user(session, user_create)
-
-        users = user_service.get_users(session, offset=3, limit=4)
-
-        assert len(users) == 4
+        users = user_service.get_users(session, **kwargs)
+        assert len(users) == expected_count
 
 
 class TestUpdateUser:
     """Test user update operations."""
 
-    def test_update_user_email(self, session: Session, sample_user_create: UserCreate):
+    def test_update_user_email(self, session: Session, created_user: User):
         """Test updating user email."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
+        assert created_user.id_user is not None
+        update_data = UserUpdate(email=TEST_EMAIL_NEW)
+        updated_user = user_service.update_user(
+            session, created_user.id_user, update_data
+        )
 
-        update_data = UserUpdate(email="newemail@example.com")
-        updated_user = user_service.update_user(session, user.id_user, update_data)
+        assert updated_user.email == TEST_EMAIL_NEW
+        assert updated_user.username == created_user.username
 
-        assert updated_user.email == "newemail@example.com"
-        assert updated_user.username == user.username  # Should remain unchanged
-
-    def test_update_user_password(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_update_user_password(self, session: Session, created_user: User):
         """Test updating user password with proper hashing."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
-        old_password_hash = user.hashed_password
+        assert created_user.id_user is not None
+        old_password_hash = created_user.hashed_password
 
-        update_data = UserUpdate(password="NewSecurePass456")
-        updated_user = user_service.update_user(session, user.id_user, update_data)
+        new_password = "NewSecurePass456"
+        update_data = UserUpdate(password=new_password)
+        updated_user = user_service.update_user(
+            session, created_user.id_user, update_data
+        )
 
         assert updated_user.hashed_password != old_password_hash
-        assert verify_password("NewSecurePass456", updated_user.hashed_password)
+        assert verify_password(new_password, updated_user.hashed_password)
 
-    def test_update_user_user_type(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_update_user_user_type(self, session: Session, created_user: User):
         """Test updating user type."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
-
+        assert created_user.id_user is not None
         update_data = UserUpdate(user_type=UserType.ASSOCIATION)
-        updated_user = user_service.update_user(session, user.id_user, update_data)
+        updated_user = user_service.update_user(
+            session, created_user.id_user, update_data
+        )
 
         assert updated_user.user_type == UserType.ASSOCIATION
 
-    def test_update_user_multiple_fields(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_update_user_multiple_fields(self, session: Session, created_user: User):
         """Test updating multiple fields at once."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
+        assert created_user.id_user is not None
+        new_password = "UpdatedPass789"
 
         update_data = UserUpdate(
-            email="updated@example.com",
-            password="UpdatedPass789",
+            email=TEST_EMAIL_UPDATED,
+            password=new_password,
             user_type=UserType.ASSOCIATION,
         )
-        updated_user = user_service.update_user(session, user.id_user, update_data)
+        updated_user = user_service.update_user(
+            session, created_user.id_user, update_data
+        )
 
-        assert updated_user.email == "updated@example.com"
-        assert verify_password("UpdatedPass789", updated_user.hashed_password)
+        assert updated_user.email == TEST_EMAIL_UPDATED
+        assert verify_password(new_password, updated_user.hashed_password)
         assert updated_user.user_type == UserType.ASSOCIATION
 
     def test_update_user_not_found(self, session: Session):
         """Test updating non-existent user raises HTTPException."""
-        update_data = UserUpdate(email="newemail@example.com")
+        update_data = UserUpdate(email=TEST_EMAIL_NEW)
 
         with pytest.raises(HTTPException) as exc_info:
-            user_service.update_user(session, 99999, update_data)
+            user_service.update_user(session, NONEXISTENT_ID, update_data)
 
         assert exc_info.value.status_code == 404
         assert "not found" in exc_info.value.detail.lower()
 
-    def test_update_user_duplicate_email(self, session: Session):
+    def test_update_user_duplicate_email(self, session: Session, user_factory):
         """Test that updating to duplicate email raises HTTPException."""
-        # Create two users
-        user1_create = UserCreate(
-            username="user1",
-            email="user1@example.com",
-            password="Password123",
-            user_type=UserType.VOLUNTEER,
-        )
-        user2_create = UserCreate(
-            username="user2",
-            email="user2@example.com",
-            password="Password123",
-            user_type=UserType.VOLUNTEER,
-        )
-        user1 = user_service.create_user(session, user1_create)
-        assert user1.id_user is not None
-        user_service.create_user(session, user2_create)
+        user1 = user_factory(1, username="user1", email="user1@example.com")
+        user2_email = "user2@example.com"
+        user_factory(2, username="user2", email=user2_email)
 
-        # Try to update user1's email to user2's email
-        update_data = UserUpdate(email="user2@example.com")
+        update_data = UserUpdate(email=user2_email)
 
         with pytest.raises(HTTPException) as exc_info:
             user_service.update_user(session, user1.id_user, update_data)
@@ -319,17 +276,15 @@ class TestUpdateUser:
         assert exc_info.value.status_code == 400
         assert "already exists" in exc_info.value.detail
 
-    def test_update_user_partial(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_update_user_partial(self, session: Session, created_user: User):
         """Test that only provided fields are updated (exclude_unset)."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
-        original_email = user.email
+        assert created_user.id_user is not None
+        original_email = created_user.email
 
-        # Only update user_type, email should remain unchanged
         update_data = UserUpdate(user_type=UserType.ASSOCIATION)
-        updated_user = user_service.update_user(session, user.id_user, update_data)
+        updated_user = user_service.update_user(
+            session, created_user.id_user, update_data
+        )
 
         assert updated_user.user_type == UserType.ASSOCIATION
         assert updated_user.email == original_email
@@ -338,24 +293,20 @@ class TestUpdateUser:
 class TestDeleteUser:
     """Test user deletion."""
 
-    def test_delete_user_success(
-        self, session: Session, sample_user_create: UserCreate
-    ):
+    def test_delete_user_success(self, session: Session, created_user: User):
         """Test successful user deletion."""
-        user = user_service.create_user(session, sample_user_create)
-        assert user.id_user is not None
-        user_id = user.id_user
+        assert created_user.id_user is not None
+        user_id = created_user.id_user
 
         user_service.delete_user(session, user_id)
 
-        # Verify user is deleted
         deleted_user = user_service.get_user(session, user_id)
         assert deleted_user is None
 
     def test_delete_user_not_found(self, session: Session):
         """Test deleting non-existent user raises HTTPException."""
         with pytest.raises(HTTPException) as exc_info:
-            user_service.delete_user(session, 99999)
+            user_service.delete_user(session, NONEXISTENT_ID)
 
         assert exc_info.value.status_code == 404
         assert "not found" in exc_info.value.detail.lower()
