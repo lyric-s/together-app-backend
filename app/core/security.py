@@ -6,11 +6,13 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from pwdlib import PasswordHash
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.core.config import get_settings
 from app.models.user import User
 from app.models.admin import Admin
+from app.services import user as user_service
+from app.services import admin as admin_service
 
 
 # pwdlib is the modern, recommended way (Argon2 by default)
@@ -47,9 +49,8 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
     Returns:
         User if authentication succeeds, `None` otherwise.
     """
-    # Query the database for the user
-    statement = select(User).where(User.username == username)
-    user = session.exec(statement).first()
+    # Get user from service layer
+    user = user_service.get_user_by_username(session, username)
     hash_to_verify = (
         user.hashed_password if user else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
     )
@@ -65,8 +66,8 @@ def authenticate_admin(session: Session, username: str, password: str) -> Admin 
     Returns:
         Admin: The matching Admin object if credentials are valid, `None` otherwise.
     """
-    statement = select(Admin).where(Admin.username == username)
-    admin = session.exec(statement).first()
+    # Get admin from service layer
+    admin = admin_service.get_admin_by_username(session, username)
     hash_to_verify = (
         admin.hashed_password if admin else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
     )

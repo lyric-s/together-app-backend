@@ -4,19 +4,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
-from sqlalchemy.exc import IntegrityError
 
 from app.database.database import get_session
 from app.core.security import (
     authenticate_admin,
     create_access_token,
-    get_password_hash,
 )
 from app.core.dependencies import get_current_admin
 from app.core.config import get_settings, Settings
 
-from app.models.admin import Admin, AdminCreate, AdminPublic
+from app.models.admin import AdminCreate, AdminPublic
 from app.models.token import Token
+from app.services import admin as admin_service
 
 router = APIRouter(
     prefix="/internal/admin", tags=["Internal Admin"], include_in_schema=False
@@ -69,20 +68,9 @@ def create_new_admin(
         admin_in (AdminCreate): Input data for the new admin (including plaintext password).
 
     Returns:
-        Admin: The created admin record with hashed password and populated persistence fields.
+        AdminPublic: The created admin record (without sensitive data).
 
     Raises:
         HTTPException: Raised with status 400 if the username or email already exists.
     """
-    hashed_pwd = get_password_hash(admin_in.password)
-
-    db_admin = Admin.model_validate(admin_in, update={"hashed_password": hashed_pwd})
-
-    session.add(db_admin)
-    try:
-        session.commit()
-    except IntegrityError:
-        session.rollback()
-        raise HTTPException(status_code=400, detail="Username or email already exists")
-    session.refresh(db_admin)
-    return db_admin
+    return admin_service.create_admin(session, admin_in)
