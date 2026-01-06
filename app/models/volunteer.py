@@ -1,25 +1,38 @@
-from typing import Optional
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.assign import Assign
 from app.models.engagement import Engagement
 
 if TYPE_CHECKING:
-    from app.models.user import User, UserPublic, UserUpdate
+    from app.models.user import User, UserPublic
     from app.models.badge import Badge
     from app.models.mission import Mission
 
+# Field constraints
+VOLUNTEER_NAME_MAX_LENGTH = 50
+VOLUNTEER_PHONE_MAX_LENGTH = 15
+VOLUNTEER_ZIP_MAX_LENGTH = 9
+VOLUNTEER_SKILLS_MAX_LENGTH = 500
+VOLUNTEER_BIO_MAX_LENGTH = 200
+VOLUNTEER_ADDRESS_MAX_LENGTH = 200
+
 
 class VolunteerBase(SQLModel):
-    last_name: str = Field(max_length=50)
-    first_name: str = Field(max_length=50)
-    phone_number: str = Field(max_length=50)
-    birthdate: date
-    skills: str = Field(max_length=500)
-    address: str | None = Field(default=None)
-    zip_code: str | None = Field(default=None, max_length=50)
-    bio: str = Field(default="", max_length=200)
+    last_name: str = Field(max_length=VOLUNTEER_NAME_MAX_LENGTH, nullable=False)
+    first_name: str = Field(max_length=VOLUNTEER_NAME_MAX_LENGTH, nullable=False)
+    phone_number: str = Field(max_length=VOLUNTEER_PHONE_MAX_LENGTH, nullable=False)
+    birthdate: date = Field(nullable=False)
+    skills: str = Field(
+        default="", max_length=VOLUNTEER_SKILLS_MAX_LENGTH, nullable=False
+    )
+    address: str | None = Field(
+        default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH, nullable=False
+    )
+    zip_code: str | None = Field(
+        default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH, nullable=False
+    )
+    bio: str = Field(default="", max_length=VOLUNTEER_BIO_MAX_LENGTH, nullable=False)
 
 
 class Volunteer(VolunteerBase, table=True):
@@ -35,7 +48,7 @@ class Volunteer(VolunteerBase, table=True):
 
 
 class VolunteerCreate(VolunteerBase):
-    # TODO (Create User first via Auth, then create voluntree profile linked to it)
+    # TODO (Create User first via Auth, then create volunteer profile linked to it ?)
     pass
 
 
@@ -48,14 +61,16 @@ class VolunteerPublic(VolunteerBase):
 
 
 class VolunteerUpdate(SQLModel):
-    user: Optional["UserUpdate"] = None
-    last_name: str | None = Field(default=None, max_length=50)
-    first_name: str | None = Field(default=None, max_length=50)
-    phone_number: str | None = Field(default=None, max_length=50)
+    # TODO find a way to update User related attributes
+    last_name: str | None = Field(default=None, max_length=VOLUNTEER_NAME_MAX_LENGTH)
+    first_name: str | None = Field(default=None, max_length=VOLUNTEER_NAME_MAX_LENGTH)
+    phone_number: str | None = Field(
+        default=None, max_length=VOLUNTEER_PHONE_MAX_LENGTH
+    )
     birthdate: date | None = None
-    skills: str | None = Field(default=None, max_length=500)
+    skills: str | None = Field(default=None, max_length=VOLUNTEER_SKILLS_MAX_LENGTH)
     address: str | None = None
-    zip_code: str | None = Field(default=None, max_length=50)
-    bio: str | None = Field(default=None, max_length=200)
-    # active_missions_count and finished_missions_count should
-    # be handled in the database
+    zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
+    bio: str | None = Field(default=None, max_length=VOLUNTEER_BIO_MAX_LENGTH)
+    # Note: active_missions_count and finished_missions_count are
+    # computed fields and should not be updated directly

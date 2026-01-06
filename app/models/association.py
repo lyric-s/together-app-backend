@@ -6,15 +6,38 @@ if TYPE_CHECKING:
     from app.models.mission import Mission
     from app.models.document import Document
 
+# Field constraints
+ASSOCIATION_NAME_MAX_LENGTH = 50
+ASSOCIATION_ADDRESS_MAX_LENGTH = 200
+ASSOCIATION_COUNTRY_MAX_LENGTH = 50
+ASSOCIATION_ZIP_MAX_LENGTH = 10
+ASSOCIATION_RNA_CODE_MAX_LENGTH = 50
+ASSOCIATION_COMPANY_NAME_MAX_LENGTH = 200
+ASSOCIATION_DESCRIPTION_MAX_LENGTH = 1000
+
 
 class AssociationBase(SQLModel):
-    name: str = Field(index=True, max_length=50)
-    address: str = Field(index=True, max_length=200)
-    country: str = Field(index=True, max_length=50)
-    zip_code: str = Field(index=True, max_length=10)
-    rna_code: str = Field(index=True, max_length=50)
-    company_name: str = Field(index=True, max_length=200)
-    description: str = Field(max_length=1000)
+    name: str = Field(
+        index=True, max_length=ASSOCIATION_NAME_MAX_LENGTH, nullable=False
+    )
+    address: str = Field(
+        index=True, max_length=ASSOCIATION_ADDRESS_MAX_LENGTH, nullable=False
+    )
+    country: str = Field(
+        index=True, max_length=ASSOCIATION_COUNTRY_MAX_LENGTH, nullable=False
+    )
+    zip_code: str = Field(
+        index=True, max_length=ASSOCIATION_ZIP_MAX_LENGTH, nullable=False
+    )
+    rna_code: str = Field(
+        index=True, max_length=ASSOCIATION_RNA_CODE_MAX_LENGTH, nullable=False
+    )
+    company_name: str = Field(
+        index=True, max_length=ASSOCIATION_COMPANY_NAME_MAX_LENGTH, nullable=False
+    )
+    description: str = Field(
+        default="", max_length=ASSOCIATION_DESCRIPTION_MAX_LENGTH, nullable=False
+    )
 
 
 class Association(AssociationBase, table=True):
@@ -37,11 +60,16 @@ class AssociationPublic(AssociationBase):
 
 
 class AssociationUpdate(SQLModel):
-    # TODO User data (email, password) should be updated via the /users/me endpoint
-    name: str | None = None
-    address: str | None = None
-    country: str | None = None
-    zip_code: str | None = None
-    rna_code: str | None = None
-    company_name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=ASSOCIATION_NAME_MAX_LENGTH)
+    address: str | None = Field(default=None, max_length=ASSOCIATION_ADDRESS_MAX_LENGTH)
+    country: str | None = Field(default=None, max_length=ASSOCIATION_COUNTRY_MAX_LENGTH)
+    zip_code: str | None = Field(default=None, max_length=ASSOCIATION_ZIP_MAX_LENGTH)
+    rna_code: str | None = Field(
+        default=None, max_length=ASSOCIATION_RNA_CODE_MAX_LENGTH
+    )
+    company_name: str | None = Field(
+        default=None, max_length=ASSOCIATION_COMPANY_NAME_MAX_LENGTH
+    )
+    description: str | None = Field(
+        default=None, max_length=ASSOCIATION_DESCRIPTION_MAX_LENGTH
+    )
