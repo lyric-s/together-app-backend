@@ -10,7 +10,8 @@ if TYPE_CHECKING:
 ASSOCIATION_NAME_MAX_LENGTH = 50
 ASSOCIATION_ADDRESS_MAX_LENGTH = 200
 ASSOCIATION_COUNTRY_MAX_LENGTH = 50
-ASSOCIATION_ZIP_MAX_LENGTH = 10
+ASSOCIATION_PHONE_MAX_LENGTH = 20
+ASSOCIATION_ZIP_MAX_LENGTH = 20
 ASSOCIATION_RNA_CODE_MAX_LENGTH = 50
 ASSOCIATION_COMPANY_NAME_MAX_LENGTH = 200
 ASSOCIATION_DESCRIPTION_MAX_LENGTH = 1000
@@ -20,6 +21,7 @@ class AssociationBase(SQLModel):
     name: str = Field(max_length=ASSOCIATION_NAME_MAX_LENGTH, nullable=False)
     address: str = Field(max_length=ASSOCIATION_ADDRESS_MAX_LENGTH, nullable=False)
     country: str = Field(max_length=ASSOCIATION_COUNTRY_MAX_LENGTH, nullable=False)
+    phone_number: str = Field(max_length=ASSOCIATION_PHONE_MAX_LENGTH, nullable=False)
     zip_code: str = Field(max_length=ASSOCIATION_ZIP_MAX_LENGTH, nullable=False)
     rna_code: str = Field(
         index=True, max_length=ASSOCIATION_RNA_CODE_MAX_LENGTH, nullable=False
@@ -55,6 +57,9 @@ class AssociationUpdate(SQLModel):
     name: str | None = Field(default=None, max_length=ASSOCIATION_NAME_MAX_LENGTH)
     address: str | None = Field(default=None, max_length=ASSOCIATION_ADDRESS_MAX_LENGTH)
     country: str | None = Field(default=None, max_length=ASSOCIATION_COUNTRY_MAX_LENGTH)
+    phone_number: str | None = Field(
+        default=None, max_length=ASSOCIATION_PHONE_MAX_LENGTH
+    )
     zip_code: str | None = Field(default=None, max_length=ASSOCIATION_ZIP_MAX_LENGTH)
     rna_code: str | None = Field(
         default=None, max_length=ASSOCIATION_RNA_CODE_MAX_LENGTH
