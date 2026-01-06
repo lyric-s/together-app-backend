@@ -35,7 +35,7 @@ def create_admin(session: Session, admin_in: AdminCreate) -> Admin:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
+            detail="Email already exists",
         )
     session.refresh(db_admin)
     return db_admin
@@ -127,10 +127,14 @@ def update_admin(session: Session, admin_id: int, admin_update: AdminUpdate) -> 
     # Convert update model to dict, excluding unset fields
     admin_data = admin_update.model_dump(exclude_unset=True)
 
-    # Update fields
-    for key, value in admin_data.items():
-        setattr(db_admin, key, value)
+    # Hashing password if provided
+    extra_data = {}
+    if "password" in admin_data:
+        password = admin_data.pop("password")
+        hashed_password = get_password_hash(password)
+        extra_data["hashed_password"] = hashed_password
 
+    db_admin.sqlmodel_update(admin_data, update=extra_data)
     session.add(db_admin)
     try:
         session.commit()
