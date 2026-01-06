@@ -24,7 +24,12 @@ NONEXISTENT_EMAIL = "nonexistent@example.com"
 # Fixtures
 @pytest.fixture(name="sample_admin_create")
 def sample_admin_create_fixture():
-    """Sample admin creation data."""
+    """
+    Provide a standard AdminCreate object populated with predefined test admin values for use in tests.
+
+    Returns:
+        AdminCreate: An AdminCreate instance with username, email, first_name, last_name, and password set to the module's test constants.
+    """
     return AdminCreate(
         username=TEST_ADMIN_USERNAME,
         email=TEST_ADMIN_EMAIL,
@@ -36,7 +41,12 @@ def sample_admin_create_fixture():
 
 @pytest.fixture(name="created_admin")
 def created_admin_fixture(session: Session, sample_admin_create: AdminCreate) -> Admin:
-    """Create and return an admin with ID assertion already done."""
+    """
+    Create an Admin record in the database for use in tests.
+
+    Returns:
+        Admin: The created Admin instance with a populated `id_admin`.
+    """
     admin = admin_service.create_admin(session, sample_admin_create)
     assert admin.id_admin is not None
     return admin
@@ -44,10 +54,24 @@ def created_admin_fixture(session: Session, sample_admin_create: AdminCreate) ->
 
 @pytest.fixture(name="admin_factory")
 def admin_factory_fixture(session: Session):
-    """Factory fixture for creating multiple admins with unique data."""
+    """
+    Provide a fixture that returns a factory for creating Admin records with unique default data.
+
+    Returns:
+        factory (Callable[[int, **dict], Admin]): A callable _create_admin(index=0, **overrides) that creates an Admin using the provided database session, asserts the created admin has a non-null id_admin, and returns the Admin instance.
+    """
 
     def _create_admin(index: int = 0, **overrides) -> Admin:
-        """Create an admin with optional field overrides."""
+        """
+        Create and persist an Admin test record, allowing field values to be overridden.
+
+        Parameters:
+            index (int): Numeric suffix used to generate unique default username, email, first_name, and last_name.
+            **overrides: Field names and values to replace the generated defaults (e.g., email='x@example.com').
+
+        Returns:
+            Admin: The created Admin instance with a non-null `id_admin`.
+        """
         data = {
             "username": f"admin{index}",
             "email": f"admin{index}@example.com",
@@ -140,7 +164,16 @@ class TestGetAdmin:
         getter_arg,
         expected_field,
     ):
-        """Test successful admin retrieval by different fields."""
+        """
+        Verify that an admin can be retrieved by a specified lookup and that the retrieved field matches the created admin.
+
+        Parameters:
+            session (Session): Database session used by the getter.
+            created_admin (Admin): The admin instance that must be found.
+            getter_func (callable): Function taking (session, lookup_value) and returning an Admin or None.
+            getter_arg (callable): Function that produces the lookup_value from `created_admin`.
+            expected_field (str): Attribute name on the Admin to compare between created and retrieved instances.
+        """
         retrieved_admin = getter_func(session, getter_arg(created_admin))
 
         assert retrieved_admin is not None
@@ -158,7 +191,14 @@ class TestGetAdmin:
         ],
     )
     def test_get_admin_not_found(self, session: Session, getter_func, not_found_arg):
-        """Test that non-existent admin returns None."""
+        """
+        Verify that looking up a non-existent admin yields no result.
+
+        Parameters:
+            session (Session): Database session to use for the lookup.
+            getter_func (callable): Function that performs the admin lookup; should accept (session, identifier).
+            not_found_arg: Identifier value to query that does not exist (e.g., id, username, or email).
+        """
         admin = getter_func(session, not_found_arg)
         assert admin is None
 
@@ -299,7 +339,11 @@ class TestUpdateAdmin:
         assert "already exists" in str(exc_info.value)
 
     def test_update_admin_partial(self, session: Session, created_admin: Admin):
-        """Test that only provided fields are updated (exclude_unset)."""
+        """
+        Verifies updating an admin modifies only the fields provided in AdminUpdate and leaves unspecified fields unchanged.
+
+        This test updates the admin's first_name and asserts the email and last_name remain unchanged.
+        """
         assert created_admin.id_admin is not None
         original_email = created_admin.email
         original_last_name = created_admin.last_name
@@ -319,7 +363,7 @@ class TestDeleteAdmin:
     """Test admin deletion."""
 
     def test_delete_admin_success(self, session: Session, created_admin: Admin):
-        """Test successful admin deletion."""
+        """Verifies that deleting an existing admin removes it from the database."""
         assert created_admin.id_admin is not None
         admin_id = created_admin.id_admin
 

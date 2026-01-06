@@ -10,20 +10,16 @@ from app.exceptions import AlreadyExistsError
 
 def init_db(session: Session) -> None:
     """
-    Ensure the configured first superuser exists in the database.
+    Ensure the configured initial superuser exists in the database.
 
-    Creates an Admin record from FIRST_SUPERUSER_EMAIL, FIRST_SUPERUSER_USERNAME, and
-    FIRST_SUPERUSER_PASSWORD in application settings when a user with the configured
-    username is not present. If required settings are missing, the function logs a
-    warning and returns without making changes. On successful creation the new user
-    is added and the transaction committed; if commit fails the transaction is
-    rolled back and the original exception is propagated.
+    If FIRST_SUPERUSER_EMAIL, FIRST_SUPERUSER_USERNAME, or FIRST_SUPERUSER_PASSWORD is not set, the function logs a warning and makes no changes. If an Admin with the configured username or email already exists, no action is taken. Otherwise, an Admin is created from the configured settings (first_name set to "Initial", last_name set to "Admin") and persisted.
 
     Parameters:
-        session (Session): SQLModel session used to query, add, and commit the Admin.
+        session (Session): Database session used to query for an existing Admin and to add/commit a new Admin.
 
     Raises:
-        Exception: If adding or committing the new Admin fails.
+        AlreadyExistsError: If a unique constraint prevents creating the admin (username or email already exists).
+        Exception: Any other error encountered while creating or persisting the Admin is propagated.
     """
     settings = get_settings()
     if (

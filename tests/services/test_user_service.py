@@ -23,7 +23,12 @@ NONEXISTENT_EMAIL = "nonexistent@example.com"
 # Fixtures
 @pytest.fixture(name="sample_user_create")
 def sample_user_create_fixture():
-    """Sample user creation data."""
+    """
+    Provide a UserCreate payload populated with standard test user attributes.
+
+    Returns:
+        UserCreate: Instance initialized with TEST_USER_USERNAME, TEST_USER_EMAIL, TEST_USER_PASSWORD, and UserType.VOLUNTEER.
+    """
     return UserCreate(
         username=TEST_USER_USERNAME,
         email=TEST_USER_EMAIL,
@@ -34,7 +39,16 @@ def sample_user_create_fixture():
 
 @pytest.fixture(name="created_user")
 def created_user_fixture(session: Session, sample_user_create: UserCreate) -> User:
-    """Create and return a user with ID assertion already done."""
+    """
+    Create a new user from a UserCreate payload and return the created User.
+
+    Parameters:
+        session (Session): Database session used to persist the user.
+        sample_user_create (UserCreate): Payload containing username, email, password, and user_type.
+
+    Returns:
+        User: The persisted user instance with `id_user` populated.
+    """
     user = user_service.create_user(session, sample_user_create)
     assert user.id_user is not None
     return user
@@ -42,10 +56,36 @@ def created_user_fixture(session: Session, sample_user_create: UserCreate) -> Us
 
 @pytest.fixture(name="user_factory")
 def user_factory_fixture(session: Session):
-    """Factory fixture for creating multiple users with unique data."""
+    """
+    Return a factory callable that creates test User records with unique default attributes.
+
+    The returned callable creates a User using sensible defaults (username/email/password/user_type) and asserts the created user's `id_user` is not None.
+
+    Returns:
+        Callable[[int, **dict], User]: A factory function that creates and returns a User instance.
+    """
+    """
+    Create a test User, allowing optional field overrides.
+
+    Parameters:
+        index (int): Numeric suffix used to generate a unique default username and email (e.g., "user0", "user0@example.com").
+        **overrides: Field values to override the defaults accepted by UserCreate (e.g., email="x@example.com", password="...").
+
+    Returns:
+        User: The created User instance; `id_user` is guaranteed to be non-None by an assertion.
+    """
 
     def _create_user(index: int = 0, **overrides) -> User:
-        """Create a user with optional field overrides."""
+        """
+        Create and persist a test user with predictable credentials, allowing field overrides.
+
+        Parameters:
+            index (int): Numeric suffix used to generate default `username` and `email` (e.g., "user0", "user0@example.com").
+            overrides (dict): Field values to override the defaults; keys correspond to UserCreate fields (e.g., "email", "password", "user_type").
+
+        Returns:
+            User: The created User instance with a non-null `id_user`.
+        """
         data = {
             "username": f"user{index}",
             "email": f"user{index}@example.com",
@@ -131,7 +171,14 @@ class TestGetUser:
         getter_arg,
         expected_field,
     ):
-        """Test successful user retrieval by different fields."""
+        """
+        Verify that a user can be retrieved using the provided getter and that the retrieved user's id and a specified field match the created user.
+
+        Parameters:
+            getter_func: Callable that takes (Session, identifier) and returns a User or None.
+            getter_arg: Callable that, given the created User, returns the identifier to pass to `getter_func`.
+            expected_field (str): Name of the attribute on the User that must match between created and retrieved instances.
+        """
         retrieved_user = getter_func(session, getter_arg(created_user))
 
         assert retrieved_user is not None
@@ -149,7 +196,13 @@ class TestGetUser:
         ],
     )
     def test_get_user_not_found(self, session: Session, getter_func, not_found_arg):
-        """Test that non-existent user returns None."""
+        """
+        Verify that attempting to retrieve a non-existent user produces no result.
+
+        Parameters:
+                getter_func (callable): User retrieval function to call with (session, identifier).
+                not_found_arg (Any): Identifier value that does not exist in the database.
+        """
         user = getter_func(session, not_found_arg)
         assert user is None
 

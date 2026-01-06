@@ -10,17 +10,17 @@ from app.exceptions import NotFoundError, AlreadyExistsError
 
 def create_admin(session: Session, admin_in: AdminCreate) -> Admin:
     """
-    Create a new admin with hashed password.
+    Create a new admin and persist it with a hashed password.
 
-    Args:
-        session: Database session
-        admin_in: Admin creation data including plaintext password
+    Parameters:
+        session (Session): Database session.
+        admin_in (AdminCreate): Admin creation data; must include plaintext `password`.
 
     Returns:
-        Admin: The created admin record
+        Admin: The created admin record.
 
     Raises:
-        AlreadyExistsError: If username or email already exists
+        AlreadyExistsError: If username or email already exists.
     """
     hashed_password = get_password_hash(admin_in.password)
 
@@ -42,12 +42,11 @@ def get_admin(session: Session, admin_id: int) -> Admin | None:
     """
     Retrieve an admin by ID.
 
-    Args:
-        session: Database session
-        admin_id: The admin's primary key
+    Parameters:
+        admin_id (int): Primary key of the admin to retrieve.
 
     Returns:
-        Admin | None: The admin record or None if not found
+        Admin | None: `Admin` if found, `None` otherwise.
     """
     statement = select(Admin).where(Admin.id_admin == admin_id)
     return session.exec(statement).first()
@@ -57,12 +56,8 @@ def get_admin_by_username(session: Session, username: str) -> Admin | None:
     """
     Retrieve an admin by username.
 
-    Args:
-        session: Database session
-        username: The admin's username
-
     Returns:
-        Admin | None: The admin record or None if not found
+        `Admin` instance matching the username, `None` if no matching admin is found.
     """
     statement = select(Admin).where(Admin.username == username)
     return session.exec(statement).first()
@@ -72,12 +67,11 @@ def get_admin_by_email(session: Session, email: str) -> Admin | None:
     """
     Retrieve an admin by email.
 
-    Args:
-        session: Database session
-        email: The admin's email address
+    Parameters:
+        email (str): The email address to search for.
 
     Returns:
-        Admin | None: The admin record or None if not found
+        Admin | None: `Admin` if a record with the given email exists, `None` otherwise.
     """
     statement = select(Admin).where(Admin.email == email)
     return session.exec(statement).first()
@@ -85,15 +79,14 @@ def get_admin_by_email(session: Session, email: str) -> Admin | None:
 
 def get_admins(session: Session, *, offset: int = 0, limit: int = 100) -> list[Admin]:
     """
-    Retrieve a paginated list of admins.
+    Retrieve a paginated list of admin records.
 
-    Args:
-        session: Database session
-        offset: Number of records to skip (default: 0)
-        limit: Maximum number of records to return (default: 100)
+    Parameters:
+        offset (int): Number of records to skip. Defaults to 0.
+        limit (int): Maximum number of records to return. Defaults to 100.
 
     Returns:
-        list[Admin]: List of admin records
+        admins (list[Admin]): List of Admin instances for the requested page.
     """
     statement = select(Admin).offset(offset).limit(limit)
     return list(session.exec(statement).all())
@@ -101,19 +94,19 @@ def get_admins(session: Session, *, offset: int = 0, limit: int = 100) -> list[A
 
 def update_admin(session: Session, admin_id: int, admin_update: AdminUpdate) -> Admin:
     """
-    Update an existing admin's information.
+    Apply partial updates to an existing admin and persist the changes.
 
-    Args:
-        session: Database session
-        admin_id: The admin's primary key
-        admin_update: Partial update data (only provided fields will be updated)
+    Only fields present on `admin_update` are applied. If `password` is provided it will be hashed and stored as `hashed_password`.
+
+    Parameters:
+        admin_update (AdminUpdate): Partial update data; unset fields are ignored.
 
     Returns:
-        Admin: The updated admin record
+        Admin: The updated Admin instance.
 
     Raises:
-        NotFoundError: If admin not found
-        AlreadyExistsError: If email already exists
+        NotFoundError: If no admin exists with the given `admin_id`.
+        AlreadyExistsError: If persistence fails due to a uniqueness constraint (for example, duplicate email).
     """
     db_admin = get_admin(session, admin_id)
     if not db_admin:
