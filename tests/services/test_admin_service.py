@@ -1,12 +1,12 @@
-"""Tests for admin service CRUD operations."""
+"""Tests for admin service CRUD operations. Generated and validated."""
 
 import pytest
-from fastapi import HTTPException
 from sqlmodel import Session
 
 from app.models.admin import Admin, AdminCreate, AdminUpdate
 from app.services import admin as admin_service
 from app.core.password import verify_password
+from app.exceptions import NotFoundError, AlreadyExistsError
 
 # Test data constants
 TEST_ADMIN_USERNAME = "adminuser"
@@ -79,7 +79,7 @@ class TestCreateAdmin:
     def test_create_admin_duplicate_username(
         self, session: Session, sample_admin_create: AdminCreate
     ):
-        """Test that duplicate username raises HTTPException."""
+        """Test that duplicate username raises AlreadyExistsError."""
         admin_service.create_admin(session, sample_admin_create)
 
         duplicate_admin = AdminCreate(
@@ -90,16 +90,16 @@ class TestCreateAdmin:
             password="AnotherPass123",
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             admin_service.create_admin(session, duplicate_admin)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "Admin"
+        assert "already exists" in str(exc_info.value)
 
     def test_create_admin_duplicate_email(
         self, session: Session, sample_admin_create: AdminCreate
     ):
-        """Test that duplicate email raises HTTPException."""
+        """Test that duplicate email raises AlreadyExistsError."""
         admin_service.create_admin(session, sample_admin_create)
 
         duplicate_email_admin = AdminCreate(
@@ -110,11 +110,11 @@ class TestCreateAdmin:
             password="AnotherPass123",
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             admin_service.create_admin(session, duplicate_email_admin)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "Admin"
+        assert "already exists" in str(exc_info.value)
 
 
 class TestGetAdmin:
@@ -275,28 +275,28 @@ class TestUpdateAdmin:
         assert verify_password(new_password, updated_admin.hashed_password)
 
     def test_update_admin_not_found(self, session: Session):
-        """Test updating non-existent admin raises HTTPException."""
+        """Test updating non-existent admin raises NotFoundError."""
         update_data = AdminUpdate(email=TEST_EMAIL_NEW)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             admin_service.update_admin(session, NONEXISTENT_ID, update_data)
 
-        assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail.lower()
+        assert exc_info.value.resource == "Admin"
+        assert exc_info.value.identifier == NONEXISTENT_ID
 
     def test_update_admin_duplicate_email(self, session: Session, admin_factory):
-        """Test that updating to duplicate email raises HTTPException."""
+        """Test that updating to duplicate email raises AlreadyExistsError."""
         admin1 = admin_factory(1, username="admin1", email="admin1@example.com")
         admin2_email = "admin2@example.com"
         admin_factory(2, username="admin2", email=admin2_email)
 
         update_data = AdminUpdate(email=admin2_email)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             admin_service.update_admin(session, admin1.id_admin, update_data)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "Admin"
+        assert "already exists" in str(exc_info.value)
 
     def test_update_admin_partial(self, session: Session, created_admin: Admin):
         """Test that only provided fields are updated (exclude_unset)."""
@@ -329,9 +329,9 @@ class TestDeleteAdmin:
         assert deleted_admin is None
 
     def test_delete_admin_not_found(self, session: Session):
-        """Test deleting non-existent admin raises HTTPException."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test deleting non-existent admin raises NotFoundError."""
+        with pytest.raises(NotFoundError) as exc_info:
             admin_service.delete_admin(session, NONEXISTENT_ID)
 
-        assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail.lower()
+        assert exc_info.value.resource == "Admin"
+        assert exc_info.value.identifier == NONEXISTENT_ID

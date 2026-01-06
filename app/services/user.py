@@ -2,10 +2,10 @@
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException, status
 
 from app.models.user import User, UserCreate, UserUpdate
 from app.core.password import get_password_hash
+from app.exceptions import NotFoundError, AlreadyExistsError
 
 
 def create_user(session: Session, user_in: UserCreate) -> User:
@@ -20,7 +20,7 @@ def create_user(session: Session, user_in: UserCreate) -> User:
         User: The created user record
 
     Raises:
-        HTTPException: 400 if username or email already exists
+        AlreadyExistsError: If username or email already exists
     """
     hashed_password = get_password_hash(user_in.password)
 
@@ -31,10 +31,7 @@ def create_user(session: Session, user_in: UserCreate) -> User:
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
-        )
+        raise AlreadyExistsError("User", "username or email", user_in.username)
     session.refresh(db_user)
     return db_user
 
@@ -113,14 +110,12 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
         User: The updated user record
 
     Raises:
-        HTTPException: 404 if user not found, 400 if email already exists
+        NotFoundError: If user not found
+        AlreadyExistsError: If username or email already exists
     """
     db_user = get_user(session, user_id)
     if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        raise NotFoundError("User", user_id)
 
     # Convert update model to dict, excluding unset fields
     user_data = user_update.model_dump(exclude_unset=True)
@@ -140,10 +135,7 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
-        )
+        raise AlreadyExistsError("User", "email", user_update.email or "unknown")
     session.refresh(db_user)
     return db_user
 
@@ -157,14 +149,11 @@ def delete_user(session: Session, user_id: int) -> None:
         user_id: The user's primary key
 
     Raises:
-        HTTPException: 404 if user not found
+        NotFoundError: If user not found
     """
     db_user = get_user(session, user_id)
     if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        raise NotFoundError("User", user_id)
 
     session.delete(db_user)
     session.commit()

@@ -1,13 +1,13 @@
-"""Tests for user service CRUD operations."""
+"""Tests for user service CRUD operations. Generated and validated."""
 
 import pytest
-from fastapi import HTTPException
 from sqlmodel import Session
 
 from app.models.user import User, UserCreate, UserUpdate
 from app.models.enums import UserType
 from app.services import user as user_service
 from app.core.password import verify_password
+from app.exceptions import NotFoundError, AlreadyExistsError
 
 # Test data constants
 TEST_USER_USERNAME = "testuser"
@@ -76,7 +76,7 @@ class TestCreateUser:
     def test_create_user_duplicate_username(
         self, session: Session, sample_user_create: UserCreate
     ):
-        """Test that duplicate username raises HTTPException."""
+        """Test that duplicate username raises AlreadyExistsError."""
         user_service.create_user(session, sample_user_create)
 
         duplicate_user = UserCreate(
@@ -86,16 +86,16 @@ class TestCreateUser:
             user_type=UserType.VOLUNTEER,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             user_service.create_user(session, duplicate_user)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "User"
+        assert "already exists" in str(exc_info.value)
 
     def test_create_user_duplicate_email(
         self, session: Session, sample_user_create: UserCreate
     ):
-        """Test that duplicate email raises HTTPException."""
+        """Test that duplicate email raises AlreadyExistsError."""
         user_service.create_user(session, sample_user_create)
 
         duplicate_user = UserCreate(
@@ -105,11 +105,11 @@ class TestCreateUser:
             user_type=UserType.VOLUNTEER,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             user_service.create_user(session, duplicate_user)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "User"
+        assert "already exists" in str(exc_info.value)
 
 
 class TestGetUser:
@@ -253,28 +253,28 @@ class TestUpdateUser:
         assert updated_user.user_type == UserType.ASSOCIATION
 
     def test_update_user_not_found(self, session: Session):
-        """Test updating non-existent user raises HTTPException."""
+        """Test updating non-existent user raises NotFoundError."""
         update_data = UserUpdate(email=TEST_EMAIL_NEW)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundError) as exc_info:
             user_service.update_user(session, NONEXISTENT_ID, update_data)
 
-        assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail.lower()
+        assert exc_info.value.resource == "User"
+        assert exc_info.value.identifier == NONEXISTENT_ID
 
     def test_update_user_duplicate_email(self, session: Session, user_factory):
-        """Test that updating to duplicate email raises HTTPException."""
+        """Test that updating to duplicate email raises AlreadyExistsError."""
         user1 = user_factory(1, username="user1", email="user1@example.com")
         user2_email = "user2@example.com"
         user_factory(2, username="user2", email=user2_email)
 
         update_data = UserUpdate(email=user2_email)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(AlreadyExistsError) as exc_info:
             user_service.update_user(session, user1.id_user, update_data)
 
-        assert exc_info.value.status_code == 400
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.resource == "User"
+        assert "already exists" in str(exc_info.value)
 
     def test_update_user_partial(self, session: Session, created_user: User):
         """Test that only provided fields are updated (exclude_unset)."""
@@ -304,9 +304,9 @@ class TestDeleteUser:
         assert deleted_user is None
 
     def test_delete_user_not_found(self, session: Session):
-        """Test deleting non-existent user raises HTTPException."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test deleting non-existent user raises NotFoundError."""
+        with pytest.raises(NotFoundError) as exc_info:
             user_service.delete_user(session, NONEXISTENT_ID)
 
-        assert exc_info.value.status_code == 404
-        assert "not found" in exc_info.value.detail.lower()
+        assert exc_info.value.resource == "User"
+        assert exc_info.value.identifier == NONEXISTENT_ID

@@ -1,4 +1,3 @@
-from app.database.database import create_db_and_tables
 from pathlib import Path
 from app.utils.logger import setup_logging
 from contextlib import asynccontextmanager
@@ -11,6 +10,7 @@ from app.internal import admin
 from app.routers import auth
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
+from app.core.error_handlers import register_exception_handlers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Ensure static directory exists before later mount
@@ -23,12 +23,13 @@ async def lifespan(app: FastAPI):
     """
     Perform application startup tasks before the FastAPI app begins serving requests.
 
-    Runs logging setup, creates the database and tables, and initializes telemetry using the provided FastAPI application. This function is intended to be used as an async lifespan context manager and yields control after startup actions complete.
+    Runs telemetry initialization, logging setup, and ensures storage resources are ready.
+    This function is intended to be used as an async lifespan context manager and yields
+    control after startup actions complete.
     """
-    setup_logging()
-    create_db_and_tables()
-    storage_service.ensure_bucket_exists()
     setup_telemetry(app)
+    setup_logging()
+    storage_service.ensure_bucket_exists()
     yield
 
 
@@ -37,6 +38,9 @@ app = FastAPI(
     description="RESTful API for the Together application",
     lifespan=lifespan,
 )
+
+# Register exception handlers
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
