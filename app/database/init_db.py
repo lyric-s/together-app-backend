@@ -3,7 +3,7 @@ from loguru import logger
 
 from app.core.config import get_settings
 from app.models.admin import Admin
-from app.core.security import get_password_hash
+from app.core.password import get_password_hash
 
 
 def init_db(session: Session) -> None:
