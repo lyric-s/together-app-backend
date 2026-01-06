@@ -26,12 +26,8 @@ class VolunteerBase(SQLModel):
     skills: str = Field(
         default="", max_length=VOLUNTEER_SKILLS_MAX_LENGTH, nullable=False
     )
-    address: str | None = Field(
-        default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH, nullable=False
-    )
-    zip_code: str | None = Field(
-        default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH, nullable=False
-    )
+    address: str | None = Field(default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH)
+    zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
     bio: str = Field(default="", max_length=VOLUNTEER_BIO_MAX_LENGTH, nullable=False)
 
 
@@ -69,7 +65,7 @@ class VolunteerUpdate(SQLModel):
     )
     birthdate: date | None = None
     skills: str | None = Field(default=None, max_length=VOLUNTEER_SKILLS_MAX_LENGTH)
-    address: str | None = None
+    address: str | None = Field(default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH)
     zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
     bio: str | None = Field(default=None, max_length=VOLUNTEER_BIO_MAX_LENGTH)
     # Note: active_missions_count and finished_missions_count are

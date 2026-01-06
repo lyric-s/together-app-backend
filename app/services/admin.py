@@ -35,7 +35,7 @@ def create_admin(session: Session, admin_in: AdminCreate) -> Admin:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already exists",
+            detail="Username or email already exists",
         )
     session.refresh(db_admin)
     return db_admin
