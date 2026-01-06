@@ -3,13 +3,14 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.core.config import get_settings
 from app.database.database import get_session
 from app.models.user import User
-from app.models.token import TokenData  # Ensure this model exists (see below)
 from app.models.admin import Admin
+from app.services import user as user_service
+from app.services import admin as admin_service
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -43,12 +44,12 @@ def get_current_user(
         username: str | None = payload.get("sub")
         if username is None or payload.get("type") != "access":
             raise credentials_exception
-
-        token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
-    statement = select(User).where(User.username == token_data.username)
-    user = session.exec(statement).first()
+
+    # Get user from service layer
+    # username is guaranteed to be str at this point due to validation above
+    user = user_service.get_user_by_username(session, username)
     if user is None:
         raise credentials_exception
     return user
@@ -94,13 +95,12 @@ def get_current_admin(
             username is None or mode != "admin" or token_type != "access"
         ):  # <--- 2. Add Check
             raise credentials_exception
-
-        token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
 
-    statement = select(Admin).where(Admin.username == token_data.username)
-    admin = session.exec(statement).first()
+    # Get admin from service layer
+    # username is guaranteed to be str at this point due to validation above
+    admin = admin_service.get_admin_by_username(session, username)
 
     if admin is None:
         raise credentials_exception
