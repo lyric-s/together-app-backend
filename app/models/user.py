@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from .enums import UserType
+from app.models.enums import UserType
 
 if TYPE_CHECKING:
     from app.models.volunteer import Volunteer
