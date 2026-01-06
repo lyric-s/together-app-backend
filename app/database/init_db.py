@@ -1,9 +1,11 @@
 from sqlmodel import Session, select
 from loguru import logger
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import get_settings
 from app.models.admin import Admin
 from app.core.password import get_password_hash
+from app.exceptions import AlreadyExistsError
 
 
 def init_db(session: Session) -> None:
@@ -53,6 +55,12 @@ def init_db(session: Session) -> None:
             session.add(admin)
             session.commit()
             logger.info("First superuser created successfully")
+        except IntegrityError:
+            session.rollback()
+            logger.error("First superuser already exists (constraint violation)")
+            raise AlreadyExistsError(
+                "Admin", "username or email", settings.FIRST_SUPERUSER_USERNAME
+            )
         except Exception as e:
             session.rollback()
             logger.error(f"Failed to create first superuser: {e}")
