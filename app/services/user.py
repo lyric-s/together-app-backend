@@ -10,17 +10,18 @@ from app.exceptions import NotFoundError, AlreadyExistsError
 
 def create_user(session: Session, user_in: UserCreate) -> User:
     """
-    Create a new user with hashed password.
+    Create a new user and persist it with a hashed password.
 
-    Args:
-        session: Database session
-        user_in: User creation data including plaintext password
+    Hashes the provided plaintext password, constructs a User model with the hashed password, and stores it in the database.
+
+    Parameters:
+        user_in (UserCreate): User creation data; must include the plaintext `password` and other user fields.
 
     Returns:
-        User: The created user record
+        User: The created User model instance.
 
     Raises:
-        AlreadyExistsError: If username or email already exists
+        AlreadyExistsError: If a user with the same username or email already exists.
     """
     hashed_password = get_password_hash(user_in.password)
 
@@ -55,12 +56,11 @@ def get_user_by_username(session: Session, username: str) -> User | None:
     """
     Retrieve a user by username.
 
-    Args:
-        session: Database session
-        username: The user's username
+    Parameters:
+        username (str): The username to look up.
 
     Returns:
-        User | None: The user record or None if not found
+        User | None: `User` if a matching record exists, `None` otherwise.
     """
     statement = select(User).where(User.username == username)
     return session.exec(statement).first()
@@ -70,12 +70,12 @@ def get_user_by_email(session: Session, email: str) -> User | None:
     """
     Retrieve a user by email.
 
-    Args:
-        session: Database session
-        email: The user's email address
+    Parameters:
+        session: Database session used to execute the query.
+        email: Email address to look up.
 
     Returns:
-        User | None: The user record or None if not found
+        The `User` instance matching the given email, or `None` if no match is found.
     """
     statement = select(User).where(User.email == email)
     return session.exec(statement).first()
@@ -85,13 +85,8 @@ def get_users(session: Session, *, offset: int = 0, limit: int = 100) -> list[Us
     """
     Retrieve a paginated list of users.
 
-    Args:
-        session: Database session
-        offset: Number of records to skip (default: 0)
-        limit: Maximum number of records to return (default: 100)
-
     Returns:
-        list[User]: List of user records
+        list[User]: User records for the requested page defined by offset and limit.
     """
     statement = select(User).offset(offset).limit(limit)
     return list(session.exec(statement).all())
@@ -101,17 +96,16 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
     """
     Update an existing user's information.
 
-    Args:
-        session: Database session
-        user_id: The user's primary key
-        user_update: Partial update data (only provided fields will be updated)
+    Parameters:
+        user_id (int): Primary key of the user to update.
+        user_update (UserUpdate): Partial update data; only provided fields will be applied. If `password` is provided, it will be hashed and stored on the user as `hashed_password`.
 
     Returns:
-        User: The updated user record
+        User: The updated user record.
 
     Raises:
-        NotFoundError: If user not found
-        AlreadyExistsError: If username or email already exists
+        NotFoundError: If no user exists with the given `user_id`.
+        AlreadyExistsError: If updating causes a uniqueness conflict (for example, duplicate username or email).
     """
     db_user = get_user(session, user_id)
     if not db_user:
@@ -142,14 +136,13 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
 
 def delete_user(session: Session, user_id: int) -> None:
     """
-    Delete a user by ID.
+    Delete the user identified by `user_id`.
 
-    Args:
-        session: Database session
-        user_id: The user's primary key
+    Parameters:
+        user_id (int): Primary key of the user to delete.
 
     Raises:
-        NotFoundError: If user not found
+        NotFoundError: If no user exists with the given `user_id`.
     """
     db_user = get_user(session, user_id)
     if not db_user:

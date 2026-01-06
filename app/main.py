@@ -21,11 +21,12 @@ static_dir.mkdir(exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Perform application startup tasks before the FastAPI app begins serving requests.
+    Run startup tasks required before the application begins serving requests.
 
-    Runs telemetry initialization, logging setup, and ensures storage resources are ready.
-    This function is intended to be used as an async lifespan context manager and yields
-    control after startup actions complete.
+    Initializes logging and telemetry, and ensures the storage bucket exists. Intended to be used as an async lifespan context manager for a FastAPI application; yields control after startup tasks complete.
+
+    Parameters:
+        app (FastAPI): The FastAPI application instance used for telemetry initialization.
     """
     setup_logging()
     setup_telemetry(app)

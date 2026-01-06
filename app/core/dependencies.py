@@ -21,10 +21,10 @@ def get_current_user(
     session: Session = Depends(get_session),
 ) -> User:
     """
-    Resolve the authenticated user from an access JWT.
+    Resolve and return the authenticated User represented by an access JWT.
 
     Returns:
-        The User corresponding to the token's subject.
+        User: The User corresponding to the token's subject.
 
     Raises:
         HTTPException: 401 Unauthorized if the token is invalid, missing the subject, not an access token, or if no matching user is found.

@@ -62,13 +62,13 @@ def create_new_admin(
     admin_in: AdminCreate,
 ):
     """
-    Create a new admin account and persist it to the database.
+    Create a new admin account.
 
     Parameters:
-        admin_in (AdminCreate): Input data for the new admin (including plaintext password).
+        admin_in (AdminCreate): Data for the new admin; includes the plaintext password.
 
     Returns:
-        AdminPublic: The created admin record (without sensitive data).
+        AdminPublic: The created admin record with sensitive fields removed.
 
     Raises:
         HTTPException: Raised with status 400 if the username or email already exists.

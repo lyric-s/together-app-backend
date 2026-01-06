@@ -34,10 +34,10 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
 
 def authenticate_admin(session: Session, username: str, password: str) -> Admin | None:
     """
-    Authenticate an admin by username and password.
+    Authenticate an admin account using a username and password.
 
     Returns:
-        Admin: The matching Admin object if credentials are valid, `None` otherwise.
+        `Admin` if credentials are valid, `None` otherwise.
     """
     # Get admin from service layer
     admin = admin_service.get_admin_by_username(session, username)
