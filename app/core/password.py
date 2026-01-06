@@ -11,7 +11,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Verify that a plaintext password matches a stored hashed password.
 
     Returns:
-        `true` if the plaintext password matches the hashed password, `false` otherwise.
+        `True` if the plaintext password matches the hashed password, `False` otherwise.
     """
     return password_hash.verify(plain_password, hashed_password)
 

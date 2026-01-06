@@ -17,23 +17,15 @@ ASSOCIATION_DESCRIPTION_MAX_LENGTH = 1000
 
 
 class AssociationBase(SQLModel):
-    name: str = Field(
-        index=True, max_length=ASSOCIATION_NAME_MAX_LENGTH, nullable=False
-    )
-    address: str = Field(
-        index=True, max_length=ASSOCIATION_ADDRESS_MAX_LENGTH, nullable=False
-    )
-    country: str = Field(
-        index=True, max_length=ASSOCIATION_COUNTRY_MAX_LENGTH, nullable=False
-    )
-    zip_code: str = Field(
-        index=True, max_length=ASSOCIATION_ZIP_MAX_LENGTH, nullable=False
-    )
+    name: str = Field(max_length=ASSOCIATION_NAME_MAX_LENGTH, nullable=False)
+    address: str = Field(max_length=ASSOCIATION_ADDRESS_MAX_LENGTH, nullable=False)
+    country: str = Field(max_length=ASSOCIATION_COUNTRY_MAX_LENGTH, nullable=False)
+    zip_code: str = Field(max_length=ASSOCIATION_ZIP_MAX_LENGTH, nullable=False)
     rna_code: str = Field(
         index=True, max_length=ASSOCIATION_RNA_CODE_MAX_LENGTH, nullable=False
     )
     company_name: str = Field(
-        index=True, max_length=ASSOCIATION_COMPANY_NAME_MAX_LENGTH, nullable=False
+        max_length=ASSOCIATION_COMPANY_NAME_MAX_LENGTH, nullable=False
     )
     description: str = Field(
         default="", max_length=ASSOCIATION_DESCRIPTION_MAX_LENGTH, nullable=False

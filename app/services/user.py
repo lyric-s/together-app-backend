@@ -142,7 +142,7 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already exists",
+            detail="Username or email already exists",
         )
     session.refresh(db_user)
     return db_user
