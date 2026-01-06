@@ -15,7 +15,7 @@ class NotFoundError(AppException):
 class AlreadyExistsError(AppException):
     """Resource already exists (unique constraint violation)."""
 
-    def __init__(self, resource: str, field: str, value: str):
+    def __init__(self, resource: str, field: str, value: int | str):
         self.resource = resource
         self.field = field
         self.value = value
