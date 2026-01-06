@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
 from app.models.admin import Admin, AdminCreate, AdminUpdate
-from app.core.security import get_password_hash
+from app.core.password import get_password_hash
 
 
 def create_admin(session: Session, admin_in: AdminCreate) -> Admin:

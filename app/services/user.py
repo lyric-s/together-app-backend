@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
 from app.models.user import User, UserCreate, UserUpdate
-from app.core.security import get_password_hash
+from app.core.password import get_password_hash
 
 
 def create_user(session: Session, user_in: UserCreate) -> User:
