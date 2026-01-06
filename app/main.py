@@ -27,8 +27,8 @@ async def lifespan(app: FastAPI):
     This function is intended to be used as an async lifespan context manager and yields
     control after startup actions complete.
     """
-    setup_telemetry(app)
     setup_logging()
+    setup_telemetry(app)
     storage_service.ensure_bucket_exists()
     yield
 
