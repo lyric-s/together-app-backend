@@ -32,7 +32,7 @@ def create_user(session: Session, user_in: UserCreate) -> User:
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise AlreadyExistsError("User", "username or email", user_in.username)
+        raise AlreadyExistsError("User", "unique field", "username or email")
     session.refresh(db_user)
     return db_user
 
@@ -129,7 +129,7 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise AlreadyExistsError("User", "email", user_update.email or "unknown")
+        raise AlreadyExistsError("User", "unique field", "one of the updated fields")
     session.refresh(db_user)
     return db_user
 
