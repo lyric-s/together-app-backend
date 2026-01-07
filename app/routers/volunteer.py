@@ -96,7 +96,7 @@ def read_current_volunteer_missions(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
     target_date: Annotated[
-        date | Literal["today"] | None,
+        Literal["today"] | date | None,
         Query(
             description="Filter by date (YYYY-MM-DD or 'today'). Omit for all missions."
         ),
