@@ -28,8 +28,12 @@ class VolunteerBase(SQLModel):
     skills: str = Field(
         default="", max_length=VOLUNTEER_SKILLS_MAX_LENGTH, nullable=False
     )
-    address: str | None = Field(default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH)
-    zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
+    address: str | None = Field(
+        default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH, nullable=True
+    )
+    zip_code: str | None = Field(
+        default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH, nullable=True
+    )
     bio: str = Field(default="", max_length=VOLUNTEER_BIO_MAX_LENGTH, nullable=False)
 
 
@@ -47,7 +51,22 @@ class Volunteer(VolunteerBase, table=True):
 
 
 class VolunteerCreate(VolunteerBase):
-    pass
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "last_name": "Doe",
+                    "first_name": "John",
+                    "phone_number": "+33612345678",
+                    "birthdate": "1990-05-15",
+                    "skills": "First aid, event organization, communication",
+                    "address": "123 Main Street",
+                    "zip_code": "75001",
+                    "bio": "Passionate about helping local communities and making a positive impact through volunteer work.",
+                }
+            ]
+        }
+    }
 
 
 class VolunteerPublic(VolunteerBase):
@@ -55,7 +74,7 @@ class VolunteerPublic(VolunteerBase):
     id_user: int
     active_missions_count: int = 0
     finished_missions_count: int = 0
-    user: UserPublic | None = None
+    user: UserPublic | None = Field(default=None, nullable=True)
 
 
 class VolunteerUpdate(SQLModel):
@@ -73,3 +92,16 @@ class VolunteerUpdate(SQLModel):
     # User account fields
     email: EmailStr | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
     password: str | None = Field(default=None, min_length=PASSWORD_MIN_LENGTH)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "phone_number": "+33698765432",
+                    "address": "456 New Avenue",
+                    "zip_code": "75002",
+                    "skills": "First aid, event organization, communication, project management",
+                }
+            ]
+        }
+    }

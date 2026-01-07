@@ -44,6 +44,19 @@ class User(UserBase, table=True):
 class UserCreate(UserBase):
     password: str = Field(min_length=PASSWORD_MIN_LENGTH)
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "username": "john_doe",
+                    "email": "john.doe@example.com",
+                    "user_type": "VOLUNTEER",
+                    "password": "SecurePass123!",
+                }
+            ]
+        }
+    }
+
 
 class UserPublic(UserBase):
     id_user: int

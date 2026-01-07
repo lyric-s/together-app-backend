@@ -32,6 +32,20 @@ class Admin(AdminBase, table=True):
 class AdminCreate(AdminBase):
     password: str = Field(min_length=ADMIN_PASSWORD_MIN_LENGTH)
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "first_name": "Alice",
+                    "last_name": "Smith",
+                    "email": "alice.smith@together-admin.com",
+                    "username": "alice_admin",
+                    "password": "AdminSecure2024!",
+                }
+            ]
+        }
+    }
+
 
 class AdminPublic(AdminBase):
     id_admin: int
