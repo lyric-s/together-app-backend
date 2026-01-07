@@ -36,7 +36,7 @@ def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, i
     active_stmt = (
         select(func.count())
         .select_from(Engagement)
-        .join(Mission, Engagement.id_mission == Mission.id_mission)  # type: ignore[arg-type]
+        .join(Mission, Engagement.id_mission == Mission.id_mission)  # type: ignore
         .where(
             Engagement.id_volunteer == volunteer_id,
             Engagement.state == ProcessingStatus.APPROVED,
@@ -49,7 +49,7 @@ def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, i
     finished_stmt = (
         select(func.count())
         .select_from(Engagement)
-        .join(Mission, Engagement.id_mission == Mission.id_mission)  # type: ignore[arg-type]
+        .join(Mission, Engagement.id_mission == Mission.id_mission)  # type: ignore
         .where(
             Engagement.id_volunteer == volunteer_id,
             Engagement.state == ProcessingStatus.APPROVED,
@@ -59,6 +59,44 @@ def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, i
     finished_count = session.exec(finished_stmt).one()
 
     return active_count, finished_count
+
+
+def _compute_mission_counts_batch(
+    session: Session, volunteer_ids: list[int]
+) -> dict[int, tuple[int, int]]:
+    """
+    Compute active and finished mission counts for multiple volunteers in bulk.
+
+    Returns:
+        dict[int, tuple[int, int]]: Map of volunteer_id -> (active_count, finished_count)
+    """
+    if not volunteer_ids:
+        return {}
+
+    today = date.today()
+
+    # Base query for approved engagements
+    base_query = (
+        select(Engagement.id_volunteer, Mission.date_end)  # type: ignore
+        .join(Mission, Engagement.id_mission == Mission.id_mission)  # type: ignore
+        .where(
+            Engagement.id_volunteer.in_(volunteer_ids),  # type: ignore
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    )
+
+    results = session.exec(base_query).all()
+
+    # Aggregate in Python to avoid complex group by logic
+    counts: dict[int, list[int]] = {vid: [0, 0] for vid in volunteer_ids}
+
+    for vid, end_date in results:
+        if end_date >= today:
+            counts[vid][0] += 1  # Active
+        else:
+            counts[vid][1] += 1  # Finished
+
+    return {k: (v[0], v[1]) for k, v in counts.items()}
 
 
 def to_volunteer_public(session: Session, volunteer: Volunteer) -> VolunteerPublic:
@@ -87,6 +125,39 @@ def to_volunteer_public(session: Session, volunteer: Volunteer) -> VolunteerPubl
         finished_missions_count=finished_count,
         user=user_public,
     )
+
+
+def to_volunteer_public_from_batch(
+    volunteers: list[Volunteer], counts_map: dict[int, tuple[int, int]]
+) -> list[VolunteerPublic]:
+    """
+    Convert a list of Volunteer DB models to VolunteerPublic using precomputed counts.
+
+    Parameters:
+        volunteers: List of Volunteer database models.
+        counts_map: Map of volunteer_id -> (active_count, finished_count).
+
+    Returns:
+        list[VolunteerPublic]: List of response models.
+    """
+    results = []
+    for volunteer in volunteers:
+        assert volunteer.id_volunteer is not None
+        active_count, finished_count = counts_map.get(volunteer.id_volunteer, (0, 0))
+
+        user_public = None
+        if volunteer.user:
+            user_public = UserPublic.model_validate(volunteer.user)
+
+        results.append(
+            VolunteerPublic(
+                **volunteer.model_dump(exclude={"user", "badges", "missions"}),
+                active_missions_count=active_count,
+                finished_missions_count=finished_count,
+                user=user_public,
+            )
+        )
+    return results
 
 
 def create_volunteer(
@@ -169,9 +240,11 @@ def get_volunteer_by_user_id(session: Session, user_id: int) -> Volunteer | None
 
 def get_volunteers(
     session: Session, *, offset: int = 0, limit: int = 100
-) -> list[Volunteer]:
+) -> list[VolunteerPublic]:
     """
     Retrieve a paginated list of volunteers with user relationships loaded.
+
+    Optimized to fetch mission counts in a single batch query to avoid N+1.
 
     Parameters:
         session: Database session.
@@ -179,7 +252,7 @@ def get_volunteers(
         limit: Maximum number of records to return.
 
     Returns:
-        list[Volunteer]: Volunteer records for the requested page.
+        list[VolunteerPublic]: Volunteer records for the requested page.
     """
     statement = (
         select(Volunteer)
@@ -187,7 +260,16 @@ def get_volunteers(
         .offset(offset)
         .limit(limit)
     )
-    return list(session.exec(statement).all())
+    volunteers = list(session.exec(statement).all())
+
+    if not volunteers:
+        return []
+
+    # Batch compute mission counts
+    volunteer_ids = [v.id_volunteer for v in volunteers if v.id_volunteer is not None]
+    counts_map = _compute_mission_counts_batch(session, volunteer_ids)
+
+    return to_volunteer_public_from_batch(volunteers, counts_map)
 
 
 def update_volunteer(

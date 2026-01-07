@@ -294,3 +294,91 @@ class TestVolunteerMissionCounts:
         public_vol = volunteer_service.to_volunteer_public(session, created_volunteer)
         assert public_vol.active_missions_count == 1
         assert public_vol.finished_missions_count == 1
+
+
+class TestGetVolunteers:
+    def test_get_volunteers_batch_counts(
+        self,
+        session: Session,
+        sample_user_create: UserCreate,
+        sample_volunteer_create: VolunteerCreate,
+        mission_factory,
+    ):
+        # Create 3 volunteers
+        volunteers = []
+        for i in range(3):
+            # Unique user per volunteer
+            u_create = sample_user_create.model_copy()
+            u_create.username = f"vol_batch_{i}"
+            u_create.email = f"vol_batch_{i}@example.com"
+
+            # Unique volunteer info
+            v_create = sample_volunteer_create.model_copy()
+            v_create.first_name = f"Vol_{i}"
+
+            vol = volunteer_service.create_volunteer(session, u_create, v_create)
+            assert vol.id_volunteer is not None
+            volunteers.append(vol)
+
+        today = date.today()
+        active_mission = mission_factory(today, today + timedelta(days=10))
+        finished_mission = mission_factory(
+            today - timedelta(days=10), today - timedelta(days=1)
+        )
+
+        # Vol 0: 1 active
+        session.add(
+            Engagement(
+                id_volunteer=volunteers[0].id_volunteer,
+                id_mission=active_mission.id_mission,
+                state=ProcessingStatus.APPROVED,
+            )
+        )
+        # Vol 1: 1 finished
+        session.add(
+            Engagement(
+                id_volunteer=volunteers[1].id_volunteer,
+                id_mission=finished_mission.id_mission,
+                state=ProcessingStatus.APPROVED,
+            )
+        )
+        # Vol 2: 1 active, 1 finished
+        session.add(
+            Engagement(
+                id_volunteer=volunteers[2].id_volunteer,
+                id_mission=active_mission.id_mission,
+                state=ProcessingStatus.APPROVED,
+            )
+        )
+        session.add(
+            Engagement(
+                id_volunteer=volunteers[2].id_volunteer,
+                id_mission=finished_mission.id_mission,
+                state=ProcessingStatus.APPROVED,
+            )
+        )
+        session.commit()
+
+        # Fetch all volunteers
+        results = volunteer_service.get_volunteers(session)
+
+        # Sort by ID to ensure order matches creation
+        results.sort(key=lambda v: v.id_volunteer)
+
+        # Filter to only the ones we created (in case other tests left data)
+        our_results = [r for r in results if r.first_name.startswith("Vol_")]
+        our_results.sort(key=lambda v: v.id_volunteer)
+
+        assert len(our_results) == 3
+
+        # Verify Vol 0 counts
+        assert our_results[0].active_missions_count == 1
+        assert our_results[0].finished_missions_count == 0
+
+        # Verify Vol 1 counts
+        assert our_results[1].active_missions_count == 0
+        assert our_results[1].finished_missions_count == 1
+
+        # Verify Vol 2 counts
+        assert our_results[2].active_missions_count == 1
+        assert our_results[2].finished_missions_count == 1
