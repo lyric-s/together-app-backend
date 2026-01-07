@@ -241,6 +241,18 @@ class TestFavoriteMissions:
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
 
+    def test_add_favorite_mission_volunteer_not_found(
+        self, session: Session, mission_factory
+    ):
+        mission = mission_factory(date.today(), date.today())
+        assert mission.id_mission is not None
+        with pytest.raises(NotFoundError) as exc_info:
+            volunteer_service.add_favorite_mission(
+                session, NONEXISTENT_ID, mission.id_mission
+            )
+        assert exc_info.value.resource == "Volunteer"
+        assert exc_info.value.identifier == NONEXISTENT_ID
+
     def test_remove_favorite_mission(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
