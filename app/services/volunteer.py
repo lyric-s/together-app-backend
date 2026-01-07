@@ -417,7 +417,7 @@ def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -
         mission_id: The mission's primary key.
 
     Raises:
-        NotFoundError: If the mission doesn't exist.
+        NotFoundError: If the mission or volunteer doesn't exist.
         AlreadyExistsError: If the mission is already favorited.
     """
     # Check mission exists
@@ -426,6 +426,13 @@ def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -
     ).first()
     if not mission:
         raise NotFoundError("Mission", mission_id)
+
+    # Check volunteer exists
+    volunteer = session.exec(
+        select(Volunteer).where(Volunteer.id_volunteer == volunteer_id)
+    ).first()
+    if not volunteer:
+        raise NotFoundError("Volunteer", volunteer_id)
 
     # Check if already favorited
     existing = session.exec(
