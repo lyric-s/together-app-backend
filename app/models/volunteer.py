@@ -42,7 +42,7 @@ class Volunteer(VolunteerBase, table=True):
         back_populates="volunteers", link_model=Engagement
     )
     favorite_missions: list["Mission"] = Relationship(
-        sa_relationship_kwargs={"secondary": "favorite", "lazy": "selectin"}
+        sa_relationship_kwargs={"secondary": "favorite", "lazy": "noload"}
     )
 
 
