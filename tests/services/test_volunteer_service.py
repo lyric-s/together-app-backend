@@ -1,4 +1,4 @@
-"""Tests for volunteer service CRUD operations. Generated and validated."""
+"""Tests for volunteer service CRUD operations."""
 
 from datetime import date, timedelta
 import pytest
@@ -51,10 +51,10 @@ def sample_user_create_fixture():
 @pytest.fixture(name="sample_volunteer_create")
 def sample_volunteer_create_fixture():
     """
-    Create a VolunteerCreate populated with standard test profile data.
-
+    Create a VolunteerCreate with predefined test profile data for use in tests.
+    
     Returns:
-        VolunteerCreate: Instance with predefined first_name, last_name, phone_number, birthdate, skills, and bio for use in tests.
+        VolunteerCreate: A populated VolunteerCreate instance with first_name, last_name, phone_number, birthdate, skills, and bio set.
     """
     return VolunteerCreate(
         first_name=TEST_VOLUNTEER_FIRST_NAME,
@@ -100,12 +100,12 @@ def mission_factory_fixture(session: Session):
 
     def _create_mission(date_start: date, date_end: date) -> Mission:
         """
-        Create and persist a Mission and its required dependent records for use in tests.
-
+        Create and persist a Mission and its required Location, Category, and Association records for use in tests.
+        
         Parameters:
-            date_start (date): Mission start date.
-            date_end (date): Mission end date.
-
+            date_start (date): Mission start date (inclusive) used as the mission's start.
+            date_end (date): Mission end date (inclusive) used as the mission's end.
+        
         Returns:
             Mission: The persisted Mission instance with database-generated identifiers.
         """

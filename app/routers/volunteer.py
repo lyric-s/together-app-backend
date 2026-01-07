@@ -29,20 +29,17 @@ def create_volunteer(
     volunteer_in: VolunteerCreate,
 ) -> VolunteerPublic:
     """
-    Register a new volunteer with user account.
-
-    Creates both a User (with user_type=VOLUNTEER) and the associated Volunteer
-    profile in a single operation.
-
+    Register a new volunteer and associated user account.
+    
     Parameters:
-        user_in: User account data (username, email, password).
-        volunteer_in: Volunteer profile data (name, phone, birthdate, etc.).
-
+        user_in (UserCreate): User account data (username, email, password).
+        volunteer_in (VolunteerCreate): Volunteer profile data (name, phone, birthdate, etc.).
+    
     Returns:
-        VolunteerPublic: The created volunteer with user information.
-
+        VolunteerPublic: The created volunteer in its public representation, including linked user information.
+    
     Raises:
-        AlreadyExistsError: If username or email already exists (400).
+        AlreadyExistsError: If the username or email is already in use.
     """
     volunteer = volunteer_service.create_volunteer(session, user_in, volunteer_in)
     return volunteer_service.to_volunteer_public(session, volunteer)
@@ -165,20 +162,18 @@ def update_volunteer(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> VolunteerPublic:
     """
-    Update a volunteer's profile information.
-
-    Only the volunteer who owns the profile may perform this update.
-
+    Update a volunteer's profile.
+    
     Parameters:
-        volunteer_id (int): Primary key of the volunteer to update.
+        volunteer_id (int): ID of the volunteer to update.
         volunteer_update (VolunteerUpdate): Fields to update; only provided fields will be changed.
-
+    
     Returns:
-        VolunteerPublic: The updated volunteer in its public representation.
-
+        VolunteerPublic: The volunteer's updated public representation.
+    
     Raises:
         NotFoundError: If no volunteer exists with the given ID.
-        InsufficientPermissionsError: If the current user is not the owner of the volunteer profile.
+        InsufficientPermissionsError: If the current user does not own the volunteer profile.
     """
     # Check volunteer exists and user owns it
     volunteer = volunteer_service.get_volunteer(session, volunteer_id)
@@ -259,9 +254,9 @@ def add_favorite_mission(
 ) -> None:
     """
     Add a mission to the authenticated volunteer's favorites.
-
+    
     Raises:
-        NotFoundError: If the authenticated user has no volunteer profile or the mission does not exist.
+        NotFoundError: If the authenticated user has no volunteer profile or the specified mission does not exist.
         AlreadyExistsError: If the mission is already in the volunteer's favorites.
     """
     assert current_user.id_user is not None

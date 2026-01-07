@@ -66,16 +66,15 @@ def _compute_mission_counts_batch(
     session: Session, volunteer_ids: list[int]
 ) -> dict[int, tuple[int, int]]:
     """
-    Compute active and finished mission counts for the given volunteers.
-
+    Compute active and finished mission counts for the provided volunteers.
+    
     Active counts include approved engagements whose mission end date is greater than or equal to today; finished counts include approved engagements whose mission end date is before today.
-
+    
     Parameters:
-        session (Session): Database session used to execute the query.
-        volunteer_ids (list[int]): List of volunteer IDs to compute counts for.
-
+        volunteer_ids (list[int]): Volunteer IDs to compute counts for. An empty list yields an empty mapping.
+    
     Returns:
-        dict[int, tuple[int, int]]: Mapping from volunteer_id to a tuple (active_count, finished_count).
+        dict[int, tuple[int, int]]: Mapping from volunteer ID to a tuple (active_count, finished_count).
     """
     if not volunteer_ids:
         return {}
@@ -247,17 +246,14 @@ def get_volunteers(
     session: Session, *, offset: int = 0, limit: int = 100
 ) -> list[VolunteerPublic]:
     """
-    Retrieve a paginated list of volunteers with user relationships loaded.
-
-    Optimized to fetch mission counts in a single batch query to avoid N+1.
-
+    Return a paginated list of volunteers with embedded user data and precomputed mission counts.
+    
     Parameters:
-        session: Database session.
-        offset: Number of records to skip.
-        limit: Maximum number of records to return.
-
+        offset (int): Number of records to skip.
+        limit (int): Maximum number of records to return.
+    
     Returns:
-        list[VolunteerPublic]: Volunteer records for the requested page.
+        A list of VolunteerPublic objects for the requested page, each including the embedded user (when present) and mission counts.
     """
     statement = (
         select(Volunteer)
@@ -281,20 +277,18 @@ def update_volunteer(
     session: Session, volunteer_id: int, volunteer_update: VolunteerUpdate
 ) -> Volunteer:
     """
-    Update an existing volunteer's profile and associated user account.
-
+    Update an existing volunteer's profile and the linked user account.
+    
     Parameters:
-        session: Database session.
-        volunteer_id: Primary key of the volunteer to update.
-        volunteer_update: Partial update data; only provided fields will be applied.
-            Includes volunteer fields (name, phone, etc.) and user fields (email, password).
-
+        volunteer_update (VolunteerUpdate): Partial update data; only provided volunteer fields will be applied.
+            If `email` or `password` are included they will be applied to the linked user account.
+    
     Returns:
-        Volunteer: The updated volunteer record with user relationship loaded.
-
+        Volunteer: The updated volunteer record with the user relationship loaded.
+    
     Raises:
         NotFoundError: If no volunteer exists with the given volunteer_id.
-        AlreadyExistsError: If email update causes a uniqueness conflict.
+        AlreadyExistsError: If updating the user's email conflicts with an existing account.
     """
     db_volunteer = get_volunteer(session, volunteer_id)
     if not db_volunteer:
@@ -326,14 +320,14 @@ def update_volunteer(
 
 def delete_volunteer(session: Session, volunteer_id: int) -> None:
     """
-    Delete a volunteer and their associated user account.
-
+    Delete the volunteer identified by `volunteer_id` and remove the linked user account.
+    
     Parameters:
-        session: Database session.
-        volunteer_id: Primary key of the volunteer to delete.
-
+        session (Session): Database session used for the operation.
+        volunteer_id (int): Primary key of the volunteer to delete.
+    
     Raises:
-        NotFoundError: If no volunteer exists with the given volunteer_id.
+        NotFoundError: If no volunteer exists with the given `volunteer_id`.
     """
     db_volunteer = get_volunteer(session, volunteer_id)
     if not db_volunteer:
@@ -357,18 +351,14 @@ def get_volunteer_missions(
     target_date: date | None = None,
 ) -> list[MissionPublic]:
     """
-    Retrieve missions for a volunteer, optionally filtered by date.
-
-    Returns approved missions where the volunteer is engaged. If target_date is
-    provided, only returns missions where date_start <= target_date <= date_end.
-
+    Retrieve a volunteer's approved missions, optionally filtered to those active on a given date.
+    
     Parameters:
-        session: Database session.
-        volunteer_id: The volunteer's primary key.
-        target_date: Optional date to filter missions (returns missions active on this date).
-
+        volunteer_id (int): Primary key of the volunteer whose missions to retrieve.
+        target_date (date | None): If provided, only missions with date_start <= target_date <= date_end are returned.
+    
     Returns:
-        list[MissionPublic]: List of missions matching the criteria.
+        list[MissionPublic]: Missions where the volunteer has an approved engagement that match the optional date filter.
     """
     statement = (
         select(Mission)
@@ -415,16 +405,11 @@ def get_favorite_missions(session: Session, volunteer_id: int) -> list[MissionPu
 
 def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -> None:
     """
-    Add a mission to volunteer's favorites.
-
-    Parameters:
-        session: Database session.
-        volunteer_id: The volunteer's primary key.
-        mission_id: The mission's primary key.
-
+    Add the specified mission to the volunteer's list of favorites.
+    
     Raises:
-        NotFoundError: If the mission or volunteer doesn't exist.
-        AlreadyExistsError: If the mission is already favorited.
+        NotFoundError: If the mission or volunteer does not exist.
+        AlreadyExistsError: If the volunteer already favorited the mission (including a race condition detected on commit).
     """
     # Check mission exists
     mission = session.exec(
@@ -466,9 +451,9 @@ def remove_favorite_mission(
 ) -> None:
     """
     Remove a mission from a volunteer's favorites.
-
+    
     Raises:
-        NotFoundError: If no favorite exists linking the volunteer and mission.
+        NotFoundError: If the volunteer has not favorited the specified mission.
     """
     favorite = session.exec(
         select(Favorite).where(

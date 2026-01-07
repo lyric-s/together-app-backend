@@ -11,13 +11,13 @@ from app.exceptions import NotFoundError, AlreadyExistsError
 def create_user(session: Session, user_in: UserCreate) -> User:
     """
     Create and persist a new user with a hashed password.
-
+    
     Parameters:
-        user_in (UserCreate): User creation data; must include a plaintext `password` and other user fields.
-
+        user_in (UserCreate): User creation data; must include a plaintext `password`. The plaintext password will be hashed before storage.
+    
     Returns:
         User: The created User model instance.
-
+    
     Raises:
         AlreadyExistsError: If a user with the same username or email already exists.
     """
@@ -134,13 +134,13 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
 
 def delete_user(session: Session, user_id: int) -> None:
     """
-    Delete the user identified by `user_id`.
-
+    Delete the user with the given primary key from the database.
+    
     Parameters:
         user_id (int): Primary key of the user to delete.
-
+    
     Raises:
-        NotFoundError: If no user exists with the given `user_id`.
+        NotFoundError: If no user exists with the given user_id.
     """
     db_user = get_user(session, user_id)
     if not db_user:
