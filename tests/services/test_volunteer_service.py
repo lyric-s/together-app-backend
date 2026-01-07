@@ -51,10 +51,10 @@ def sample_user_create_fixture():
 @pytest.fixture(name="sample_volunteer_create")
 def sample_volunteer_create_fixture():
     """
-    Return a VolunteerCreate prefilled with standard test profile data for tests.
+    Create a VolunteerCreate populated with standard test profile data.
 
     Returns:
-        VolunteerCreate: Instance with first_name, last_name, phone_number, birthdate, skills, and bio set to predefined test values.
+        VolunteerCreate: Instance with predefined first_name, last_name, phone_number, birthdate, skills, and bio for use in tests.
     """
     return VolunteerCreate(
         first_name=TEST_VOLUNTEER_FIRST_NAME,
@@ -92,27 +92,33 @@ def created_volunteer_fixture(
 @pytest.fixture(name="mission_factory")
 def mission_factory_fixture(session: Session):
     """
-    Return a factory function that creates and persists a Mission and its required dependent records for tests.
-
-    The returned callable accepts (date_start, date_end) and creates and persists a Location, Category, an Association (including its User), and a Mission linked to those records using the provided session.
+    Create a factory that builds and persists a Mission and its dependent records for tests.
 
     Returns:
-        callable: A function with signature (date_start: date, date_end: date) -> Mission that returns the persisted Mission instance.
+        callable: A function with signature (date_start: date, date_end: date) -> Mission that creates and persists a Location, Category, Association (with its User), and a Mission, then returns the persisted Mission instance.
+    """
+    """
+    Create and persist a Mission together with a new Location, Category, and Association (including its User).
+
+    Parameters:
+        date_start (date): Mission start date.
+        date_end (date): Mission end date.
+
+    Returns:
+        mission (Mission): The persisted Mission instance with database-generated identifiers.
     """
 
     def _create_mission(date_start: date, date_end: date) -> Mission:
         # Create dependencies if they don't exist (simplification for tests)
         """
-        Create and persist a Mission and its required dependent records for tests.
-
-        This helper creates and commits a Location, Category, a new user and Association, then creates and commits a Mission linking those records.
+        Create and persist a Mission and its required dependent records for use in tests.
 
         Parameters:
             date_start (date): Mission start date.
             date_end (date): Mission end date.
 
         Returns:
-            mission (Mission): The persisted Mission instance with database-generated identifiers.
+            Mission: The persisted Mission instance with database-generated identifiers.
         """
         location = Location(address="123 St", country="France", zip_code="75001")
         session.add(location)
@@ -198,9 +204,9 @@ class TestGetVolunteer:
         self, session: Session, created_volunteer: Volunteer
     ):
         """
-        Verifies that fetching a volunteer by its associated user ID returns the expected volunteer.
+        Check that retrieving a volunteer by its associated user ID returns the corresponding Volunteer.
 
-        Asserts the fetched volunteer is not None and its volunteer ID matches the created volunteer fixture.
+        Uses the created_volunteer fixture and asserts the returned volunteer is present and has the same id_volunteer as the fixture.
         """
         fetched = volunteer_service.get_volunteer_by_user_id(
             session, created_volunteer.id_user
