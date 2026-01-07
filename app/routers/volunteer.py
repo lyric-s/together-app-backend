@@ -141,16 +141,13 @@ def read_volunteer(
     session: Annotated[Session, Depends(get_session)],
 ) -> VolunteerPublic:
     """
-    Retrieve a specific volunteer by ID.
-
-    Parameters:
-        volunteer_id: The volunteer's primary key.
+    Retrieve a volunteer by its ID.
 
     Returns:
-        VolunteerPublic: The volunteer record with user information.
+        The volunteer's public representation including linked user information.
 
     Raises:
-        NotFoundError: If no volunteer exists with the given ID (404).
+        NotFoundError: If no volunteer exists with the given ID.
     """
     volunteer = volunteer_service.get_volunteer(session, volunteer_id)
     if not volunteer:
@@ -259,14 +256,14 @@ def add_favorite_mission(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
-    Add a mission to the current volunteer's favorites.
+    Add the specified mission to the authenticated user's volunteer favorites.
 
     Parameters:
-        mission_id: The mission's primary key.
+        mission_id (int): ID of the mission to add to favorites.
 
     Raises:
-        NotFoundError: If the user has no volunteer profile or mission doesn't exist (404).
-        AlreadyExistsError: If the mission is already favorited (400).
+        NotFoundError: If the authenticated user has no volunteer profile or the mission does not exist.
+        AlreadyExistsError: If the mission is already in the volunteer's favorites.
     """
     assert current_user.id_user is not None
     volunteer = volunteer_service.get_volunteer_by_user_id(
@@ -286,13 +283,13 @@ def remove_favorite_mission(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
-    Remove a mission from the current volunteer's favorites.
+    Remove a mission from the authenticated volunteer's favorites.
 
     Parameters:
-        mission_id: The mission's primary key.
+        mission_id (int): ID of the mission to remove from the volunteer's favorites.
 
     Raises:
-        NotFoundError: If the user has no volunteer profile or favorite doesn't exist (404).
+        NotFoundError: If the volunteer profile does not exist or the favorite association is not found.
     """
     assert current_user.id_user is not None
     volunteer = volunteer_service.get_volunteer_by_user_id(

@@ -10,12 +10,10 @@ from app.exceptions import NotFoundError, AlreadyExistsError
 
 def create_user(session: Session, user_in: UserCreate) -> User:
     """
-    Create a new user and persist it with a hashed password.
-
-    Hashes the provided plaintext password, constructs a User model with the hashed password, and stores it in the database.
+    Create and persist a new user with a hashed password.
 
     Parameters:
-        user_in (UserCreate): User creation data; must include the plaintext `password` and other user fields.
+        user_in (UserCreate): User creation data; must include a plaintext `password` and other user fields.
 
     Returns:
         User: The created User model instance.
