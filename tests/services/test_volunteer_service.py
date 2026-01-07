@@ -35,10 +35,10 @@ NONEXISTENT_ID = 99999
 @pytest.fixture(name="sample_user_create")
 def sample_user_create_fixture():
     """
-    Create a UserCreate prefilled with the test volunteer's credentials.
-
+    Create a UserCreate object prefilled with the test volunteer's credentials.
+    
     Returns:
-        UserCreate: Instance containing TEST_VOLUNTEER_USERNAME, TEST_VOLUNTEER_EMAIL, TEST_VOLUNTEER_PASSWORD, and UserType.VOLUNTEER.
+        UserCreate: A UserCreate populated with TEST_VOLUNTEER_USERNAME, TEST_VOLUNTEER_EMAIL, TEST_VOLUNTEER_PASSWORD, and UserType.VOLUNTEER.
     """
     return UserCreate(
         username=TEST_VOLUNTEER_USERNAME,
@@ -100,14 +100,16 @@ def mission_factory_fixture(session: Session):
 
     def _create_mission(date_start: date, date_end: date) -> Mission:
         """
-        Create and persist a Mission and its required dependent records for use in tests.
-
+        Create and persist a Mission together with its required dependent records for use in tests.
+        
+        Creates and persists a Location, Category, and Association (including the association user), then creates and persists a Mission referencing those records.
+        
         Parameters:
             date_start (date): Mission start date.
             date_end (date): Mission end date.
-
+        
         Returns:
-            Mission: The persisted Mission instance with database-generated identifiers.
+            Mission: The persisted Mission instance.
         """
         location = Location(address="123 St", country="France", zip_code="75001")
         session.add(location)
@@ -170,6 +172,11 @@ class TestCreateVolunteer:
         sample_user_create: UserCreate,
         sample_volunteer_create: VolunteerCreate,
     ):
+        """
+        Verifies that attempting to create a volunteer with an already-existing user raises AlreadyExistsError.
+        
+        The test creates a volunteer once and then attempts to create the same volunteer again, asserting that the second creation fails with an AlreadyExistsError.
+        """
         volunteer_service.create_volunteer(
             session, sample_user_create, sample_volunteer_create
         )
@@ -320,9 +327,9 @@ class TestVolunteerMissionCounts:
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """
-        Verifies that a volunteer's active and finished mission counts are computed correctly.
-
-        Creates one mission that ends in the future and one mission that ended in the past, attaches an `APPROVED` engagement for the volunteer to each mission, calls `volunteer_service.to_volunteer_public`, and asserts `active_missions_count` and `finished_missions_count` are both 1.
+        Verify that a volunteer's active and finished mission counts are computed correctly.
+        
+        Creates one future-ending mission and one past-ending mission, attaches approved engagements for the volunteer to each, and asserts that active_missions_count and finished_missions_count are both 1.
         """
         today = date.today()
         # Active mission (ends in future)

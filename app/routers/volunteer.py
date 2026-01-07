@@ -232,11 +232,11 @@ def read_favorite_missions(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[MissionPublic]:
     """
-    Retrieve the current authenticated volunteer's favorite missions.
-
+    Get the authenticated volunteer's favorite missions.
+    
     Returns:
         list[MissionPublic]: Favorite missions for the current volunteer, ordered by most recent first.
-
+    
     Raises:
         NotFoundError: If the current user has no volunteer profile.
     """
@@ -283,12 +283,12 @@ def remove_favorite_mission(
 ) -> None:
     """
     Remove a mission from the authenticated volunteer's favorites.
-
+    
     Parameters:
         mission_id (int): ID of the mission to remove from the volunteer's favorites.
-
+    
     Raises:
-        NotFoundError: If the volunteer profile does not exist or the favorite association is not found.
+        NotFoundError: If the authenticated user has no volunteer profile or the favorite association is not found.
     """
     assert current_user.id_user is not None
     volunteer = volunteer_service.get_volunteer_by_user_id(

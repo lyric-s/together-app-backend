@@ -23,11 +23,10 @@ from app.services import user as user_service
 
 def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, int]:
     """
-    Compute the active and finished mission counts for a volunteer.
-
-    Active missions: Approved engagements where mission.date_end >= today.
-    Finished missions: Approved engagements where mission.date_end < today.
-
+    Compute how many approved missions for a volunteer are currently active and how many are finished.
+    
+    Active missions are engagements with state APPROVED whose mission.end date is greater than or equal to today; finished missions are APPROVED engagements whose mission.end date is earlier than today.
+    
     Returns:
         tuple[int, int]: (active_missions_count, finished_missions_count)
     """
@@ -137,14 +136,14 @@ def to_volunteer_public_from_batch(
     volunteers: list[Volunteer], counts_map: dict[int, tuple[int, int]]
 ) -> list[VolunteerPublic]:
     """
-    Convert Volunteer models to VolunteerPublic objects using a provided map of mission counts.
-
+    Convert a list of Volunteer models into their public representations using precomputed mission counts.
+    
     Parameters:
-        volunteers: Iterable of Volunteer database models to convert.
-        counts_map: Mapping from volunteer id to a tuple (active_count, finished_count) used to populate mission counts; missing ids default to (0, 0).
-
+        volunteers: List of Volunteer models to convert; each must have `id_volunteer` set.
+        counts_map: Mapping from volunteer id to a tuple (active_count, finished_count); missing ids default to (0, 0).
+    
     Returns:
-        list[VolunteerPublic]: Converted VolunteerPublic objects with `active_missions_count`, `finished_missions_count`, and an embedded `user` when present.
+        list[VolunteerPublic]: Converted VolunteerPublic objects with `active_missions_count` and `finished_missions_count` set and an embedded `user` when present.
     """
     results = []
     for volunteer in volunteers:
@@ -170,19 +169,18 @@ def create_volunteer(
     session: Session, user_in: UserCreate, volunteer_in: VolunteerCreate
 ) -> Volunteer:
     """
-    Create a new volunteer with an associated user account.
-
-    Creates a User with user_type set to VOLUNTEER, then creates the Volunteer
-    profile linked to that user.
-
+    Create a Volunteer profile and its associated User account.
+    
+    The provided user data is forced to have `user_type` set to `VOLUNTEER` before creating the User; the created user's `id_user` is then set on the new Volunteer profile.
+    
     Parameters:
-        session: Database session.
-        user_in: User creation data (username, email, password).
-        volunteer_in: Volunteer profile data (name, phone, birthdate, etc.).
-
+        session: Database session used for the transaction.
+        user_in: User creation data; `user_type` will be overridden to `VOLUNTEER`.
+        volunteer_in: Volunteer profile data; `id_user` will be set to the created user's ID.
+    
     Returns:
-        Volunteer: The created Volunteer model instance with user relationship loaded.
-
+        The created Volunteer model instance with its `user` relationship populated.
+    
     Raises:
         AlreadyExistsError: If a user with the same username or email already exists.
     """
@@ -247,17 +245,16 @@ def get_volunteers(
     session: Session, *, offset: int = 0, limit: int = 100
 ) -> list[VolunteerPublic]:
     """
-    Retrieve a paginated list of volunteers with user relationships loaded.
-
-    Optimized to fetch mission counts in a single batch query to avoid N+1.
-
+    Retrieve a paginated list of volunteers with their related user data and precomputed mission counts.
+    
+    This fetches volunteers with the user relationship loaded and computes active/finished mission counts in a single batch query to avoid N+1 queries.
+    
     Parameters:
-        session: Database session.
-        offset: Number of records to skip.
-        limit: Maximum number of records to return.
-
+        offset (int): Number of records to skip.
+        limit (int): Maximum number of records to return.
+    
     Returns:
-        list[VolunteerPublic]: Volunteer records for the requested page.
+        list[VolunteerPublic]: VolunteerPublic objects for the requested page.
     """
     statement = (
         select(Volunteer)
@@ -327,11 +324,10 @@ def update_volunteer(
 def delete_volunteer(session: Session, volunteer_id: int) -> None:
     """
     Delete a volunteer and their associated user account.
-
+    
     Parameters:
-        session: Database session.
-        volunteer_id: Primary key of the volunteer to delete.
-
+        volunteer_id (int): ID of the volunteer to delete.
+    
     Raises:
         NotFoundError: If no volunteer exists with the given volunteer_id.
     """
@@ -357,18 +353,14 @@ def get_volunteer_missions(
     target_date: date | None = None,
 ) -> list[MissionPublic]:
     """
-    Retrieve missions for a volunteer, optionally filtered by date.
-
-    Returns approved missions where the volunteer is engaged. If target_date is
-    provided, only returns missions where date_start <= target_date <= date_end.
-
+    Retrieve a volunteer's approved missions, optionally limited to those active on a specific date.
+    
     Parameters:
-        session: Database session.
-        volunteer_id: The volunteer's primary key.
-        target_date: Optional date to filter missions (returns missions active on this date).
-
+        volunteer_id (int): Primary key of the volunteer whose missions to fetch.
+        target_date (date | None): If provided, only include missions with date_start <= target_date <= date_end.
+    
     Returns:
-        list[MissionPublic]: List of missions matching the criteria.
+        list[MissionPublic]: Public representations of missions where the volunteer has an approved engagement matching the filters.
     """
     statement = (
         select(Mission)
@@ -415,16 +407,11 @@ def get_favorite_missions(session: Session, volunteer_id: int) -> list[MissionPu
 
 def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -> None:
     """
-    Add a mission to volunteer's favorites.
-
-    Parameters:
-        session: Database session.
-        volunteer_id: The volunteer's primary key.
-        mission_id: The mission's primary key.
-
+    Add a mission to a volunteer's favorites.
+    
     Raises:
-        NotFoundError: If the mission or volunteer doesn't exist.
-        AlreadyExistsError: If the mission is already favorited.
+        NotFoundError: If the mission or volunteer does not exist.
+        AlreadyExistsError: If the favorite already exists (including due to a race condition).
     """
     # Check mission exists
     mission = session.exec(
