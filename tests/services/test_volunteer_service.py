@@ -1,4 +1,4 @@
-"""Tests for volunteer service CRUD operations."""
+"""Tests for volunteer service CRUD operations. Generated and validated."""
 
 from datetime import date, timedelta
 import pytest
