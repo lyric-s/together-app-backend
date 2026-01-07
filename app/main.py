@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from app.internal import admin
-from app.routers import auth
+from app.routers import auth, volunteer
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
 from app.core.error_handlers import register_exception_handlers
@@ -85,4 +85,5 @@ def health_check():
 
 
 app.include_router(auth.router)
+app.include_router(volunteer.router)
 app.include_router(admin.router)
