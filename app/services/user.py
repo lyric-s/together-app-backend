@@ -29,7 +29,7 @@ def create_user(session: Session, user_in: UserCreate) -> User:
 
     session.add(db_user)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError:
         session.rollback()
         raise AlreadyExistsError("User", "unique field", "username or email")
@@ -149,4 +149,4 @@ def delete_user(session: Session, user_id: int) -> None:
         raise NotFoundError("User", user_id)
 
     session.delete(db_user)
-    session.commit()
+    session.flush()

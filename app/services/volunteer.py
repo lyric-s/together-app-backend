@@ -338,10 +338,11 @@ def delete_volunteer(session: Session, volunteer_id: int) -> None:
 
     # Delete volunteer first (child), then user (parent)
     session.delete(db_volunteer)
-    session.commit()
 
     # Delete associated user
     user_service.delete_user(session, user_id)
+
+    session.commit()
 
 
 def get_volunteer_missions(
