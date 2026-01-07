@@ -34,6 +34,12 @@ NONEXISTENT_ID = 99999
 
 @pytest.fixture(name="sample_user_create")
 def sample_user_create_fixture():
+    """
+    Provide a UserCreate instance prefilled for a volunteer test user.
+
+    Returns:
+        UserCreate: A UserCreate populated with test constants for username, email, password, and `UserType.VOLUNTEER`.
+    """
     return UserCreate(
         username=TEST_VOLUNTEER_USERNAME,
         email=TEST_VOLUNTEER_EMAIL,
@@ -44,6 +50,12 @@ def sample_user_create_fixture():
 
 @pytest.fixture(name="sample_volunteer_create")
 def sample_volunteer_create_fixture():
+    """
+    Create a VolunteerCreate populated with standard test data for a volunteer.
+
+    Returns:
+        VolunteerCreate: A VolunteerCreate instance with first_name, last_name, phone_number, birthdate, skills, and bio set for testing.
+    """
     return VolunteerCreate(
         first_name=TEST_VOLUNTEER_FIRST_NAME,
         last_name=TEST_VOLUNTEER_LAST_NAME,
@@ -60,6 +72,17 @@ def created_volunteer_fixture(
     sample_user_create: UserCreate,
     sample_volunteer_create: VolunteerCreate,
 ) -> Volunteer:
+    """
+    Create and persist a Volunteer using the provided user and volunteer creation data.
+
+    Parameters:
+        session (Session): Database session used to persist the created records.
+        sample_user_create (UserCreate): User creation data for the volunteer's associated user.
+        sample_volunteer_create (VolunteerCreate): Volunteer creation data (profile fields).
+
+    Returns:
+        Volunteer: The persisted Volunteer instance with its generated identifiers populated.
+    """
     volunteer = volunteer_service.create_volunteer(
         session, sample_user_create, sample_volunteer_create
     )
@@ -68,6 +91,15 @@ def created_volunteer_fixture(
 
 @pytest.fixture(name="mission_factory")
 def mission_factory_fixture(session: Session):
+    """
+    Provide a factory function that creates and persists a Mission and its required dependent records for tests.
+
+    The returned callable accepts a start and end date, creates Location, Category, an Association (with its User), and a Mission linked to those records, persists them to the database via the provided session, and returns the created Mission.
+
+    Returns:
+        callable: A function with signature (date_start: date, date_end: date) -> Mission that creates and returns the persisted Mission.
+    """
+
     def _create_mission(date_start: date, date_end: date) -> Mission:
         # Create dependencies if they don't exist (simplification for tests)
         location = Location(address="123 St", country="France", zip_code="75001")
