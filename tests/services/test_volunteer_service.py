@@ -2,7 +2,7 @@
 
 from datetime import date, timedelta
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.user import UserCreate
 from app.models.volunteer import (
@@ -443,3 +443,196 @@ class TestGetVolunteers:
         # Verify Vol 2 counts
         assert our_results[2].active_missions_count == 1
         assert our_results[2].finished_missions_count == 1
+
+
+class TestApplyToMission:
+    def test_apply_to_mission_success(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Successfully apply to a mission creates PENDING engagement."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        engagement = volunteer_service.apply_to_mission(
+            session,
+            created_volunteer.id_volunteer,
+            mission.id_mission,
+            "I'd love to help!",
+        )
+
+        assert engagement.id_volunteer == created_volunteer.id_volunteer
+        assert engagement.id_mission == mission.id_mission
+        assert engagement.state == ProcessingStatus.PENDING
+        assert engagement.message == "I'd love to help!"
+        assert engagement.application_date == date.today()
+
+    def test_apply_to_mission_without_message(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Apply to mission without message succeeds."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        engagement = volunteer_service.apply_to_mission(
+            session, created_volunteer.id_volunteer, mission.id_mission
+        )
+
+        assert engagement.state == ProcessingStatus.PENDING
+        assert engagement.message is None
+
+    def test_apply_to_mission_volunteer_not_found(
+        self, session: Session, mission_factory
+    ):
+        """Applying with non-existent volunteer raises NotFoundError."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert mission.id_mission is not None
+
+        with pytest.raises(NotFoundError) as exc_info:
+            volunteer_service.apply_to_mission(
+                session, NONEXISTENT_ID, mission.id_mission
+            )
+        assert exc_info.value.resource == "Volunteer"
+
+    def test_apply_to_mission_mission_not_found(
+        self, session: Session, created_volunteer: Volunteer
+    ):
+        """Applying to non-existent mission raises NotFoundError."""
+        assert created_volunteer.id_volunteer is not None
+
+        with pytest.raises(NotFoundError) as exc_info:
+            volunteer_service.apply_to_mission(
+                session, created_volunteer.id_volunteer, NONEXISTENT_ID
+            )
+        assert exc_info.value.resource == "Mission"
+
+    def test_apply_to_mission_already_applied(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Applying twice to same mission raises AlreadyExistsError."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        # First application succeeds
+        volunteer_service.apply_to_mission(
+            session, created_volunteer.id_volunteer, mission.id_mission
+        )
+
+        # Second application fails
+        with pytest.raises(AlreadyExistsError):
+            volunteer_service.apply_to_mission(
+                session, created_volunteer.id_volunteer, mission.id_mission
+            )
+
+    def test_apply_to_mission_with_approved_engagement(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Cannot apply if already has APPROVED engagement for mission."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        # Create APPROVED engagement
+        engagement = Engagement(
+            id_volunteer=created_volunteer.id_volunteer,
+            id_mission=mission.id_mission,
+            state=ProcessingStatus.APPROVED,
+        )
+        session.add(engagement)
+        session.commit()
+
+        # Try to apply again
+        with pytest.raises(AlreadyExistsError):
+            volunteer_service.apply_to_mission(
+                session, created_volunteer.id_volunteer, mission.id_mission
+            )
+
+
+class TestWithdrawApplication:
+    def test_withdraw_application_success(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Successfully withdraw a PENDING application."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        # Create PENDING engagement
+        volunteer_service.apply_to_mission(
+            session, created_volunteer.id_volunteer, mission.id_mission
+        )
+
+        # Withdraw it
+        volunteer_service.withdraw_application(
+            session, created_volunteer.id_volunteer, mission.id_mission
+        )
+
+        # Verify it's gone
+        engagement = session.exec(
+            select(Engagement).where(
+                Engagement.id_volunteer == created_volunteer.id_volunteer,
+                Engagement.id_mission == mission.id_mission,
+            )
+        ).first()
+        assert engagement is None
+
+    def test_withdraw_application_not_found(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Withdrawing non-existent application raises NotFoundError."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        with pytest.raises(NotFoundError):
+            volunteer_service.withdraw_application(
+                session, created_volunteer.id_volunteer, mission.id_mission
+            )
+
+    def test_withdraw_application_approved_engagement(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Cannot withdraw APPROVED engagement."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        # Create APPROVED engagement
+        engagement = Engagement(
+            id_volunteer=created_volunteer.id_volunteer,
+            id_mission=mission.id_mission,
+            state=ProcessingStatus.APPROVED,
+        )
+        session.add(engagement)
+        session.commit()
+
+        # Try to withdraw
+        with pytest.raises(NotFoundError):
+            volunteer_service.withdraw_application(
+                session, created_volunteer.id_volunteer, mission.id_mission
+            )
+
+    def test_withdraw_application_rejected_engagement(
+        self, session: Session, created_volunteer: Volunteer, mission_factory
+    ):
+        """Cannot withdraw REJECTED engagement."""
+        mission = mission_factory(date.today(), date.today() + timedelta(days=7))
+        assert created_volunteer.id_volunteer is not None
+        assert mission.id_mission is not None
+
+        # Create REJECTED engagement
+        engagement = Engagement(
+            id_volunteer=created_volunteer.id_volunteer,
+            id_mission=mission.id_mission,
+            state=ProcessingStatus.REJECTED,
+        )
+        session.add(engagement)
+        session.commit()
+
+        # Try to withdraw
+        with pytest.raises(NotFoundError):
+            volunteer_service.withdraw_application(
+                session, created_volunteer.id_volunteer, mission.id_mission
+            )
