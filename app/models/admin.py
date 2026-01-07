@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
@@ -14,7 +15,7 @@ ADMIN_PASSWORD_MIN_LENGTH = 8
 class AdminBase(SQLModel):
     first_name: str = Field(max_length=ADMIN_NAME_MAX_LENGTH, nullable=False)
     last_name: str = Field(max_length=ADMIN_NAME_MAX_LENGTH, nullable=False)
-    email: str = Field(
+    email: EmailStr = Field(
         max_length=ADMIN_EMAIL_MAX_LENGTH, unique=True, index=True, nullable=False
     )
     username: str = Field(
@@ -39,5 +40,5 @@ class AdminPublic(AdminBase):
 class AdminUpdate(SQLModel):
     first_name: str | None = Field(default=None, max_length=ADMIN_NAME_MAX_LENGTH)
     last_name: str | None = Field(default=None, max_length=ADMIN_NAME_MAX_LENGTH)
-    email: str | None = Field(default=None, max_length=ADMIN_EMAIL_MAX_LENGTH)
+    email: EmailStr | None = Field(default=None, max_length=ADMIN_EMAIL_MAX_LENGTH)
     password: str | None = Field(default=None, min_length=ADMIN_PASSWORD_MIN_LENGTH)

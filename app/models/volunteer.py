@@ -1,5 +1,6 @@
 from datetime import date
 from typing import TYPE_CHECKING
+from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.assign import Assign
 from app.models.engagement import Engagement
@@ -70,5 +71,5 @@ class VolunteerUpdate(SQLModel):
     zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
     bio: str | None = Field(default=None, max_length=VOLUNTEER_BIO_MAX_LENGTH)
     # User account fields
-    email: str | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
+    email: EmailStr | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
     password: str | None = Field(default=None, min_length=PASSWORD_MIN_LENGTH)

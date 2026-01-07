@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
+from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.enums import UserType
 
@@ -16,7 +17,7 @@ PASSWORD_MIN_LENGTH = 8
 
 class UserBase(SQLModel):
     username: str = Field(unique=True, index=True, max_length=USERNAME_MAX_LENGTH)
-    email: str = Field(unique=True, index=True, max_length=EMAIL_MAX_LENGTH)
+    email: EmailStr = Field(unique=True, index=True, max_length=EMAIL_MAX_LENGTH)
     user_type: UserType = Field(index=True)
 
 
@@ -50,6 +51,6 @@ class UserPublic(UserBase):
 
 
 class UserUpdate(SQLModel):
-    email: str | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
+    email: EmailStr | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
     user_type: UserType | None = None
     password: str | None = Field(default=None, min_length=PASSWORD_MIN_LENGTH)
