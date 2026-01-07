@@ -1,11 +1,12 @@
 from datetime import date
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.assign import Assign
 from app.models.engagement import Engagement
+from app.models.user import UserPublic, EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH
 
 if TYPE_CHECKING:
-    from app.models.user import User, UserPublic
+    from app.models.user import User
     from app.models.badge import Badge
     from app.models.mission import Mission
 
@@ -34,30 +35,30 @@ class VolunteerBase(SQLModel):
 class Volunteer(VolunteerBase, table=True):
     id_volunteer: int | None = Field(default=None, primary_key=True)
     id_user: int = Field(foreign_key="user.id_user", unique=True)
-    active_missions_count: int = Field(default=0)
-    finished_missions_count: int = Field(default=0)
     user: "User" = Relationship(back_populates="volunteer_profile")
     badges: list["Badge"] = Relationship(back_populates="volunteers", link_model=Assign)
     missions: list["Mission"] = Relationship(
         back_populates="volunteers", link_model=Engagement
     )
+    favorite_missions: list["Mission"] = Relationship(
+        sa_relationship_kwargs={"secondary": "favorite", "lazy": "selectin"}
+    )
 
 
 class VolunteerCreate(VolunteerBase):
-    # TODO (Create User first via Auth, then create volunteer profile linked to it ?)
     pass
 
 
 class VolunteerPublic(VolunteerBase):
     id_volunteer: int
     id_user: int
-    active_missions_count: int
-    finished_missions_count: int
-    user: Optional["UserPublic"] = None
+    active_missions_count: int = 0
+    finished_missions_count: int = 0
+    user: UserPublic | None = None
 
 
 class VolunteerUpdate(SQLModel):
-    # TODO find a way to update User related attributes
+    # Volunteer profile fields
     last_name: str | None = Field(default=None, max_length=VOLUNTEER_NAME_MAX_LENGTH)
     first_name: str | None = Field(default=None, max_length=VOLUNTEER_NAME_MAX_LENGTH)
     phone_number: str | None = Field(
@@ -68,5 +69,6 @@ class VolunteerUpdate(SQLModel):
     address: str | None = Field(default=None, max_length=VOLUNTEER_ADDRESS_MAX_LENGTH)
     zip_code: str | None = Field(default=None, max_length=VOLUNTEER_ZIP_MAX_LENGTH)
     bio: str | None = Field(default=None, max_length=VOLUNTEER_BIO_MAX_LENGTH)
-    # Note: active_missions_count and finished_missions_count are
-    # computed fields and should not be updated directly
+    # User account fields
+    email: str | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
+    password: str | None = Field(default=None, min_length=PASSWORD_MIN_LENGTH)

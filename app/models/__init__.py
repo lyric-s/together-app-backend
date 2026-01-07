@@ -6,6 +6,7 @@ from . import category as category  # noqa: F401
 from . import document as document  # noqa: F401
 from . import engagement as engagement  # noqa: F401
 from . import enums as enums  # noqa: F401
+from . import favorite as favorite  # noqa: F401
 from . import location as location  # noqa: F401
 from . import mission as mission  # noqa: F401
 from . import report as report  # noqa: F401
