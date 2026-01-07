@@ -126,7 +126,7 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
 
     session.add(db_user)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError:
         session.rollback()
         raise AlreadyExistsError("User", "unique field", "one of the updated fields")
