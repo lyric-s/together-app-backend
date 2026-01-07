@@ -64,8 +64,7 @@ def read_volunteers(
     Returns:
         list[VolunteerPublic]: List of volunteer records with user information.
     """
-    volunteers = volunteer_service.get_volunteers(session, offset=offset, limit=limit)
-    return [volunteer_service.to_volunteer_public(session, v) for v in volunteers]
+    return volunteer_service.get_volunteers(session, offset=offset, limit=limit)
 
 
 @router.get("/me", response_model=VolunteerPublic)
