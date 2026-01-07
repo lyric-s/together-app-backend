@@ -35,7 +35,18 @@ class Report(ReportBase, table=True):
 
 
 class ReportCreate(ReportBase):
-    pass
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "type": "HARASSMENT",
+                    "target": "PROFILE",
+                    "reason": "This user has been sending inappropriate messages and making unwelcome advances despite being asked to stop.",
+                    "id_user_reported": 42,
+                }
+            ]
+        }
+    }
 
 
 class ReportPublic(ReportBase):

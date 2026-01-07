@@ -43,7 +43,22 @@ class Association(AssociationBase, table=True):
 
 
 class AssociationCreate(AssociationBase):
-    pass
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "Hearts for Community",
+                    "address": "42 Boulevard Saint-Germain",
+                    "country": "France",
+                    "phone_number": "+33145678900",
+                    "zip_code": "75005",
+                    "rna_code": "W751234567",
+                    "company_name": "Association Hearts for Community",
+                    "description": "Non-profit organization dedicated to community support and social welfare initiatives across Paris.",
+                }
+            ]
+        }
+    }
 
 
 class AssociationPublic(AssociationBase):
@@ -70,3 +85,14 @@ class AssociationUpdate(SQLModel):
     description: str | None = Field(
         default=None, max_length=ASSOCIATION_DESCRIPTION_MAX_LENGTH
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "phone_number": "+33145678999",
+                    "description": "Non-profit organization dedicated to community support, social welfare initiatives, and educational programs across Paris and surrounding areas.",
+                }
+            ]
+        }
+    }

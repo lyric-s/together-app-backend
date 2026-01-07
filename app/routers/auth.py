@@ -28,13 +28,27 @@ async def login_for_access_token(
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     """
-    Authenticate user credentials from the OAuth2 form and issue a new access token and refresh token.
+    Authenticate user credentials and issue access and refresh tokens.
+
+    Authenticates user credentials from the OAuth2 form and issues a new access token
+    and refresh token for authorized API access.
+
+    ### OAuth2 Password Flow:
+    - Accepts `username` and `password` via form data
+    - Returns both access and refresh tokens on successful authentication
+    - Access token expires based on configured duration
+    - Refresh token can be used to obtain new access tokens
+
+    Args:
+        `form_data`: OAuth2 form data containing `username` and `password`.
+        `session`: Database session (automatically injected).
+        `settings`: Application settings (automatically injected).
 
     Returns:
-        Token: A Token object containing `access_token`, `refresh_token`, and `token_type` set to "bearer".
+        `Token`: Token object containing `access_token`, `refresh_token`, and `token_type` set to "bearer".
 
     Raises:
-        HTTPException: Raised with 401 Unauthorized if the provided username or password is incorrect.
+        `401 Unauthorized`: If the provided username or password is incorrect.
     """
     user = authenticate_user(session, form_data.username, form_data.password)
     if not user:
@@ -67,16 +81,28 @@ async def refresh_token(
     """
     Validate a refresh token and issue a new access token.
 
-    Validates the provided refresh token, ensures it belongs to an existing user and is of type "refresh", then returns a Token containing a newly created access token and the original refresh token.
+    Validates the provided refresh token, ensures it belongs to an existing user and is of
+    type "refresh", then returns a Token containing a newly created access token and the
+    original refresh token.
 
-    Parameters:
-        request_data (TokenRefreshRequest): Request body containing the `refresh_token` string.
+    ### Token Refresh Flow:
+    - Validates the refresh token signature and expiration
+    - Verifies the token type is "refresh"
+    - Confirms the user still exists in the database
+    - Issues a new access token with updated expiration
+
+    Args:
+        `request_data`: Request body containing the `refresh_token` string.
+        `session`: Database session (automatically injected).
+        `settings`: Application settings (automatically injected).
 
     Returns:
-        Token: An object with `access_token` (newly issued), `refresh_token` (the incoming token), and `token_type` set to "bearer".
+        `Token`: Object with `access_token` (newly issued), `refresh_token` (the incoming token),
+            and `token_type` set to "bearer".
 
     Raises:
-        HTTPException: 401 Unauthorized if the refresh token is invalid, expired, missing required claims, or the user does not exist.
+        `401 Unauthorized`: If the refresh token is invalid, expired, missing required claims,
+            or the user does not exist.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -32,14 +32,25 @@ def login_admin(
     """
     Authenticate an admin user and issue a JWT bearer access token.
 
-    Parameters:
-        form_data (OAuth2PasswordRequestForm): OAuth2 form data containing `username` and `password`.
+    Authenticates administrator credentials and issues an access token with admin privileges.
+    The token includes a "mode": "admin" claim for authorization purposes.
+
+    ### OAuth2 Password Flow (Admin):
+    - Accepts `username` and `password` via form data
+    - Validates credentials against admin accounts
+    - Returns access token with admin mode claim
+    - No refresh token issued (admin sessions use access token only)
+
+    Args:
+        `form_data`: OAuth2 form data containing `username` and `password`.
+        `session`: Database session (automatically injected).
+        `settings`: Application settings (automatically injected).
 
     Returns:
-        Token: Token object with `access_token` set to the issued JWT and `token_type` set to `"bearer"`.
+        `Token`: Token object with `access_token` set to the issued JWT and `token_type` set to "bearer".
 
     Raises:
-        HTTPException: Raised with status 401 and detail "Incorrect admin username or password" when authentication fails.
+        `401 Unauthorized`: When authentication fails with detail "Incorrect admin username or password".
     """
     admin = authenticate_admin(session, form_data.username, form_data.password)
     if not admin:
@@ -64,13 +75,27 @@ def create_new_admin(
     """
     Create a new admin account.
 
-    Parameters:
-        admin_in (AdminCreate): Data for the new admin; includes the plaintext password.
+    Creates a new administrator account with the provided credentials. This endpoint
+    requires admin authentication and can only be accessed by existing administrators.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Security:
+    - Password is provided in plaintext and will be hashed before storage
+    - Username and email must be unique
+    - Created admin has full administrative privileges
+
+    Args:
+        `session`: Database session (automatically injected).
+        `admin_in`: Data for the new admin including username, email, and plaintext password.
 
     Returns:
-        AdminPublic: The created admin record with sensitive fields removed.
+        `AdminPublic`: The created admin record with sensitive fields (password hash) removed.
 
     Raises:
-        HTTPException: Raised with status 400 if the username or email already exists.
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `400 Bad Request`: If the username or email already exists.
     """
     return admin_service.create_admin(session, admin_in)

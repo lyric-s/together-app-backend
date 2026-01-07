@@ -25,18 +25,30 @@ def create_report(
     Create a report against another user.
 
     Any authenticated user can report another user (volunteer or association).
-    The report will be created with PENDING state and reviewed by admins.
+    The report will be created with PENDING state and reviewed by administrators.
 
-    Parameters:
-        report_in: Report data (type, target, reason, id_user_reported).
+    ### Reporting Process:
+    - User submits report with type, target, reason, and reported user ID
+    - Report is created with PENDING status
+    - Administrators review and take appropriate action
+    - Only one PENDING report per user against the same target is allowed
+
+    ### Authentication Required:
+    This endpoint requires a valid authentication token.
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_user`: Authenticated user (automatically injected from token).
+        `report_in`: Report data including type, target, reason, and id_user_reported.
 
     Returns:
-        ReportPublic: The created report.
+        `ReportPublic`: The created report with its unique ID and timestamp.
 
     Raises:
-        ValidationError: If trying to report yourself.
-        NotFoundError: If the reported user doesn't exist.
-        AlreadyExistsError: If you already have a PENDING report against this user.
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `400 ValidationError`: If attempting to report oneself.
+        `404 NotFoundError`: If the reported user doesn't exist.
+        `400 AlreadyExistsError`: If a PENDING report against this user already exists.
     """
     assert current_user.id_user is not None
     report = report_service.create_report(session, current_user.id_user, report_in)
@@ -49,10 +61,24 @@ def get_my_reports(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[ReportPublic]:
     """
-    Get all reports made by the authenticated user.
+    Retrieve all reports made by the authenticated user.
+
+    Returns all reports submitted by the authenticated user, ordered by most recent first.
+    Users can view their own report history to track the status of their submissions.
+
+    ### Authentication Required:
+    This endpoint requires a valid authentication token.
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_user`: Authenticated user (automatically injected from token).
 
     Returns:
-        list[ReportPublic]: Reports made by this user, ordered by most recent first.
+        `list[ReportPublic]`: Reports submitted by the authenticated user, ordered by
+            most recent first. Each report includes type, target, reason, state, and timestamp.
+
+    Raises:
+        `401 Unauthorized`: If no valid authentication token is provided.
     """
     assert current_user.id_user is not None
     reports = report_service.get_reports_by_reporter(session, current_user.id_user)

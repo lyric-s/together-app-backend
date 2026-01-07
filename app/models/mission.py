@@ -21,7 +21,7 @@ class MissionBase(SQLModel):
     description: str = Field(max_length=3000)
     capacity_min: int
     capacity_max: int
-    image_url: str | None = None
+    image_url: str | None = Field(default=None, nullable=True)
 
 
 class Mission(MissionBase, table=True):
@@ -35,7 +35,25 @@ class Mission(MissionBase, table=True):
 
 
 class MissionCreate(MissionBase):
-    pass
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "Community Food Distribution",
+                    "id_location": 1,
+                    "id_categ": 2,
+                    "id_asso": 5,
+                    "date_start": "2026-02-15",
+                    "date_end": "2026-02-15",
+                    "skills": "Organization, communication, physical work",
+                    "description": "Help distribute food packages to families in need. We need volunteers to assist with organizing, packing, and distributing food items. This is a one-day event that will make a real difference in our community.",
+                    "capacity_min": 5,
+                    "capacity_max": 15,
+                    "image_url": "https://example.com/images/food-distribution.jpg",
+                }
+            ]
+        }
+    }
 
 
 class MissionPublic(MissionBase):
@@ -53,3 +71,15 @@ class MissionUpdate(SQLModel):
     capacity_min: int | None = None
     capacity_max: int | None = None
     image_url: str | None = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "capacity_max": 20,
+                    "description": "Updated description: Help distribute food packages to families in need. We've increased capacity due to high demand.",
+                    "image_url": "https://example.com/images/food-distribution-updated.jpg",
+                }
+            ]
+        }
+    }
