@@ -14,15 +14,15 @@ class ProcessingStatus(str, Enum):
 
 
 class ReportType(str, Enum):
-    HARASSMENT = "harassment"
-    INAPPROPRIATE_BEHAVIOR = "inappropriate_behavior"
-    SPAM = "spam"
-    FRAUD = "fraud"
-    OTHER = "other"
+    HARASSMENT = "HARASSMENT"
+    INAPPROPRIATE_BEHAVIOR = "INAPPROPRIATE_BEHAVIOR"
+    SPAM = "SPAM"
+    FRAUD = "FRAUD"
+    OTHER = "OTHER"
 
 
 class ReportTarget(str, Enum):
-    PROFILE = "profile"
-    MESSAGE = "message"
-    MISSION = "mission"
-    OTHER = "other"
+    PROFILE = "PROFILE"
+    MESSAGE = "MESSAGE"
+    MISSION = "MISSION"
+    OTHER = "OTHER"
