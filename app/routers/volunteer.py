@@ -58,11 +58,11 @@ def read_volunteers(
     Retrieve a paginated list of volunteers.
 
     Parameters:
-        offset: Number of records to skip (default 0).
-        limit: Maximum number of records to return (default 100, max 100).
+        offset (int): Number of records to skip.
+        limit (int): Maximum number of records to return (1–100).
 
     Returns:
-        list[VolunteerPublic]: List of volunteer records with user information.
+        list[VolunteerPublic]: Public representations of volunteers.
     """
     return volunteer_service.get_volunteers(session, offset=offset, limit=limit)
 
@@ -146,7 +146,7 @@ def read_volunteer(
     Retrieve a volunteer by its ID.
 
     Returns:
-        The volunteer's public representation including linked user information.
+        VolunteerPublic: The volunteer's public representation, including linked user information.
 
     Raises:
         NotFoundError: If no volunteer exists with the given ID.
@@ -167,18 +167,18 @@ def update_volunteer(
     """
     Update a volunteer's profile information.
 
-    Only the volunteer themselves can update their profile.
+    Only the volunteer who owns the profile may perform this update.
 
     Parameters:
-        volunteer_id: The volunteer's primary key.
-        volunteer_update: Partial update data; only provided fields will be applied.
+        volunteer_id (int): Primary key of the volunteer to update.
+        volunteer_update (VolunteerUpdate): Fields to update; only provided fields will be changed.
 
     Returns:
-        VolunteerPublic: The updated volunteer record.
+        VolunteerPublic: The updated volunteer in its public representation.
 
     Raises:
-        NotFoundError: If no volunteer exists with the given ID (404).
-        InsufficientPermissionsError: If the user is not the volunteer owner (403).
+        NotFoundError: If no volunteer exists with the given ID.
+        InsufficientPermissionsError: If the current user is not the owner of the volunteer profile.
     """
     # Check volunteer exists and user owns it
     volunteer = volunteer_service.get_volunteer(session, volunteer_id)
@@ -258,10 +258,7 @@ def add_favorite_mission(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
-    Add the specified mission to the authenticated user's volunteer favorites.
-
-    Parameters:
-        mission_id (int): ID of the mission to add to the current user's favorites.
+    Add a mission to the authenticated volunteer's favorites.
 
     Raises:
         NotFoundError: If the authenticated user has no volunteer profile or the mission does not exist.
