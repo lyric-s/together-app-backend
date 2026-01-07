@@ -97,19 +97,8 @@ def mission_factory_fixture(session: Session):
     Returns:
         callable: A function with signature (date_start: date, date_end: date) -> Mission that creates and persists a Location, Category, Association (with its User), and a Mission, then returns the persisted Mission instance.
     """
-    """
-    Create and persist a Mission together with a new Location, Category, and Association (including its User).
-
-    Parameters:
-        date_start (date): Mission start date.
-        date_end (date): Mission end date.
-
-    Returns:
-        mission (Mission): The persisted Mission instance with database-generated identifiers.
-    """
 
     def _create_mission(date_start: date, date_end: date) -> Mission:
-        # Create dependencies if they don't exist (simplification for tests)
         """
         Create and persist a Mission and its required dependent records for use in tests.
 
