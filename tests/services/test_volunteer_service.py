@@ -35,10 +35,10 @@ NONEXISTENT_ID = 99999
 @pytest.fixture(name="sample_user_create")
 def sample_user_create_fixture():
     """
-    Provide a UserCreate instance prefilled for a volunteer test user.
+    Create a UserCreate prefilled with the test volunteer's credentials.
 
     Returns:
-        UserCreate: A UserCreate populated with test constants for username, email, password, and `UserType.VOLUNTEER`.
+        UserCreate: Instance containing TEST_VOLUNTEER_USERNAME, TEST_VOLUNTEER_EMAIL, TEST_VOLUNTEER_PASSWORD, and UserType.VOLUNTEER.
     """
     return UserCreate(
         username=TEST_VOLUNTEER_USERNAME,
@@ -51,10 +51,10 @@ def sample_user_create_fixture():
 @pytest.fixture(name="sample_volunteer_create")
 def sample_volunteer_create_fixture():
     """
-    Create a VolunteerCreate populated with standard test data for a volunteer.
+    Return a VolunteerCreate prefilled with standard test profile data for tests.
 
     Returns:
-        VolunteerCreate: A VolunteerCreate instance with first_name, last_name, phone_number, birthdate, skills, and bio set for testing.
+        VolunteerCreate: Instance with first_name, last_name, phone_number, birthdate, skills, and bio set to predefined test values.
     """
     return VolunteerCreate(
         first_name=TEST_VOLUNTEER_FIRST_NAME,
@@ -92,16 +92,28 @@ def created_volunteer_fixture(
 @pytest.fixture(name="mission_factory")
 def mission_factory_fixture(session: Session):
     """
-    Provide a factory function that creates and persists a Mission and its required dependent records for tests.
+    Return a factory function that creates and persists a Mission and its required dependent records for tests.
 
-    The returned callable accepts a start and end date, creates Location, Category, an Association (with its User), and a Mission linked to those records, persists them to the database via the provided session, and returns the created Mission.
+    The returned callable accepts (date_start, date_end) and creates and persists a Location, Category, an Association (including its User), and a Mission linked to those records using the provided session.
 
     Returns:
-        callable: A function with signature (date_start: date, date_end: date) -> Mission that creates and returns the persisted Mission.
+        callable: A function with signature (date_start: date, date_end: date) -> Mission that returns the persisted Mission instance.
     """
 
     def _create_mission(date_start: date, date_end: date) -> Mission:
         # Create dependencies if they don't exist (simplification for tests)
+        """
+        Create and persist a Mission and its required dependent records for tests.
+
+        This helper creates and commits a Location, Category, a new user and Association, then creates and commits a Mission linking those records.
+
+        Parameters:
+            date_start (date): Mission start date.
+            date_end (date): Mission end date.
+
+        Returns:
+            mission (Mission): The persisted Mission instance with database-generated identifiers.
+        """
         location = Location(address="123 St", country="France", zip_code="75001")
         session.add(location)
 
@@ -185,6 +197,11 @@ class TestGetVolunteer:
     def test_get_volunteer_by_user_id(
         self, session: Session, created_volunteer: Volunteer
     ):
+        """
+        Verifies that fetching a volunteer by its associated user ID returns the expected volunteer.
+
+        Asserts the fetched volunteer is not None and its volunteer ID matches the created volunteer fixture.
+        """
         fetched = volunteer_service.get_volunteer_by_user_id(
             session, created_volunteer.id_user
         )
@@ -307,6 +324,11 @@ class TestVolunteerMissionCounts:
     def test_mission_counts(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
+        """
+        Verifies that a volunteer's active and finished mission counts are computed correctly.
+
+        Creates one mission that ends in the future and one mission that ended in the past, attaches an `APPROVED` engagement for the volunteer to each mission, calls `volunteer_service.to_volunteer_public`, and asserts `active_missions_count` and `finished_missions_count` are both 1.
+        """
         today = date.today()
         # Active mission (ends in future)
         active_mission = mission_factory(today, today + timedelta(days=10))

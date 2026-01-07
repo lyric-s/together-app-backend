@@ -73,13 +73,13 @@ def read_current_volunteer(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> VolunteerPublic:
     """
-    Retrieve the current authenticated user's volunteer profile.
+    Return the authenticated user's volunteer profile.
 
     Returns:
-        VolunteerPublic: The volunteer profile of the authenticated user.
+        VolunteerPublic: The public representation of the volunteer associated with the authenticated user.
 
     Raises:
-        NotFoundError: If the user has no volunteer profile (404).
+        NotFoundError: If no volunteer profile exists for the authenticated user.
     """
     # current_user.id_user is guaranteed to be int after authentication
     assert current_user.id_user is not None
@@ -103,16 +103,18 @@ def read_current_volunteer_missions(
     ] = None,
 ) -> list[MissionPublic]:
     """
-    Retrieve the current volunteer's missions, optionally filtered by date.
+    Get the current authenticated volunteer's missions, optionally filtered to a specific date.
+
+    If `target_date` is "today" the filter uses the current date; if a `date` is provided it filters to that date; if omitted it returns missions for all dates.
 
     Parameters:
-        target_date: Optional filter - a specific date (YYYY-MM-DD), "today", or omit for all.
+        target_date (Literal["today"] | date | None): Filter by date (YYYY-MM-DD) or the string "today"; omit to return all missions.
 
     Returns:
-        list[MissionPublic]: Missions where the volunteer is approved and active on the date.
+        list[MissionPublic]: Missions for which the volunteer is approved and active on the specified date (or all missions if no date provided).
 
     Raises:
-        NotFoundError: If the user has no volunteer profile (404).
+        NotFoundError: If the current user has no associated volunteer profile.
     """
     assert current_user.id_user is not None
     volunteer = volunteer_service.get_volunteer_by_user_id(
@@ -230,13 +232,13 @@ def read_favorite_missions(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[MissionPublic]:
     """
-    Retrieve the current volunteer's favorite missions.
+    Retrieve the current authenticated volunteer's favorite missions.
 
     Returns:
-        list[MissionPublic]: List of favorited missions, ordered by most recent first.
+        list[MissionPublic]: Favorite missions for the current volunteer, ordered by most recent first.
 
     Raises:
-        NotFoundError: If the user has no volunteer profile (404).
+        NotFoundError: If the current user has no volunteer profile.
     """
     assert current_user.id_user is not None
     volunteer = volunteer_service.get_volunteer_by_user_id(
@@ -259,7 +261,7 @@ def add_favorite_mission(
     Add the specified mission to the authenticated user's volunteer favorites.
 
     Parameters:
-        mission_id (int): ID of the mission to add to favorites.
+        mission_id (int): ID of the mission to add to the current user's favorites.
 
     Raises:
         NotFoundError: If the authenticated user has no volunteer profile or the mission does not exist.
