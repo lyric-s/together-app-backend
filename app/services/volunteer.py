@@ -481,3 +481,99 @@ def remove_favorite_mission(
 
     session.delete(favorite)
     session.commit()
+
+
+# Engagement/Application operations
+
+
+def apply_to_mission(
+    session: Session,
+    volunteer_id: int,
+    mission_id: int,
+    message: str | None = None,
+) -> Engagement:
+    """
+    Create a PENDING engagement when a volunteer applies to a mission.
+
+    Parameters:
+        session: Database session.
+        volunteer_id: The volunteer's primary key.
+        mission_id: The mission's primary key.
+        message: Optional application message from the volunteer.
+
+    Returns:
+        Engagement: The created engagement with state=PENDING.
+
+    Raises:
+        NotFoundError: If the volunteer or mission doesn't exist.
+        AlreadyExistsError: If the volunteer already has an engagement for this mission.
+    """
+    # Check volunteer exists
+    volunteer = session.exec(
+        select(Volunteer).where(Volunteer.id_volunteer == volunteer_id)
+    ).first()
+    if not volunteer:
+        raise NotFoundError("Volunteer", volunteer_id)
+
+    # Check mission exists
+    mission = session.exec(
+        select(Mission).where(Mission.id_mission == mission_id)
+    ).first()
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    # Check if engagement already exists (any state)
+    existing = session.exec(
+        select(Engagement).where(
+            Engagement.id_volunteer == volunteer_id,
+            Engagement.id_mission == mission_id,
+        )
+    ).first()
+    if existing:
+        raise AlreadyExistsError("Application", "mission", mission_id)
+
+    # Create engagement with PENDING state
+    engagement = Engagement(
+        id_volunteer=volunteer_id,
+        id_mission=mission_id,
+        state=ProcessingStatus.PENDING,
+        message=message,
+    )
+    session.add(engagement)
+    try:
+        session.commit()
+        session.refresh(engagement)
+    except IntegrityError:
+        session.rollback()
+        raise AlreadyExistsError("Application", "mission", mission_id)
+
+    return engagement
+
+
+def withdraw_application(session: Session, volunteer_id: int, mission_id: int) -> None:
+    """
+    Withdraw a volunteer's PENDING application for a mission.
+
+    Only PENDING engagements can be withdrawn. APPROVED or REJECTED engagements
+    cannot be withdrawn by the volunteer.
+
+    Parameters:
+        session: Database session.
+        volunteer_id: The volunteer's primary key.
+        mission_id: The mission's primary key.
+
+    Raises:
+        NotFoundError: If no PENDING engagement exists for this volunteer-mission pair.
+    """
+    engagement = session.exec(
+        select(Engagement).where(
+            Engagement.id_volunteer == volunteer_id,
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.PENDING,
+        )
+    ).first()
+    if not engagement:
+        raise NotFoundError("Pending application", mission_id)
+
+    session.delete(engagement)
+    session.commit()

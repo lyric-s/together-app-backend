@@ -301,3 +301,68 @@ def remove_favorite_mission(
     volunteer_service.remove_favorite_mission(
         session, volunteer.id_volunteer, mission_id
     )
+
+
+# Application/Engagement endpoints
+
+
+@router.post("/me/missions/{mission_id}/apply", status_code=201)
+def apply_to_mission(
+    mission_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    message: str | None = None,
+) -> None:
+    """
+    Apply to a mission as the authenticated volunteer.
+
+    Creates a PENDING engagement that requires association approval.
+
+    Parameters:
+        mission_id: The mission's primary key.
+        message: Optional application message to the association.
+
+    Raises:
+        NotFoundError: If the volunteer profile or mission doesn't exist.
+        AlreadyExistsError: If the volunteer already has an application for this mission.
+    """
+    assert current_user.id_user is not None
+    volunteer = volunteer_service.get_volunteer_by_user_id(
+        session, current_user.id_user
+    )
+    if not volunteer:
+        raise NotFoundError("Volunteer profile", current_user.id_user)
+
+    assert volunteer.id_volunteer is not None
+    volunteer_service.apply_to_mission(
+        session, volunteer.id_volunteer, mission_id, message
+    )
+
+
+@router.delete("/me/missions/{mission_id}/application", status_code=204)
+def withdraw_application(
+    mission_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """
+    Withdraw a PENDING application for a mission.
+
+    Only pending applications can be withdrawn. Approved or rejected applications
+    cannot be withdrawn.
+
+    Parameters:
+        mission_id: The mission's primary key.
+
+    Raises:
+        NotFoundError: If the volunteer profile doesn't exist or no pending application exists.
+    """
+    assert current_user.id_user is not None
+    volunteer = volunteer_service.get_volunteer_by_user_id(
+        session, current_user.id_user
+    )
+    if not volunteer:
+        raise NotFoundError("Volunteer profile", current_user.id_user)
+
+    assert volunteer.id_volunteer is not None
+    volunteer_service.withdraw_application(session, volunteer.id_volunteer, mission_id)
