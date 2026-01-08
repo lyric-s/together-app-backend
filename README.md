@@ -1,26 +1,103 @@
-# 🚀 Together X FastAPI
+# 🚀 Together - FastAPI Backend
 
-A high-performance, containerized, and observable Python REST API built with **FastAPI**. This project emphasizes modern development practices, strict typing, security, and full-stack observability using **OpenTelemetry** and **SigNoz**.
+A production-ready, fully observable REST API built with **FastAPI**, demonstrating modern Python development practices, containerization, and full-stack observability.
+
+> [!NOTE]
+> **Together** is a fictional volunteer platform created as an academic project at **IUT Paris - Rives de Seine** (University of Paris). This repository serves as both a learning resource and a reusable template for building scalable FastAPI applications.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+
+---
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Local Development](#local-development)
+  - [Docker Setup](#docker-setup)
+- [Frontend Development Setup](#-frontend-development-setup)
+- [API Documentation](#-api-documentation)
+- [Quality Assurance](#-quality-assurance)
+- [Observability](#-observability)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [Using as a Template](#-using-as-a-template)
+- [Project Links](#-project-links)
+- [Infrastructure & Architecture](#-infrastructure--architecture)
+- [License](#-license)
+- [Academic Context](#-academic-context)
+
+---
+
+## ✨ Features
+
+### Core Functionality
+
+- ✅ **RESTful API** with FastAPI and automatic OpenAPI documentation
+- ✅ **Authentication & Authorization** with OAuth2 (JWT tokens)
+- ✅ **Database Management** using SQLModel ORM with PostgreSQL
+- ✅ **Database Migrations** with Alembic
+- ✅ **File Storage** integration with MinIO/S3-compatible services
+- ✅ **CORS Configuration** for secure cross-origin requests
+
+### Development Experience
+
+- ✅ **Fast Package Management** with [uv](https://docs.astral.sh/uv/)
+- ✅ **Code Quality** enforced by [Ruff](https://docs.astral.sh/ruff) (linting & formatting)
+- ✅ **Static Type Checking** with [Pyrefly](https://pyrefly.org/)
+- ✅ **Pre-commit Hooks** using [Prek](https://prek.j178.dev/)
+- ✅ **Conventional Commits** with Commitizen
+- ✅ **Automated Testing** with pytest
+
+### DevOps & Infrastructure
+
+- ✅ **Containerization** with Docker and Docker Compose
+- ✅ **CI/CD Pipeline** using GitHub Actions
+- ✅ **Automated Versioning** and changelog generation
+- ✅ **Multi-environment Deployment** (Preview, Staging, Production)
+- ✅ **Full Observability** with OpenTelemetry and SigNoz integration
+
+---
 
 ## 🛠 Tech Stack
 
 ### Development Environment
-* **Package Manager:** [uv](https://docs.astral.sh/uv/) (Fast Python package installer)
-* **Pre-validation Hooks:** [Prek](https://prek.j178.dev/)
-* **Linting & Formatting:** [Ruff](https://docs.astral.sh/ruff)
-* **Type Checking:** [Pyrefly](https://pyrefly.org/) (Static Type Verification)
+
+| Tool | Purpose |
+| --- | --- |
+| [uv](https://docs.astral.sh/uv/) | Fast Python package manager |
+| [Prek](https://prek.j178.dev/) | Pre-validation hooks |
+| [Ruff](https://docs.astral.sh/ruff) | Linting & formatting (Rust-based) |
+| [Pyrefly](https://pyrefly.org/) | Static type verification |
+| [pytest](https://pytest.org/) | Testing framework |
 
 ### Backend & Server
-* **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
-* **Server:** [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/) (with Uvicorn)
-* **Database:** PostgreSQL with [SQLModel](https://sqlmodel.tiangolo.com/) (ORM)
-* **Migrations:** [Alembic](https://alembic.sqlalchemy.org/)
-* **Security:** OAuth2 (JWT) & CORS Configuration
+
+| Component | Technology |
+| --- | --- |
+| Framework | [FastAPI](https://fastapi.tiangolo.com/) |
+| Server | [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/) with Uvicorn |
+| Database | PostgreSQL 17.6 |
+| ORM | [SQLModel](https://sqlmodel.tiangolo.com/) |
+| Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
+| File Storage | MinIO (S3-compatible) |
+| Security | OAuth2 (JWT) & CORS |
 
 ### Observability & Infrastructure
-* **Instrumentation:** [OpenTelemetry](https://opentelemetry.io/)
-* **Monitoring/Tracing:** [SigNoz](https://signoz.io/) (Self-hosted)
-* **Containerization:** Docker & Docker Compose
+
+| Tool | Purpose |
+| --- | --- |
+| [OpenTelemetry](https://opentelemetry.io/) | Instrumentation (traces, metrics, logs) |
+| [SigNoz](https://signoz.io/) | Monitoring and tracing platform |
+| Docker | Containerization |
+| Docker Compose | Local orchestration |
+| GitHub Actions | CI/CD automation |
+| Coolify | Deployment platform |
 
 ---
 
@@ -28,90 +105,194 @@ A high-performance, containerized, and observable Python REST API built with **F
 
 ```text
 .
-├── app
-│   ├── core         # Config, Security, Dependencies, Telemetry
-│   ├── database     # DB connection (database.py)
-│   ├── internal     # Admin/Internal routers
-│   ├── models       # SQLModel tables and Pydantic schemas
-│   ├── routers      # Public API endpoints
-│   ├── services     # Business logic
-│   ├── utils        # Utilities (logger.py, etc.)
-│   └── main.py      # Application entrypoint
-├── tests            # Unit and Integration tests
-├── alembic          # Database migrations (Not yet implemented)
-├── compose.yml      # Related Or Equivalent: Docker orchestration
-├── pyproject.toml   # Project configuration
-└── uv.lock          # Dependency lock file
+├── app/
+│   ├── core/           # Configuration, security, dependencies, telemetry
+│   ├── database/       # Database connection and session management
+│   ├── internal/       # Admin/internal-only routes
+│   ├── models/         # SQLModel tables and Pydantic schemas
+│   ├── routers/        # Public API endpoints
+│   ├── services/       # Business logic layer
+│   ├── utils/          # Utilities (logger, helpers)
+│   ├── initial_data.py # Database seeding script
+│   └── main.py         # Application entrypoint
+├── tests/              # Unit and integration tests
+├── alembic/            # Database migration files
+│   └── versions/       # Migration history
+├── scripts/            # Utility scripts (prestart.sh)
+├── .github/
+│   └── workflows/      # GitHub Actions CI/CD
+├── docker-compose.yml  # Local development stack
+├── docker-compose.frontend-dev.yml  # Frontend team setup
+├── Dockerfile          # Production container image
+├── pyproject.toml      # Project configuration
+└── uv.lock             # Dependency lock file
 ```
 
 ---
 
-## ⚡ Local Development Setup
+## 🚀 Getting Started
 
-### 1. Prerequisites
-* **Docker** & **Docker Compose**
-* **uv**: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+### Prerequisites
 
-### 2. Installation
-Clone the repository and install dependencies using `uv`:
+- **Docker** & **Docker Compose** (for containerized development)
+- **Python 3.12+** (for local development)
+- **uv** package manager:
 
-```bash
-git clone https://github.com/Lyric-s/together-app-backend
-cd together-app-backend
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
 
-# Create virtualenv
-uv venv
+### Local Development
 
-# Activate the virtual environment
-# On macOS/Linux: source .venv/bin/activate
-# On Windows: .venv\Scripts\activate
-# (Recommended for IDE integration and tools like pyrefly or pre-commit)
-# See: https://docs.astral.sh/uv/pip/environments/#using-a-virtual-environment
+> [!IMPORTANT]
+> This method requires PostgreSQL and MinIO to be running separately. For an all-in-one solution, use the [Docker Setup](#docker-setup) instead.
 
-# Install dependencies
-uv sync
-```
+1. **Clone the repository**
 
-### 3. Environment Configuration
-Create a `.env` file based on the example (or strictly follow the `Settings` model in `app/core/config.py`).
+   ```bash
+   git clone https://github.com/Lyric-s/together-app-backend.git
+   cd together-app-backend
+   ```
 
-```bash
-cp .env.example .env
-```
+2. **Create and activate virtual environment**
 
-### 4. Database Migrations (Not yet implemented, you can skip this part)
-Before running the app locally, ensure your database is running and apply the schema:
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-```bash
-# Apply migrations
-uv run alembic upgrade head
-```
+3. **Install dependencies**
 
-### 5. Run Locally
-Start the API with hot-reload enabled:
+   ```bash
+   uv sync
+   ```
 
-```bash
-uv run fastapi dev app/main.py
-```
-The API will be available at `http://127.0.0.1:8000`.
+4. **Environment setup**
 
----
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-## 🐋 Running the Full Stack (Docker)
+   > [!WARNING]
+   > Never commit the `.env` file. It contains sensitive credentials.
 
-To start the API and PostgreSQL Database together:
+5. **Run database migrations**
+
+   ```bash
+   uv run alembic upgrade head
+   ```
+
+6. **Start the development server**
+
+   ```bash
+   uv run fastapi dev app/main.py
+   ```
+
+   The API will be available at `http://127.0.0.1:8000`
+
+### Docker Setup
+
+The easiest way to run the complete stack (API + PostgreSQL):
 
 ```bash
 docker compose up -d --build
 ```
 
-### Services Overview
+**Services:**
 
 | Service | URL | Description |
 | :--- | :--- | :--- |
-| **API** | `http://localhost:8000` | The FastAPI Backend |
+| **API** | `http://localhost:8000` | FastAPI Backend |
 | **Swagger UI** | `http://localhost:8000/docs` | Interactive API Documentation |
-| **PostgreSQL** | `localhost:5432` | Main Database |
+| **ReDoc** | `http://localhost:8000/redoc` | Alternative API Documentation |
+| **PostgreSQL** | `localhost:5432` | Database Server |
+
+**Stop services:**
+
+```bash
+docker compose down
+```
+
+**Clean restart (remove volumes):**
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
+
+---
+
+## 🎨 Frontend Development Setup
+
+Frontend developers can run the complete backend stack locally using pre-built Docker images, **without cloning this repository**.
+
+> [!NOTE]
+> This setup is designed for frontend teams working on a separate repository. The Docker image is automatically built and published on every push to the `dev` branch.
+
+### Quick Start for Frontend Team
+
+1. **Login to GitHub Container Registry** (one-time setup):
+
+   ```bash
+   docker login ghcr.io -u YOUR_GITHUB_USERNAME
+   ```
+
+   Use a [Personal Access Token](https://github.com/settings/tokens) with `read:packages` scope as the password.
+
+2. **Start the backend** (directly from the repository):
+
+   **Linux/macOS:**
+
+   ```bash
+   docker-compose -f https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+   ```
+
+   **Windows (PowerShell):**
+
+   ```powershell
+   docker-compose -f https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+   ```
+
+   **Or save it locally for customization:**
+
+   **Linux/macOS:**
+
+   ```bash
+   curl -o docker-compose.backend.yml https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
+   docker-compose -f docker-compose.backend.yml up
+   ```
+
+   **Windows (PowerShell):**
+
+   ```powershell
+   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
+   docker-compose -f docker-compose.backend.yml up
+   ```
+
+The API will automatically:
+
+- Pull the latest dev image
+- Start PostgreSQL with the correct schema
+- Run database migrations
+- Be available at `http://localhost:8000`
+
+### Frontend Configuration
+
+**CORS Origins**: The compose file includes common frontend dev ports (3000, 5173, 8080). To use different ports:
+
+1. Download the file locally (see above)
+2. Update `BACKEND_CORS_ORIGINS` with your frontend URL
+3. Run with your local file
+
+**Get Updates**:
+
+- **Direct URL method**: Always gets the latest version automatically
+- **Local file method**: Re-download the file to get updates
+
+```bash
+docker-compose -f docker-compose.backend.yml up --pull always
+```
 
 ---
 
@@ -119,117 +300,389 @@ docker compose up -d --build
 
 The API provides interactive documentation generated automatically from the codebase.
 
-1.  **Swagger UI (`/docs`)**:
-    * Navigate to `http://localhost:8000/docs`.
-    * Use the **Authorize** button to log in.
-    * **Note:** The login endpoint expects a `username` and `password` both present in the database.
+### Swagger UI (`/docs`)
 
-2.  **ReDoc (`/redoc`)**:
-    * Navigate to `http://localhost:8000/redoc`.
-    * Useful for viewing the API specification in a clean document format : depends on one's tastes.
+Navigate to `http://localhost:8000/docs`
+
+- Interactive API testing interface
+- Try endpoints directly from the browser
+- Use the **Authorize** button to authenticate with JWT
+
+### ReDoc (`/redoc`)
+
+Navigate to `http://localhost:8000/redoc`
+
+- Clean, document-style API reference
+- Better for reading and understanding the API structure
+
+### OpenAPI Specification
+
+Raw OpenAPI JSON: `http://localhost:8000/openapi.json`
 
 ---
 
 ## ✅ Quality Assurance
 
-We enforce code quality using strict blazingly fast linters and type checkers (written in Rust).
+Code quality is enforced using blazingly fast, Rust-based tools.
 
 ### Static Analysis
-```bash
-# Run Linter (Ruff)
-uv run ruff check .
 
-# Run Type Checker (Pyrefly)
-uv run pyrefly
+**Linting:**
+
+```bash
+uv run ruff check
 ```
 
-### Pre-Validation Hooks
-We use `prek` hooks to validate code before committing.
+**Auto-fix linting issues:**
+
 ```bash
-# Run hooks manually
+uv run ruff check --fix
+```
+
+**Format check:**
+
+```bash
+uv run ruff format --check
+```
+
+**Auto-format code:**
+
+```bash
+uv run ruff format
+```
+
+**Type checking:**
+
+```bash
+uv run pyrefly check --summarize-errors
+```
+
+### Pre-commit Hooks
+
+Validate code before committing:
+
+```bash
 uv run prek run --all-files
 ```
 
-### Tests
-Run the unit and integration test suite:
+### Testing
+
+Run the test suite:
+
 ```bash
 uv run pytest
 ```
 
----
+**With coverage:**
 
-## 📊 Observability (SigNoz)
-
-We use **OpenTelemetry** to instrument the application. While the local development environment does not include the full SigNoz stack by default to keep it lightweight, the application is fully configured to export traces, metrics, and **logs** to a SigNoz instance which has to be implemented aside.
-
-For configuration details (endpoints, service names, etc.), please refer to the **Observability** section in `.env.example`.
-
-Once connected, you can view:
-*   **Request Latency** (P99, P95)
-*   **Database Query Performance**
-*   **Error Rates and Stack Traces**
-*   **Application Logs** (Aggregated and Filterable)
+```bash
+uv run pytest --cov=app --cov-report=html
+```
 
 ---
 
-## 🚀 Workflow (CI/CD)
+## 📊 Observability
 
-The project includes a comprehensive CI/CD pipeline:
+The application is fully instrumented with **OpenTelemetry** for production-grade observability.
 
-### Continuous Integration (GitHub Actions)
-*   **PR Validation**: Installs `uv`, runs `ruff` (linting), `pyrefly` (type check), and `pytest` (tests).
-*   **Commit Validation**: Uses `commitizen` to ensure conventional commit messages.
+> [!NOTE]
+> The local development environment does not include SigNoz by default to keep it lightweight. The application exports telemetry data when configured with a SigNoz endpoint.
 
-### Deployment (Coolify)
-We use a **Hybrid Deployment Strategy** managed by [Coolify](https://coolify.io/):
+### Observability Configuration
 
-1.  **Preview Deployments (Pull Requests)**:
-    *   Automatically built and deployed by Coolify on every PR.
-    *   Provides a unique URL for testing changes in isolation.
+Set these environment variables in `.env`:
 
-2.  **Staging (`dev` branch)**:
-    *   Automatically deployed when code merges to `dev`.
-    *   Built from source on the staging server for quick updates.
+```bash
+ENVIRONMENT=production
+OTEL_SERVICE_NAME=together-fastapi-backend
+OTEL_EXPORTER_OTLP_ENDPOINT=http://your-signoz-endpoint:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+OTEL_TRACES_EXPORTER=otlp
+OTEL_METRICS_EXPORTER=otlp
+OTEL_LOGS_EXPORTER=otlp
+```
 
-3.  **Production (Tags)**:
-    *   Triggered when a version tag (e.g., `v1.0.0`) is pushed.
-    *   **CI Build**: GitHub Actions builds the Docker image and pushes it to GitHub Container Registry.
-    *   **CD Deploy**: Coolify pulls the pre-built, tested image for maximum stability.
+### What's Monitored
+
+Once connected to SigNoz, you can observe:
+
+- **Request Latency** (P99, P95, P50)
+- **Database Query Performance**
+- **Error Rates and Stack Traces**
+- **Application Logs** (aggregated and filterable)
+- **Custom Business Metrics**
 
 ---
 
-## 🤝 How to properly name commits
+## 🚀 Deployment
 
-### `<prefix>: <JIRA-1> <commit message>`
+The project uses a **hybrid CI/CD strategy** with GitHub Actions and Coolify.
 
-`prefix` is **meant to be replaced** by one of the expected prefixes which can be found in the section below, it is **mandatory** to put one.
+### CI/CD Pipeline
 
-`JIRA-1` is an example **meant to be replaced** by the actual ticket name, in capital letters, related to the work being done on the branch. \
-If the branch you are committing on is **not linked** to a JIRA ticket, just write the message; otherwise, you **must** include the ticket name.
+#### 1. Pull Request Validation
 
-`commit message` is **meant to be replaced**. It should be no more than a **short, but clear, sentence**.
+**Workflow:** `.github/workflows/development.yml`
 
-## 📝 Expected prefixes
+On every PR, the pipeline:
 
-- `feat:` Introduces a **new feature**.
-- `fix:` A **bug fix**.
-- `build:` Changes that affect the **build system or external dependencies**.
-- `chore:` Routine tasks that **don’t affect source or test code** (e.g., maintenance, cleanup).
-- `ci:` Changes to **continuous integration configuration** (CI scripts, workflows).
-- `docs:` Documentation-only changes.
-- `style:` Code changes that **don’t affect meaning** (formatting, whitespace, semicolons).
-- `refactor:` Code changes that **neither fix bugs nor add features** (structural improvements).
-- `perf:` Code changes that **improve performance**.
-- `test:` Adding or modifying **tests**.
-- `revert:` Reverts a previous commit.
+- Runs linting (`ruff check`)
+- Runs type checking (`pyrefly`)
+- Runs tests (`pytest`)
+- Validates conventional commit messages (`commitizen`)
 
-## 📢 Breaking Changes
+#### 2. Staging Deployment (`dev` branch)
 
-### **BREAKING CHANGE:** (footer)
-A footer indicating a **breaking API change** → major SemVer bump.
+**Automatic deployment on merge to `dev`:**
 
-### **! after type**
-Alternative breaking-change notation:
-Example: `feat!: change API behavior`
+- Coolify builds from source
+- Deploys to staging environment
+- Available for QA and testing
 
-[source: conventional commits organization website](https://www.conventionalcommits.org/en/v1.0.0/#specification)
+#### 3. Production Deployment (Version Tags)
+
+**Workflow:** `.github/workflows/deploy-production.yml`
+
+When a version tag is pushed (e.g., `v1.0.0`):
+
+1. GitHub Actions builds the Docker image
+2. Pushes to GitHub Container Registry (`ghcr.io`)
+3. Coolify pulls the pre-built image
+4. Deploys to production
+
+#### 4. Development Image Publishing
+
+**Workflow:** `.github/workflows/build-dev-image.yml`
+
+On every push to `dev`:
+
+- Builds Docker image
+- Publishes to `ghcr.io/lyric-s/together-app-backend:dev`
+- Used by frontend teams for local development
+
+### Version Management
+
+**Workflow:** `.github/workflows/release.yml`
+
+On merge to `main`:
+
+- Automatically bumps version based on conventional commits
+- Generates changelog
+- Creates a git tag
+
+---
+
+## 🤝 Contributing
+
+We follow conventional commits for consistent version management and changelog generation.
+
+### Commit Message Format
+
+```text
+<type>: <TICKET-ID> <description>
+
+Examples:
+feat: TA-108 add volunteer mission engagement service
+fix: TA-108 proper report type suggested by CodeRabbit
+docs: TA-108 update API documentation
+```
+
+### Commit Types
+
+| Prefix | Description | Version Impact |
+| --- | --- | --- |
+| `feat:` | New feature | Minor bump |
+| `fix:` | Bug fix | Patch bump |
+| `docs:` | Documentation only | No bump |
+| `style:` | Code formatting (no logic change) | No bump |
+| `refactor:` | Code restructuring (no behavior change) | No bump |
+| `perf:` | Performance improvement | Patch bump |
+| `test:` | Adding or updating tests | No bump |
+| `build:` | Build system changes | No bump |
+| `ci:` | CI/CD configuration | No bump |
+| `chore:` | Maintenance tasks | No bump |
+| `revert:` | Revert previous commit | Depends |
+
+### Breaking Changes
+
+Indicate breaking changes with `!` or a footer:
+
+```bash
+feat!: change authentication method to OAuth2
+
+BREAKING CHANGE: API authentication now requires OAuth2 tokens
+```
+
+This triggers a **major version bump**.
+
+[Source: Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification)
+
+---
+
+## 🎯 Using as a Template
+
+This project is designed to be reusable as a starting point for your own FastAPI applications.
+
+### What's Included
+
+- ✅ **Production-ready architecture** with separation of concerns
+- ✅ **Complete authentication system** with JWT tokens
+- ✅ **Database setup** with migrations and seeding
+- ✅ **File upload/storage** with MinIO integration
+- ✅ **Full observability** with OpenTelemetry
+- ✅ **CI/CD pipelines** ready to customize
+- ✅ **Docker configuration** for development and production
+- ✅ **Code quality tools** pre-configured
+
+### Customization Steps
+
+1. **Fork or clone** this repository
+2. **Update branding:**
+   - Change `OTEL_SERVICE_NAME` in `.env.example`
+   - Update repository references in workflows
+   - Replace `together` database name in configs
+3. **Remove Together-specific code:**
+   - Delete domain-specific models in `app/models/`
+   - Remove business logic in `app/services/`
+   - Clean up routers in `app/routers/`
+4. **Add your domain logic:**
+   - Create your models
+   - Implement your business logic
+   - Define your API endpoints
+5. **Update documentation:**
+   - Replace this README with your project details
+   - Update LICENSE if needed
+
+### Potential Improvements
+
+- **Rate limiting** with slowapi or custom middleware
+- **Caching** with Redis for frequently accessed data
+- **Background tasks** with Celery or ARQ
+- **WebSocket support** for real-time features
+- **GraphQL API** alongside REST endpoints
+- **Multi-tenancy** architecture
+- **API versioning** strategy (URL or header-based)
+- **Advanced monitoring** with custom metrics and alerts
+
+---
+
+## 🌐 Project Links
+
+### Related Repositories
+
+- **Frontend Application**: [together-app](https://github.com/lyric-s/together-app) - React-based web interface for the Together platform
+
+### Live Demos
+
+- **API Documentation**: _Coming soon - Interactive Swagger UI for testing endpoints_
+- **Staging Environment**: _Internal deployment for testing_
+
+---
+
+## 🏗️ Infrastructure & Architecture
+
+This project demonstrates a **fully self-hosted infrastructure** built primarily on open-source technologies, showcasing enterprise-grade deployment practices on a budget.
+
+> [!NOTE]
+> Our infrastructure is entirely self-hosted, providing hands-on experience with real-world DevOps practices and infrastructure management.
+
+### Infrastructure Stack
+
+#### Virtualization & Compute
+
+- **[Proxmox VE](https://www.proxmox.com/)** - Hypervisor platform hosting all virtual machines and containers
+- **[Patchmon](https://github.com/colinmurphy1/patchmon)** - Automated monitoring and management of Proxmox LXC containers
+
+#### Deployment & Orchestration
+
+- **[Coolify](https://coolify.io/)** - Self-hosted PaaS for deploying applications
+  - Handles preview deployments (PRs)
+  - Manages staging environment (`dev` branch)
+  - Deploys production from Docker images
+- **[Portainer](https://www.portainer.io/)** - Docker container management interface
+  - Runs on Raspberry Pi 5
+  - Centralized container monitoring
+
+#### Data Storage & Management
+
+- **[PostgreSQL 17.6](https://www.postgresql.org/)** - Primary database
+- **[pgAdmin](https://www.pgadmin.org/)** - Database administration interface
+- **[MinIO](https://min.io/)** - S3-compatible object storage for file uploads
+- **[TrueNAS](https://www.truenas.com/)** - Network-attached storage for backups and data persistence
+
+#### Observability & Monitoring
+
+- **[SigNoz](https://signoz.io/)** - Open-source observability platform
+  - Distributed tracing
+  - Metrics collection and visualization
+  - Centralized log aggregation
+  - Application performance monitoring (APM)
+
+#### Networking & Edge
+
+- **Raspberry Pi 5** - Edge network gateway running:
+  - **[Nginx Proxy Manager](https://nginxproxymanager.com/)** - Reverse proxy with SSL/TLS management
+  - **Portainer** - Container orchestration
+- **[Cloudflare](https://www.cloudflare.com/)** - DNS and edge routing
+  - Route traffic from the internet to internal services
+  - DDoS protection and caching
+
+> [!NOTE]
+> We initially planned to migrate from Cloudflare to [Pangolin](https://github.com/wangzhao-dev/pangolin) (open-source alternative) but time constraints prevented this. Future improvement opportunity!
+
+### Architecture Highlights
+
+**Why Self-Hosted?**
+
+- **Learning Experience**: Hands-on exposure to infrastructure management
+- **Cost Efficiency**: Eliminate cloud provider costs for academic projects
+- **Full Control**: Complete visibility into the entire stack
+- **Open Source First**: Commitment to FOSS tools and transparency
+
+**Network Flow:**
+
+```text
+Internet Traffic
+    ↓
+Cloudflare DNS & Edge
+    ↓
+Raspberry Pi 5 (Nginx Proxy Manager)
+    ↓
+Proxmox Cluster
+    ↓
+┌─────────────┬──────────────┬──────────────┬──────────────┐
+│  Coolify    │  PostgreSQL  │    MinIO     │   SigNoz     │
+│  (Deploy)   │  (Database)  │  (Storage)   │  (Observ.)   │
+└─────────────┴──────────────┴──────────────┴──────────────┘
+         ↓              ↓              ↓              ↓
+    FastAPI App    Persistent    File Storage    Telemetry
+                      Data          Layer          Data
+```
+
+**Backup Strategy:**
+
+- TrueNAS provides automated snapshots and backups for all critical data
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+Copyright © 2025-2026 IUT Paris - Rives de Seine
+
+---
+
+## 🎓 Academic Context
+
+This project was developed as part of an academic curriculum at **IUT Paris - Rives de Seine**, a branch of the **University of Paris**.
+
+**Project Goal:** Build a realistic, production-ready backend API demonstrating modern software engineering practices, DevOps workflows, and full-stack observability.
+
+**Fictional Platform:** "Together" is a conceptual volunteer coordination platform created for educational purposes.
+
+---
+
+**Built with ❤️ at IUT Paris - Rives de Seine**
+
+[Report an Issue](https://github.com/Lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/Lyric-s/together-app-backend/issues)
