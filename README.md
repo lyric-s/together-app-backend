@@ -152,7 +152,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Lyric-s/together-app-backend.git
+   git clone https://github.com/lyric-s/together-app-backend.git
    cd together-app-backend
    ```
 
@@ -247,13 +247,13 @@ Frontend developers can run the complete backend stack locally using pre-built D
    **Linux/macOS:**
 
    ```bash
-   docker-compose -f https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+   docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
    ```
 
    **Windows (PowerShell):**
 
    ```powershell
-   docker-compose -f https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+   docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
    ```
 
    **Or save it locally for customization:**
@@ -261,14 +261,14 @@ Frontend developers can run the complete backend stack locally using pre-built D
    **Linux/macOS:**
 
    ```bash
-   curl -o docker-compose.backend.yml https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
+   curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
    docker-compose -f docker-compose.backend.yml up
    ```
 
    **Windows (PowerShell):**
 
    ```powershell
-   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
+   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
    docker-compose -f docker-compose.backend.yml up
    ```
 
@@ -523,7 +523,7 @@ This triggers a **major version bump**.
 
 ## 🎯 Using as a Template
 
-This project is designed to be reusable as a starting point for your own FastAPI applications. We acknowledge that our choices may not have been the best as we were still learning when making this project. Modify it to your heart's content.
+This project is designed to be reusable as a starting point for your own FastAPI applications. We acknowledge that our choices may not have been the best as we were still learning when making this project. Improve it to your heart's content.
 
 ### What's Included
 
