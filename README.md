@@ -273,13 +273,13 @@ Use a [Personal Access Token](https://github.com/settings/tokens) with `read:pac
 Linux/macOS:
 
 ```bash
-docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
 ```
 
 Windows (PowerShell):
 
 ```powershell
-docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
 ```
 
 ##### Option B: Save locally for customization

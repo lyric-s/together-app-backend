@@ -52,8 +52,8 @@ def test_volunteer_creation_performance(
             volunteer_in=volunteer_create_data,
         )
         # Clean up after each iteration
-        session.delete(volunteer.user)
         session.delete(volunteer)
+        session.delete(volunteer.user)
         session.commit()
         return volunteer
 
