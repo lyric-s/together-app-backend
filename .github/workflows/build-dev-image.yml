@@ -17,7 +17,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get short SHA
         id: get_sha
@@ -43,6 +43,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ env.SHORT_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
 
       - name: Image details
         run: |

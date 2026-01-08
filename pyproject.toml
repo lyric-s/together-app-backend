@@ -23,6 +23,7 @@ dependencies = [
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
     "pyjwt[crypto]>=2.10.1",
+    "pytest-codspeed>=4.2.0",
     "python-dotenv>=1.2.1",
     "sqlalchemy-citext>=1.8.0",
     "sqlmodel>=0.0.27",
@@ -56,6 +57,16 @@ project_excludes = ["alembic/versions/*"]
 
 [tool.ruff]
 exclude = ["alembic/versions/*"]
+
+[tool.pytest.ini_options]
+# Benchmark markers for CodSpeed
+markers = [
+    "benchmark: marks tests as benchmarks (deselect with '-m \"not benchmark\"')",
+]
+# Separate benchmark tests from regular tests
+testpaths = ["tests"]
+# Make benchmark fixtures available
+python_files = ["test_*.py", "*_bench.py"]
 
 [[tool.commitizen.customize.questions]]
 type = "list"
