@@ -1,0 +1,47 @@
+services:
+  # DATABASE (PostgreSQL for Dev)
+  postgres:
+    image: postgres:17.6
+    container_name: frontend-dev-postgres
+    environment:
+      - POSTGRES_USER=api_user
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_DB=together
+    ports:
+      - "5432:5432"
+    networks:
+      - frontend_dev
+    volumes:
+      - postgres_data_frontend_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_user -d together"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API (Using pre-built image from GitHub Container Registry)
+  # This image is automatically built from the backend repo's dev branch
+  fastapi:
+    image: ghcr.io/lyric-s/together-app-backend:dev
+    pull_policy: always
+    container_name: frontend-dev-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
+      - LOG_LEVEL=debug
+      # Add CORS origins for frontend development
+      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - frontend_dev
+
+networks:
+  frontend_dev:
+    driver: bridge
+
+volumes:
+  postgres_data_frontend_dev:

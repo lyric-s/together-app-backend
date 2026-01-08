@@ -1,0 +1,56 @@
+name: Build Dev Docker Image
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: get_sha
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ env.SHORT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image details
+        run: |
+          echo "Docker image built and pushed successfully!"
+          echo "Image tags:"
+          echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
+          echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ env.SHORT_SHA }}"
+          echo ""
+          echo "Frontend team can pull and run with:"
+          echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
+          echo "  docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
