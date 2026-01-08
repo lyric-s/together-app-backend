@@ -28,7 +28,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - [Contributing](#-contributing)
 - [Using as a Template](#-using-as-a-template)
 - [Project Links](#-project-links)
-- [Infrastructure & Architecture](#-infrastructure--architecture)
+- [Infrastructure & Architecture](#️-infrastructure--architecture)
 - [License](#-license)
 - [Academic Context](#-academic-context)
 
