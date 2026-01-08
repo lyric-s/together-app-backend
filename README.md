@@ -123,6 +123,8 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 │   └── workflows/      # GitHub Actions CI/CD
 ├── docker-compose.yml  # Local development stack
 ├── docker-compose.frontend-dev.yml  # Frontend team setup
+├── docker-compose.production.yml  # Production compose (deployment)
+├── docker-compose.staging.yml  # Staging compose (deployment)
 ├── Dockerfile          # Production container image
 ├── pyproject.toml      # Project configuration
 └── uv.lock             # Dependency lock file
@@ -174,8 +176,8 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    # Edit .env with your configuration
    ```
 
-   > [!WARNING]
-   > Never commit the `.env` file. It contains sensitive credentials.
+> [!WARNING]
+> Never commit the `.env` file. It contains sensitive credentials. Mention it to your `.gitignore` if it's not already there.
 
 5. **Run database migrations**
 
@@ -521,7 +523,7 @@ This triggers a **major version bump**.
 
 ## 🎯 Using as a Template
 
-This project is designed to be reusable as a starting point for your own FastAPI applications.
+This project is designed to be reusable as a starting point for your own FastAPI applications. We acknowledge that our choices may not have been the best as we were still learning when making this project. Modify it to your heart's content.
 
 ### What's Included
 
@@ -638,6 +640,7 @@ This project demonstrates a **fully self-hosted infrastructure** built primarily
 - **Cost Efficiency**: Eliminate cloud provider costs for academic projects
 - **Full Control**: Complete visibility into the entire stack
 - **Open Source First**: Commitment to FOSS tools and transparency
+- **Homelabbing is cool**: 😎
 
 **Network Flow:**
 
@@ -677,7 +680,7 @@ Copyright © 2025-2026 IUT Paris - Rives de Seine
 
 This project was developed as part of an academic curriculum at **IUT Paris - Rives de Seine**, a branch of the **University of Paris**.
 
-**Project Goal:** Build a realistic, production-ready backend API demonstrating modern software engineering practices, DevOps workflows, and full-stack observability.
+**Project Goal:** Build a realistic, production-ready backend API demonstrating modern software engineering practices, DevOps workflows, and full-stack observability, with an ethical or environmental dimension.
 
 **Fictional Platform:** "Together" is a conceptual volunteer coordination platform created for educational purposes.
 
