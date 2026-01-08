@@ -97,7 +97,7 @@ def get_compose_env_vars() -> set[str]:
     elif "environment" in fastapi_service:
         for env_entry in fastapi_service["environment"]:
             if "=" in env_entry:
-                var_name = env_entry.split("=")[0].strip().lstrip("- ")
+                var_name = env_entry.split("=", 1)[0].strip()
                 compose_env_vars.add(var_name)
 
     return compose_env_vars
