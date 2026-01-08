@@ -8,6 +8,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
 
 ---
 
@@ -53,6 +54,8 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - ✅ **Pre-commit Hooks** using [Prek](https://prek.j178.dev/)
 - ✅ **Conventional Commits** with Commitizen
 - ✅ **Automated Testing** with pytest
+- ✅ **Code Coverage Tracking** with [Codecov](https://codecov.io/)
+- ✅ **AI Code Review** with [CodeRabbit](https://coderabbit.ai/)
 
 ### DevOps & Infrastructure
 
@@ -75,6 +78,8 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | [Ruff](https://docs.astral.sh/ruff) | Linting & formatting (Rust-based) |
 | [Pyrefly](https://pyrefly.org/) | Static type verification |
 | [pytest](https://pytest.org/) | Testing framework |
+| [Codecov](https://codecov.io/) | Code coverage tracking & reporting |
+| [CodeRabbit](https://coderabbit.ai/) | AI-powered code review |
 
 ### Backend & Server
 
@@ -232,60 +237,124 @@ Frontend developers can run the complete backend stack locally using pre-built D
 > [!NOTE]
 > This setup is designed for frontend teams working on a separate repository. The Docker image is automatically built and published on every push to the `dev` branch.
 
+### Prerequisites
+
+If you don't have Docker installed yet:
+
+- **Install Docker Desktop**: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)
+  - Includes both Docker and Docker Compose
+  - Available for Windows, macOS, and Linux
+- **Verify installation**: `docker --version` and `docker-compose --version`
+
 ### Quick Start for Frontend Team
 
-1. **Login to GitHub Container Registry** (one-time setup):
+#### 1. Login to GitHub Container Registry (one-time setup)
 
-   ```bash
-   docker login ghcr.io -u YOUR_GITHUB_USERNAME
-   ```
+```bash
+docker login ghcr.io -u YOUR_GITHUB_USERNAME
+```
 
-   Use a [Personal Access Token](https://github.com/settings/tokens) with `read:packages` scope as the password.
+Use a [Personal Access Token](https://github.com/settings/tokens) with `read:packages` scope as the password.
 
-2. **Start the backend** (directly from the repository):
+#### 2. Start the Backend Stack
 
-   **Linux/macOS:**
+##### Option A: Direct URL (always gets latest)
 
-   ```bash
-   docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
-   ```
+Linux/macOS:
 
-   **Windows (PowerShell):**
+```bash
+docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+```
 
-   ```powershell
-   docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
-   ```
+Windows (PowerShell):
 
-   **Or save it locally for customization:**
+```powershell
+docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+```
 
-   **Linux/macOS:**
+##### Option B: Save locally for customization
 
-   ```bash
-   curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
-   docker-compose -f docker-compose.backend.yml up
-   ```
+Linux/macOS:
 
-   **Windows (PowerShell):**
+```bash
+curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
+docker-compose -f docker-compose.backend.yml up
+```
 
-   ```powershell
-   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
-   docker-compose -f docker-compose.backend.yml up
-   ```
+Windows (PowerShell):
 
-The API will automatically:
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
+docker-compose -f docker-compose.backend.yml up
+```
 
-- Pull the latest dev image
-- Start PostgreSQL with the correct schema
-- Run database migrations
-- Be available at `http://localhost:8000`
+### What Gets Started
 
-### Frontend Configuration
+The stack automatically sets up:
 
-**CORS Origins**: The compose file includes common frontend dev ports (3000, 5173, 8080). To use different ports:
+| Service | URL | Credentials |
+| :--- | :--- | :--- |
+| **API** | `http://localhost:8000` | See [default credentials](#default-credentials) |
+| **API Docs (Swagger)** | `http://localhost:8000/docs` | - |
+| **MinIO Console** | `http://localhost:9001` | `minioadmin` / `minioadmin123` |
 
-1. Download the file locally (see above)
-2. Update `BACKEND_CORS_ORIGINS` with your frontend URL
-3. Run with your local file
+The backend automatically:
+
+- ✅ Pulls the latest dev image
+- ✅ Starts PostgreSQL database with schema
+- ✅ Starts MinIO object storage (S3-compatible)
+- ✅ Runs database migrations
+- ✅ Seeds initial data (including superuser)
+
+### Default Credentials
+
+The backend is pre-configured with a test superuser account:
+
+- **Email**: `admin@example.com`
+- **Password**: `changethis`
+- **Username**: `admin`
+
+Use these credentials to test authentication endpoints or admin features.
+
+> [!WARNING]
+> These are development credentials only. Never use these in production!
+
+### Customizing Environment Variables
+
+If you need to modify any settings (CORS origins, credentials, etc.):
+
+1. **Download the compose file locally** (see Option B above)
+2. **Edit the `environment` section** under the `fastapi` service
+3. **Available variables**:
+   - `BACKEND_CORS_ORIGINS`: Frontend URLs (comma-separated)
+   - `FIRST_SUPERUSER_EMAIL`: Admin email
+   - `FIRST_SUPERUSER_PASSWORD`: Admin password
+   - `SECRET_KEY`: JWT signing key (change for security)
+   - And more (see [docker-compose.frontend-dev.yml](docker-compose.frontend-dev.yml#L69-L90))
+
+**Example**: To add your custom frontend port:
+
+```yaml
+environment:
+  - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:4200  # Added 4200
+```
+
+### Common Commands
+
+```bash
+# Stop all services
+docker-compose -f docker-compose.backend.yml down
+
+# Stop and remove all data (fresh start)
+docker-compose -f docker-compose.backend.yml down -v
+
+# Update to latest backend version
+docker-compose -f docker-compose.backend.yml pull
+docker-compose -f docker-compose.backend.yml up
+
+# View logs
+docker-compose -f docker-compose.backend.yml logs -f fastapi
+```
 
 **Get Updates**:
 
@@ -381,6 +450,50 @@ uv run pytest
 uv run pytest --cov=app --cov-report=html
 ```
 
+**View coverage report:**
+
+```bash
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
+start htmlcov/index.html  # Windows
+```
+
+### Code Coverage
+
+[![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
+
+We use **[Codecov](https://codecov.io/)** to track code coverage across all pull requests:
+
+- **Current Coverage**: ~53% (tracked automatically)
+- **Coverage Reports**: Posted automatically on every PR
+- **Interactive Dashboard**: [View on Codecov](https://codecov.io/gh/lyric-s/together-app-backend)
+- **CI Integration**: Coverage runs on every push and PR
+
+**Coverage Goals:**
+
+- **Project Target**: 55% overall (gradual improvement from current 53%)
+- **New Code Target**: 70% (new code should be well-tested)
+- **Threshold**: 2% drop allowed without failing CI
+
+The CI automatically uploads coverage reports to Codecov, and the service comments on PRs with:
+
+- Overall coverage change
+- Coverage for newly added code
+- File-by-file coverage breakdown
+- Visual coverage graphs
+
+### AI-Powered Code Review
+
+We use **[CodeRabbit](https://coderabbit.ai/)** for automated PR reviews:
+
+- Intelligent code suggestions and improvements
+- Security vulnerability detection
+- Best practices enforcement
+- Automated review comments on pull requests
+
+> [!TIP]
+> CodeRabbit and Codecov work together to provide comprehensive code quality feedback on every PR, catching potential issues before they reach production.
+
 ---
 
 ## 📊 Observability
@@ -447,10 +560,12 @@ On every PR, the pipeline:
 
 When a version tag is pushed (e.g., `v1.0.0`):
 
-1. GitHub Actions builds the Docker image
-2. Pushes to GitHub Container Registry (`ghcr.io`)
-3. Coolify pulls the pre-built image
-4. Deploys to production
+1. GitHub Actions builds the Docker image with OCI metadata
+2. Pushes to GitHub Container Registry (`ghcr.io`) with semantic versioning tags
+3. Triggers Coolify deployment webhook
+4. Waits and verifies deployment health
+5. Sends Discord notifications to the team
+6. Creates deployment summary with production links
 
 #### 4. Development Image Publishing
 
@@ -565,6 +680,9 @@ This project is designed to be reusable as a starting point for your own FastAPI
 - **Multi-tenancy** architecture
 - **API versioning** strategy (URL or header-based)
 - **Advanced monitoring** with custom metrics and alerts
+- **Security scanning** with Trivy or Snyk in CI/CD pipeline
+- **Load testing** with Locust or k6
+- **Feature flags** for gradual rollouts
 
 ---
 
@@ -576,7 +694,8 @@ This project is designed to be reusable as a starting point for your own FastAPI
 
 ### Live Demos
 
-- **API Documentation**: _Coming soon - Interactive Swagger UI for testing endpoints_
+- **Production API**: [https://together-api.out-online.net](https://together-api.out-online.net)
+- **API Documentation**: [https://together-api.out-online.net/docs](https://together-api.out-online.net/docs) - Interactive Swagger UI
 - **Staging Environment**: _Internal deployment for testing_
 
 ---
