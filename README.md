@@ -182,7 +182,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    ```
 
 > [!WARNING]
-> Never commit the `.env` file. It contains sensitive credentials. Mention it to your `.gitignore` if it's not already there.
+> Never commit the `.env` file. It contains sensitive credentials. Add it to your `.gitignore` if it's not already there.
 
 5. **Run database migrations**
 
@@ -758,7 +758,7 @@ This project demonstrates a **fully self-hosted infrastructure** built primarily
 - **Learning Experience**: Hands-on exposure to infrastructure management
 - **Cost Efficiency**: Eliminate cloud provider costs for academic projects
 - **Full Control**: Complete visibility into the entire stack
-- **Open Source First**: Commitment to FOSS tools and transparency
+- **Open-Source-First**: Commitment to FOSS tools and transparency
 - **Homelabbing is cool**: 😎
 
 **Network Flow:**
@@ -805,6 +805,6 @@ This project was developed as part of an academic curriculum at **IUT Paris - Ri
 
 ---
 
-**Built with ❤️ at IUT Paris - Rives de Seine**
+Built with ❤️ at IUT Paris - Rives de Seine
 
 [Report an Issue](https://github.com/Lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/Lyric-s/together-app-backend/issues)
