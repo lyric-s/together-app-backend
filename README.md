@@ -3,12 +3,18 @@
 A production-ready, fully observable REST API built with **FastAPI**, demonstrating modern Python development practices, containerization, and full-stack observability.
 
 > [!NOTE]
-> **Together** is a fictional volunteer platform created as an academic project at **IUT Paris - Rives de Seine** (University of Paris). This repository serves as both a learning resource and a reusable template for building scalable FastAPI applications.
+> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements currently not implemented due to time constraints.
+> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
+
+> [!IMPORTANT]
+> **Academic Project**: Created at **IUT Paris - Rives de Seine** (University of Paris) as part of an academic curriculum. While "Together" is a conceptual platform designed for educational purposes, it demonstrates production-ready backend API development with modern software engineering practices, DevOps workflows, and full-stack observability. This repository serves as both a learning resource and a reusable template for building scalable FastAPI applications.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/lyric-s/together-app-backend)
+[![CodeRabbit](https://img.shields.io/badge/CodeRabbit-AI%20Review-9cf)](https://coderabbit.ai)
 
 ---
 
@@ -39,11 +45,11 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 
 ### Core Functionality
 
-- ✅ **RESTful API** with FastAPI and automatic OpenAPI documentation
-- ✅ **Authentication & Authorization** with OAuth2 (JWT tokens)
-- ✅ **Database Management** using SQLModel ORM with PostgreSQL
-- ✅ **Database Migrations** with Alembic
-- ✅ **File Storage** integration with MinIO/S3-compatible services
+- ✅ **RESTful API** with [FastAPI](https://fastapi.tiangolo.com/) and automatic [OpenAPI](https://www.openapis.org/) documentation
+- ✅ **Authentication & Authorization** with [OAuth2](https://oauth.net/2/) ([JWT](https://jwt.io/) tokens)
+- ✅ **Database Management** using [SQLModel](https://sqlmodel.tiangolo.com/) ORM with [PostgreSQL](https://www.postgresql.org/)
+- ✅ **Database Migrations** with [Alembic](https://alembic.sqlalchemy.org/)
+- ✅ **File Storage** integration with [MinIO](https://min.io/)/S3-compatible services
 - ✅ **CORS Configuration** for secure cross-origin requests
 
 ### Development Experience
@@ -52,18 +58,19 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - ✅ **Code Quality** enforced by [Ruff](https://docs.astral.sh/ruff) (linting & formatting)
 - ✅ **Static Type Checking** with [Pyrefly](https://pyrefly.org/)
 - ✅ **Pre-commit Hooks** using [Prek](https://prek.j178.dev/)
-- ✅ **Conventional Commits** with Commitizen
-- ✅ **Automated Testing** with pytest
+- ✅ **Conventional Commits** with [Commitizen](https://commitizen-tools.github.io/commitizen/)
+- ✅ **Automated Testing** with [pytest](https://pytest.org/)
 - ✅ **Code Coverage Tracking** with [Codecov](https://codecov.io/)
+- ✅ **Performance Benchmarking** with [CodSpeed](https://codspeed.io/)
 - ✅ **AI Code Review** with [CodeRabbit](https://coderabbit.ai/)
 
 ### DevOps & Infrastructure
 
-- ✅ **Containerization** with Docker and Docker Compose
-- ✅ **CI/CD Pipeline** using GitHub Actions
+- ✅ **Containerization** with [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
+- ✅ **CI/CD Pipeline** using [GitHub Actions](https://github.com/features/actions)
 - ✅ **Automated Versioning** and changelog generation
 - ✅ **Multi-environment Deployment** (Preview, Staging, Production)
-- ✅ **Full Observability** with OpenTelemetry and SigNoz integration
+- ✅ **Full Observability** with [OpenTelemetry](https://opentelemetry.io/) and [SigNoz](https://signoz.io/) integration
 
 ---
 
@@ -79,6 +86,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | [Pyrefly](https://pyrefly.org/) | Static type verification |
 | [pytest](https://pytest.org/) | Testing framework |
 | [Codecov](https://codecov.io/) | Code coverage tracking & reporting |
+| [CodSpeed](https://codspeed.io/) | Performance benchmarking & regression detection |
 | [CodeRabbit](https://coderabbit.ai/) | AI-powered code review |
 
 ### Backend & Server
@@ -86,12 +94,12 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | Component | Technology |
 | --- | --- |
 | Framework | [FastAPI](https://fastapi.tiangolo.com/) |
-| Server | [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/) with Uvicorn |
-| Database | PostgreSQL 17.6 |
+| Server | [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/) with [Uvicorn](https://www.uvicorn.org/) |
+| Database | [PostgreSQL](https://www.postgresql.org/) 17.6 |
 | ORM | [SQLModel](https://sqlmodel.tiangolo.com/) |
 | Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
-| File Storage | MinIO (S3-compatible) |
-| Security | OAuth2 (JWT) & CORS |
+| File Storage | [MinIO](https://min.io/) (S3-compatible) |
+| Security | [OAuth2](https://oauth.net/2/) ([JWT](https://jwt.io/)) & CORS |
 
 ### Observability & Infrastructure
 
@@ -99,10 +107,10 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | --- | --- |
 | [OpenTelemetry](https://opentelemetry.io/) | Instrumentation (traces, metrics, logs) |
 | [SigNoz](https://signoz.io/) | Monitoring and tracing platform |
-| Docker | Containerization |
-| Docker Compose | Local orchestration |
-| GitHub Actions | CI/CD automation |
-| Coolify | Deployment platform |
+| [Docker](https://www.docker.com/) | Containerization |
+| [Docker Compose](https://docs.docker.com/compose/) | Local orchestration |
+| [GitHub Actions](https://github.com/features/actions) | CI/CD automation |
+| [Coolify](https://coolify.io/) | Deployment platform |
 
 ---
 
@@ -141,9 +149,9 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 
 ### Prerequisites
 
-- **Docker** & **Docker Compose** (for containerized development)
-- **Python 3.12+** (for local development)
-- **uv** package manager:
+- **[Docker](https://www.docker.com/)** & **[Docker Compose](https://docs.docker.com/compose/)** (for containerized development)
+- **[Python 3.12+](https://www.python.org/)** (for local development)
+- **[uv](https://docs.astral.sh/uv/)** package manager:
 
   ```bash
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -189,6 +197,8 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    ```bash
    uv run alembic upgrade head
    ```
+
+   For detailed migration documentation, see the [Alembic README](alembic/README.md).
 
 6. **Start the development server**
 
@@ -390,6 +400,11 @@ Navigate to `http://localhost:8000/redoc`
 
 Raw OpenAPI JSON: `http://localhost:8000/openapi.json`
 
+### Additional Documentation
+
+- **[Database Migrations](alembic/README.md)** - Comprehensive guide to using Alembic for schema migrations
+- **[Performance Benchmarks](tests/benchmarks/README.md)** - How to write and run performance benchmarks
+
 ---
 
 ## ✅ Quality Assurance
@@ -464,16 +479,16 @@ start htmlcov/index.html  # Windows
 
 We use **[Codecov](https://codecov.io/)** to track code coverage across all pull requests:
 
-- **Current Coverage**: ~53% (tracked automatically)
+- **Current Coverage**: Tracked automatically on every commit
 - **Coverage Reports**: Posted automatically on every PR
 - **Interactive Dashboard**: [View on Codecov](https://codecov.io/gh/lyric-s/together-app-backend)
 - **CI Integration**: Coverage runs on every push and PR
 
 **Coverage Goals:**
 
-- **Project Target**: 55% overall (gradual improvement from current 53%)
-- **New Code Target**: 70% (new code should be well-tested)
-- **Threshold**: 2% drop allowed without failing CI
+- **Project Target**: Gradual improvement over time
+- **New Code Standard**: New code should be well-tested
+- **Threshold**: Reasonable drops allowed without failing CI
 
 The CI automatically uploads coverage reports to Codecov, and the service comments on PRs with:
 
@@ -481,6 +496,23 @@ The CI automatically uploads coverage reports to Codecov, and the service commen
 - Coverage for newly added code
 - File-by-file coverage breakdown
 - Visual coverage graphs
+
+### Performance Benchmarks
+
+We use **[CodSpeed](https://codspeed.io/)** to track performance regressions:
+
+- **Continuous Benchmarking**: Automated on every PR
+- **Performance Tracking**: Detects speed regressions before merge
+- **Interactive Dashboard**: [View on CodSpeed](https://codspeed.io/lyric-s/together-app-backend)
+- **Lightweight Integration**: Uses `pytest-codspeed` with existing tests
+
+**Running Benchmarks Locally:**
+
+```bash
+uv run pytest tests/benchmarks/ --codspeed
+```
+
+Benchmarks are located in `tests/benchmarks/` and cover critical operations like user creation, authentication, and database queries. For detailed information about writing and running benchmarks, see the [Benchmarks Documentation](tests/benchmarks/README.md).
 
 ### AI-Powered Code Review
 
@@ -492,7 +524,7 @@ We use **[CodeRabbit](https://coderabbit.ai/)** for automated PR reviews:
 - Automated review comments on pull requests
 
 > [!TIP]
-> CodeRabbit and Codecov work together to provide comprehensive code quality feedback on every PR, catching potential issues before they reach production.
+> CodeRabbit, Codecov, and CodSpeed work together to provide comprehensive code quality feedback on every PR, catching potential issues before they reach production.
 
 ---
 
@@ -643,12 +675,12 @@ This project is designed to be reusable as a starting point for your own FastAPI
 ### What's Included
 
 - ✅ **Production-ready architecture** with separation of concerns
-- ✅ **Complete authentication system** with JWT tokens
+- ✅ **Complete authentication system** with [JWT](https://jwt.io/) tokens
 - ✅ **Database setup** with migrations and seeding
-- ✅ **File upload/storage** with MinIO integration
-- ✅ **Full observability** with OpenTelemetry
+- ✅ **File upload/storage** with [MinIO](https://min.io/) integration
+- ✅ **Full observability** with [OpenTelemetry](https://opentelemetry.io/)
 - ✅ **CI/CD pipelines** ready to customize
-- ✅ **Docker configuration** for development and production
+- ✅ **[Docker](https://www.docker.com/) configuration** for development and production
 - ✅ **Code quality tools** pre-configured
 
 ### Customization Steps
@@ -672,16 +704,16 @@ This project is designed to be reusable as a starting point for your own FastAPI
 
 ### Potential Improvements
 
-- **Rate limiting** with slowapi or custom middleware
-- **Caching** with Redis for frequently accessed data
-- **Background tasks** with Celery or ARQ
+- **Rate limiting** with [slowapi](https://github.com/laurentS/slowapi) or custom middleware
+- **Caching** with [Redis](https://redis.io/) for frequently accessed data
+- **Background tasks** with [Celery](https://docs.celeryq.dev/) or [ARQ](https://arq-docs.helpmanual.io/)
 - **WebSocket support** for real-time features
-- **GraphQL API** alongside REST endpoints
+- **GraphQL API** with [Strawberry](https://strawberry.rocks/) alongside REST endpoints
 - **Multi-tenancy** architecture
 - **API versioning** strategy (URL or header-based)
 - **Advanced monitoring** with custom metrics and alerts
-- **Security scanning** with Trivy or Snyk in CI/CD pipeline
-- **Load testing** with Locust or k6
+- **Security scanning** with [Trivy](https://trivy.dev/) or [Snyk](https://snyk.io/) in CI/CD pipeline
+- **Load testing** with [Locust](https://locust.io/) or [k6](https://k6.io/)
 - **Feature flags** for gradual rollouts
 
 ---
@@ -741,9 +773,9 @@ This project demonstrates a **fully self-hosted infrastructure** built primarily
 
 #### Networking & Edge
 
-- **Raspberry Pi 5** - Edge network gateway running:
+- **[Raspberry Pi 5](https://www.raspberrypi.com/products/raspberry-pi-5/)** - Edge network gateway running:
   - **[Nginx Proxy Manager](https://nginxproxymanager.com/)** - Reverse proxy with SSL/TLS management
-  - **Portainer** - Container orchestration
+  - **[Portainer](https://www.portainer.io/)** - Container orchestration
 - **[Cloudflare](https://www.cloudflare.com/)** - DNS and edge routing
   - Route traffic from the internet to internal services
   - DDoS protection and caching
