@@ -1,5 +1,6 @@
 """Performance benchmarks for user service operations."""
 
+import uuid
 import pytest
 from pytest_codspeed import BenchmarkFixture
 from sqlmodel import Session
@@ -20,18 +21,32 @@ def user_create_data_fixture():
     )
 
 
+@pytest.fixture(name="user_create_data_factory")
+def user_create_data_factory_fixture():
+    """Factory for unique user creation data."""
+
+    def create():
+        unique = uuid.uuid4().hex[:8]
+        return UserCreate(
+            username=f"bench_user_{unique}",
+            email=f"bench_{unique}@example.com",
+            password="BenchPass123",
+            user_type=UserType.VOLUNTEER,
+        )
+
+    return create
+
+
 def test_user_creation_performance(
-    benchmark: BenchmarkFixture, session: Session, user_create_data: UserCreate
+    benchmark: BenchmarkFixture, session: Session, user_create_data_factory
 ):
     """Benchmark user creation operation."""
 
     @benchmark
     def create_user():
-        user = user_service.create_user(session=session, user_in=user_create_data)
-        # Clean up after each iteration
-        session.delete(user)
-        session.commit()
-        return user
+        return user_service.create_user(
+            session=session, user_in=user_create_data_factory()
+        )
 
 
 def test_user_retrieval_by_id_performance(
