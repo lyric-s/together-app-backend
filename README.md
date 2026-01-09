@@ -224,7 +224,7 @@ docker compose up -d --build
 | **ReDoc** | `http://localhost:8000/redoc` | Alternative API Documentation |
 | **PostgreSQL** | `localhost:5432` | Database Server (`api_user` / `dev_pass` / `together`) |
 | **MinIO API** | `localhost:9000` | S3-compatible Object Storage |
-| **MinIO Console** | `http://localhost:9001` | Storage Admin UI (`minioadmin` / `minioadmin123`) |
+| **MinIO Console** | `http://localhost:9001` | Storage Admin UI (`minioadmin` / `minioadmin`) |
 
 > **Note:** MinIO is pinned to `RELEASE.2025-04-22T22-12-26Z`, the last version with the full admin console UI before MinIO switched to a stripped-down "Community Edition".
 
