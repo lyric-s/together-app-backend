@@ -273,13 +273,13 @@ Use a [Personal Access Token](https://github.com/settings/tokens) with `read:pac
 Linux/macOS:
 
 ```bash
-docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
+docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
 ```
 
 Windows (PowerShell):
 
 ```powershell
-docker-compose -f docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up up
+docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
 ```
 
 ##### Option B: Save locally for customization
@@ -642,15 +642,15 @@ docs: TA-108 update API documentation
 | --- | --- | --- |
 | `feat:` | New feature | Minor bump |
 | `fix:` | Bug fix | Patch bump |
-| `docs:` | Documentation only | Patch bump |
-| `style:` | Code formatting (no logic change) | Patch bump |
-| `refactor:` | Code restructuring (no behavior change) | Patch bump |
+| `docs:` | Documentation only | No bump |
+| `style:` | Code formatting (no logic change) | No bump |
+| `refactor:` | Code restructuring (no behavior change) | No bump |
 | `perf:` | Performance improvement | Patch bump |
-| `test:` | Adding or updating tests | Patch bump |
-| `build:` | Build system changes | Patch bump |
-| `ci:` | CI/CD configuration | Patch bump |
-| chore: | Maintenance tasks | Patch bump |
-| revert: | Revert previous commit | Patch bump |
+| `test:` | Adding or updating tests | No bump |
+| `build:` | Build system changes | No bump |
+| `ci:` | CI/CD configuration | No bump |
+| `chore:` | Maintenance tasks | No bump |
+| `revert:` | Revert previous commit | Depends |
 
 ### Breaking Changes
 
