@@ -10,7 +10,6 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
 [![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/lyric-s/together-app-backend)
-[![CodeRabbit](https://img.shields.io/badge/CodeRabbit-AI%20Review-9cf)](https://coderabbit.ai)
 
 ---
 
@@ -474,8 +473,6 @@ start htmlcov/index.html  # Windows
 ```
 
 ### Code Coverage
-
-[![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
 
 We use **[Codecov](https://codecov.io/)** to track code coverage across all pull requests:
 
