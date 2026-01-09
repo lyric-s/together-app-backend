@@ -65,16 +65,19 @@ Avoid:
 ## Current Benchmarks
 
 ### User Service (`test_user_service_bench.py`)
+
 - `test_user_creation_performance`: Measures user creation with password hashing
 - `test_user_retrieval_by_id_performance`: Measures user retrieval by ID
 - `test_user_retrieval_by_email_performance`: Measures user retrieval by email
 
 ### Authentication (`test_auth_bench.py`)
+
 - `test_password_hashing_performance`: Measures Argon2 password hashing
 - `test_password_verification_performance`: Measures password verification (correct)
 - `test_password_verification_failure_performance`: Measures password verification (incorrect)
 
 ### Volunteer Service (`test_volunteer_service_bench.py`)
+
 - `test_volunteer_creation_performance`: Measures volunteer profile creation
 - `test_volunteer_retrieval_performance`: Measures volunteer retrieval by ID
 
@@ -92,6 +95,7 @@ Performance regressions are detected and commented on PRs before merge.
 - **Improvement**: Performance increase is highlighted
 
 CodSpeed tracks performance trends over time and helps identify:
+
 - Slow database queries
 - Inefficient algorithms
 - Performance regressions from code changes
