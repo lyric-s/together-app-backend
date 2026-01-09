@@ -7,7 +7,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.122+-green.svg)](https://fastapi.tiangolo.com/)
 [![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
 [![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/lyric-s/together-app-backend)
 
@@ -35,8 +35,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 ---
 
 > [!NOTE]
-> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements ultimately not implemented due to time constraints.
-> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
+> **About Together**: A platform connecting non-profit organizations with volunteers. Associations can showcase their missions while volunteers discover opportunities matching their skills and interests. Unlike similar platforms like [jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/), Together is **open-source** and designed for international adaptability.
 
 ## ✨ Features
 
@@ -73,14 +72,17 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 
 ## 🛠 Tech Stack
 
+> **Note:** Development tools are primarily Rust-based for performance (uv, Ruff, Pyrefly, Prek).
+
 ### Development Environment
 
 | Tool | Purpose |
 | --- | --- |
 | [uv](https://docs.astral.sh/uv/) | Fast Python package manager |
 | [Prek](https://prek.j178.dev/) | Pre-validation hooks |
-| [Ruff](https://docs.astral.sh/ruff) | Linting & formatting (Rust-based) |
+| [Ruff](https://docs.astral.sh/ruff) | Linting & formatting |
 | [Pyrefly](https://pyrefly.org/) | Static type verification |
+| [Commitizen](https://commitizen-tools.github.io/commitizen/) | Conventional commit enforcement |
 | [pytest](https://pytest.org/) | Testing framework |
 | [Codecov](https://codecov.io/) | Code coverage tracking & reporting |
 | [CodSpeed](https://codspeed.io/) | Performance benchmarking & regression detection |
@@ -203,11 +205,11 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    The API will be available at `http://127.0.0.1:8000`
 
 > [!WARNING]
-> Never commit the `.env` file. It contains sensitive credentials. Add it to your `.gitignore` if it's not already there.
+> Never commit the `.env` file. It contains sensitive credentials. Make sure it in your `.gitignore` if it's not already there. It's normally the case with the one present in the repo but we never know.
 
 ### Docker Setup
 
-The easiest way to run the complete stack (API + PostgreSQL):
+The easiest way to run the complete stack (API + PostgreSQL + MinIO):
 
 ```bash
 docker compose up -d --build
@@ -221,6 +223,8 @@ docker compose up -d --build
 | **Swagger UI** | `http://localhost:8000/docs` | Interactive API Documentation |
 | **ReDoc** | `http://localhost:8000/redoc` | Alternative API Documentation |
 | **PostgreSQL** | `localhost:5432` | Database Server |
+| **MinIO API** | `localhost:9000` | S3-compatible Object Storage |
+| **MinIO Console** | `http://localhost:9001` | Storage Admin UI (`minioadmin` / `minioadmin123`) |
 
 **Stop services:**
 
@@ -251,7 +255,7 @@ If you don't have Docker installed yet:
 - **Install Docker Desktop**: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)
   - Includes both Docker and Docker Compose
   - Available for Windows, macOS, and Linux
-- **Verify installation**: `docker --version` and `docker-compose --version`
+- **Verify installation**: `docker --version` and `docker compose version`
 
 ### Quick Start for Frontend Team
 
@@ -265,35 +269,27 @@ Use a [Personal Access Token](https://github.com/settings/tokens) with `read:pac
 
 #### 2. Start the Backend Stack
 
-##### Option A: Direct URL (always gets latest)
+Download the compose file and start the stack:
 
-Linux/macOS:
-
-```bash
-curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml && docker-compose -f docker-compose.backend.yml up
-```
-
-Windows (PowerShell):
-
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"; docker-compose -f docker-compose.backend.yml up
-```
-
-##### Option B: Save locally for customization
-
-Linux/macOS:
+**Linux/macOS:**
 
 ```bash
 curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml
-docker-compose -f docker-compose.backend.yml up
+docker compose -f docker-compose.backend.yml up
 ```
 
-Windows (PowerShell):
+**Windows (PowerShell):**
 
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"
-docker-compose -f docker-compose.backend.yml up
+docker compose -f docker-compose.backend.yml up
 ```
+
+> **Tip:** You can combine these into a single command:
+>
+> ```bash
+> curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml && docker compose -f docker-compose.backend.yml up
+> ```
 
 ### What Gets Started
 
@@ -318,7 +314,7 @@ The backend automatically:
 The backend is pre-configured with a test superuser account:
 
 - **Email**: `admin@example.com`
-- **Password**: `changethis`
+- **Password**: `password`
 - **Username**: `admin`
 
 Use these credentials to test authentication endpoints or admin features.
@@ -337,7 +333,7 @@ If you need to modify any settings (CORS origins, credentials, etc.):
    - `FIRST_SUPERUSER_EMAIL`: Admin email
    - `FIRST_SUPERUSER_PASSWORD`: Admin password
    - `SECRET_KEY`: JWT signing key (change for security)
-   - And more (see [docker-compose.frontend-dev.yml](docker-compose.frontend-dev.yml#L69-L90))
+   - And more (see [docker-compose.frontend-dev.yml](docker-compose.frontend-dev.yml))
 
 **Example**: To add your custom frontend port:
 
@@ -350,26 +346,25 @@ environment:
 
 ```bash
 # Stop all services
-docker-compose -f docker-compose.backend.yml down
+docker compose -f docker-compose.backend.yml down
 
 # Stop and remove all data (fresh start)
-docker-compose -f docker-compose.backend.yml down -v
+docker compose -f docker-compose.backend.yml down -v
 
 # Update to latest backend version
-docker-compose -f docker-compose.backend.yml pull
-docker-compose -f docker-compose.backend.yml up
+docker compose -f docker-compose.backend.yml pull
+docker compose -f docker-compose.backend.yml up
 
 # View logs
-docker-compose -f docker-compose.backend.yml logs -f fastapi
+docker compose -f docker-compose.backend.yml logs -f fastapi
 ```
 
 **Get Updates**:
 
-- **Direct URL method**: Always gets the latest version automatically
-- **Local file method**: Re-download the file to get updates
+Re-download the compose file to get updates, or pull the latest image:
 
 ```bash
-docker-compose -f docker-compose.backend.yml up --pull always
+docker compose -f docker-compose.backend.yml up --pull always
 ```
 
 ---
@@ -406,7 +401,7 @@ Raw OpenAPI JSON: `http://localhost:8000/openapi.json`
 
 ## ✅ Quality Assurance
 
-Code quality is enforced using blazingly fast, Rust-based tools.
+Code quality is enforced through automated tooling and CI checks.
 
 ### Static Analysis
 
@@ -626,13 +621,15 @@ We follow conventional commits for consistent version management and changelog g
 ### Commit Message Format
 
 ```text
-<type>: <TICKET-ID> <description>
+<type>: <description>
 
 Examples:
-feat: TA-108 add volunteer mission engagement service
-fix: TA-108 proper report type suggested by CodeRabbit
-docs: TA-108 update API documentation
+feat: add volunteer mission engagement service
+fix: correct authentication token validation
+docs: update API documentation
 ```
+
+> **Note:** Earlier commits in this repository include Jira ticket IDs (e.g., `TA-108`) from the original academic project management. New contributions should use standard conventional commits without ticket IDs.
 
 ### Commit Types
 
@@ -832,6 +829,11 @@ This project was developed as part of an academic curriculum at **IUT Paris - Ri
 **Project Goal:** Build a realistic, production-ready backend API demonstrating modern software engineering practices, DevOps workflows, and full-stack observability, with an ethical or environmental dimension.
 
 **Fictional Platform:** "Together" is a conceptual volunteer coordination platform created for educational purposes.
+
+**Unimplemented Features:** Some planned features were not completed due to time constraints. You may find partial implementations (models, schemas) in the codebase for:
+
+- Personalized mission tracking
+- Symbolic rewards system (badges, achievements)
 
 ---
 

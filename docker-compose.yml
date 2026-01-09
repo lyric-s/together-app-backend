@@ -1,5 +1,5 @@
 services:
-  # DATABASE (Simulated for Dev)
+  # DATABASE (PostgreSQL for Dev)
   postgres:
     image: postgres:17.6
     container_name: dev-postgres
@@ -18,6 +18,45 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # OBJECT STORAGE (MinIO - S3 Compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: dev-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console UI
+    networks:
+      - api_db
+    volumes:
+      - minio_data_dev:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Client - Create bucket on startup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: dev-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - api_db
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+      mc mb myminio/together-uploads --ignore-existing;
+      mc anonymous set download myminio/together-uploads;
+      echo 'MinIO bucket setup complete';
+      exit 0;
+      "
 
   # API (Dev Mode)
   fastapi:
@@ -39,6 +78,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
     networks:
       - api_db
 
@@ -48,3 +91,4 @@ networks:
 
 volumes:
   postgres_data_dev:
+  minio_data_dev:
