@@ -11,12 +11,6 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 [![codecov](https://codecov.io/gh/lyric-s/together-app-backend/branch/main/graph/badge.svg)](https://codecov.io/gh/lyric-s/together-app-backend)
 [![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/lyric-s/together-app-backend)
 
----
-
-> [!NOTE]
-> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements ultimately not implemented due to time constraints.
-> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
-
 ## 📑 Table of Contents
 
 - [Features](#-features)
@@ -39,6 +33,10 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - [Academic Context](#-academic-context)
 
 ---
+
+> [!NOTE]
+> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements ultimately not implemented due to time constraints.
+> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
 
 ## ✨ Features
 
