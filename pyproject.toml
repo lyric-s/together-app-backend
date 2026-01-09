@@ -36,6 +36,7 @@ version_scheme = "pep440"
 version_provider = "uv"
 update_changelog_on_bump = true
 major_version_zero = true
+breaking_change_exclamation_in_title = true
 
 [tool.commitizen.customize]
 message_template = "{{change_type}}:{% if jira_ticket %} {{jira_ticket}}{% endif %} {{message}}"
@@ -44,7 +45,7 @@ schema = "<prefix>: <jira_ticket> <commit message>"
 # Note the regex change to ([A-Z0-9]+-\\d+\\s)?
 schema_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](\\s?)([A-Z0-9]+-\\d+\\s)?(.+)$"
 bump_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)"
-bump_map = {"feat" = "MINOR", "fix" = "PATCH", "build" = "PATCH", "chore" = "PATCH", "ci" = "PATCH", "docs" = "PATCH", "style" = "PATCH", "refactor" = "PATCH", "perf" = "PATCH", "test" = "PATCH", "revert" = "PATCH", "feat!" = "MAJOR", "fix!" = "MAJOR"}
+bump_map = {"feat" = "MINOR", "fix" = "PATCH", "perf" = "PATCH"}
 change_type_order = ["BREAKING CHANGE", "feat", "fix", "build", "chore", "ci", "docs", "style", "refactor", "perf", "test", "revert"]
 commit_parser = "^(?P<change_type>feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)(!?)[:](\\s?)(?P<jira_ticket>[A-Z0-9]+-\\d+)?\\s?(?P<message>.*)"
 changelog_pattern = "^(feat|fix|build|chore|ci|docs|style|refactor|perf|test|revert)?(!)?"
