@@ -49,7 +49,7 @@ def setup_logging():
     """
     Configure application logging to route Python's standard logging through Loguru and, when configured, export logs to OpenTelemetry (OTLP).
 
-    This replaces the root logging handlers with an InterceptHandler, attaches InterceptHandler to common framework loggers (uvicorn, gunicorn, fastapi, sqlalchemy), and configures Loguru to write colorized, asynchronous logs to stderr. If the environment variable OTEL_EXPORTER_OTLP_ENDPOINT is set, also initializes an OpenTelemetry LoggerProvider and OTLPLogExporter (using OTEL_SERVICE_NAME, DEPLOYMENT_ENV, and OTEL_EXPORTER_OTLP_INSECURE) and attaches an OpenTelemetry logging handler to Loguru; failures during OTLP setup are printed to stderr but do not raise.
+    This replaces the root logging handlers with an InterceptHandler, attaches InterceptHandler to common framework loggers (uvicorn, gunicorn, fastapi, sqlalchemy), and configures Loguru to write colorized, asynchronous logs to stderr. If the environment variable OTEL_EXPORTER_OTLP_ENDPOINT is set, also initializes an OpenTelemetry LoggerProvider and OTLPLogExporter (using OTEL_SERVICE_NAME, ENVIRONMENT, and OTEL_EXPORTER_OTLP_INSECURE) and attaches an OpenTelemetry logging handler to Loguru; failures during OTLP setup are printed to stderr but do not raise.
 
     Returns:
         logger: The configured Loguru logger object.
@@ -87,7 +87,7 @@ def setup_logging():
             resource = Resource.create(
                 {
                     "service.name": os.getenv("OTEL_SERVICE_NAME", "fastapi-app"),
-                    "deployment.environment": os.getenv("DEPLOYMENT_ENV", "production"),
+                    "deployment.environment": os.getenv("ENVIRONMENT", "production"),
                 }
             )
 
