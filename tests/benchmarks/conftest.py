@@ -8,10 +8,10 @@ from sqlmodel.pool import StaticPool
 @pytest.fixture(name="session")
 def session_fixture():
     """
-    Provide a SQLModel Session connected to a fresh in-memory SQLite database.
+    Create and yield a SQLModel Session bound to a fresh in-memory SQLite database.
 
-    Returns:
-        session (Session): A SQLModel Session bound to an in-memory SQLite database.
+    Yields:
+        Session: A SQLModel Session connected to the created in-memory SQLite database; the session is closed when the fixture tears down.
     """
     engine = create_engine(
         "sqlite:///:memory:",

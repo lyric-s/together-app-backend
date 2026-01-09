@@ -18,7 +18,17 @@ except ImportError:
 
 
 def get_required_settings_fields() -> set[str]:
-    """Extract required field names from Settings class"""
+    """
+    Collects the names of fields declared without a default value on the Settings subclass in app/core/config.py.
+
+    Reads the project's Settings (a BaseSettings subclass) and returns the set of attribute names that are required (i.e., declared without an assignment/default).
+
+    Returns:
+        set[str]: Field names that are required (have no default value) as declared in the Settings class.
+
+    Notes:
+        Exits the process if the config.py file cannot be found.
+    """
     config_file = Path(__file__).parent.parent / "app" / "core" / "config.py"
 
     if not config_file.exists():
@@ -58,7 +68,14 @@ def get_required_settings_fields() -> set[str]:
 
 
 def get_compose_env_vars() -> set[str]:
-    """Extract environment variables from docker-compose.frontend-dev.yml"""
+    """
+    Collects environment variable names used by the `fastapi` service in docker-compose.frontend-dev.yml.
+
+    Searches the `fastapi` service for an `env_file` reference (reads referenced files) or inline `environment` entries and extracts variable names. Exits the process with status 1 if the compose file or any referenced env file is missing.
+
+    Returns:
+        set[str]: A set of environment variable names found in the compose configuration.
+    """
     compose_file = Path(__file__).parent.parent / "docker-compose.frontend-dev.yml"
 
     if not compose_file.exists():
@@ -104,7 +121,14 @@ def get_compose_env_vars() -> set[str]:
 
 
 def main():
-    """Main validation logic"""
+    """
+    Validate that every required field declared in the Settings class of app/core/config.py is present as an environment variable in docker-compose.frontend-dev.yml.
+
+    Prints a summary of required fields, environment variables found in the compose file, any missing required variables (and a failure message), and any additional variables (informational).
+
+    Returns:
+        int: 0 if all required environment variables are present, 1 if any required variables are missing.
+    """
     print("🔍 Validating frontend docker-compose environment variables...\n")
 
     # Get required fields from Settings
