@@ -2,10 +2,6 @@
 
 A production-ready, fully observable REST API built with **FastAPI**, demonstrating modern Python development practices, containerization, and full-stack observability.
 
-> [!NOTE]
-> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements currently not implemented due to time constraints.
-> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
->
 > [!IMPORTANT]
 > **Academic Project**: Created at **IUT Paris - Rives de Seine** (University of Paris) as part of an academic curriculum. While "Together" is a conceptual platform designed for educational purposes, it demonstrates production-ready backend API development with modern software engineering practices, DevOps workflows, and full-stack observability. This repository serves as both a learning resource and a reusable template for building scalable FastAPI applications.
 
@@ -17,6 +13,10 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 [![CodeRabbit](https://img.shields.io/badge/CodeRabbit-AI%20Review-9cf)](https://coderabbit.ai)
 
 ---
+
+> [!NOTE]
+> **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements ultimately not implemented due to time constraints.
+> While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
 
 ## 📑 Table of Contents
 
@@ -189,9 +189,6 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    # Edit .env with your configuration
    ```
 
-> [!WARNING]
-> Never commit the `.env` file. It contains sensitive credentials. Add it to your `.gitignore` if it's not already there.
-
 5. **Run database migrations**
 
    ```bash
@@ -207,6 +204,9 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    ```
 
    The API will be available at `http://127.0.0.1:8000`
+
+> [!WARNING]
+> Never commit the `.env` file. It contains sensitive credentials. Add it to your `.gitignore` if it's not already there.
 
 ### Docker Setup
 
