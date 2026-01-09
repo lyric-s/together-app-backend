@@ -540,14 +540,17 @@ The application is fully instrumented with **OpenTelemetry** for production-grad
 Set these environment variables in `.env`:
 
 ```bash
-ENVIRONMENT=production
+# Telemetry configuration
 OTEL_SERVICE_NAME=together-fastapi-backend
 OTEL_EXPORTER_OTLP_ENDPOINT=http://your-signoz-endpoint:4317
-OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-OTEL_TRACES_EXPORTER=otlp
-OTEL_METRICS_EXPORTER=otlp
-OTEL_LOGS_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_INSECURE=false  # Set to true for insecure (non-TLS) connections
+
+# Environment name (used across all telemetry: traces, metrics, and logs)
+ENVIRONMENT=production  # Options: production, staging, development
 ```
+
+> [!NOTE]
+> The application hardcodes gRPC protocol for OTLP exporters. Variables like `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, and `OTEL_LOGS_EXPORTER` are not used.
 
 ### What's Monitored
 
