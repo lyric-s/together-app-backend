@@ -279,7 +279,7 @@ docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker
 Windows (PowerShell):
 
 ```powershell
-docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
+docker-compose -f docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
 ```
 
 ##### Option B: Save locally for customization
