@@ -1,3 +1,12 @@
+# =============================================================================
+# Together Backend - Frontend Development Stack
+# Version: 2025-01-09
+# Source: https://github.com/lyric-s/together-app-backend
+# =============================================================================
+# This file provides a complete backend environment for frontend developers.
+# Environment variables below are pre-configured for local development.
+# =============================================================================
+
 services:
   # DATABASE (PostgreSQL for Dev)
   postgres:
@@ -79,7 +88,7 @@ services:
       - REFRESH_TOKEN_EXPIRE_DAYS=90
       # Initial superuser credentials
       - FIRST_SUPERUSER_EMAIL=admin@example.com
-      - FIRST_SUPERUSER_PASSWORD=changethis
+      - FIRST_SUPERUSER_PASSWORD=password
       - FIRST_SUPERUSER_USERNAME=admin
       # MinIO/S3 configuration
       - DOCUMENTS_BUCKET=together-uploads
