@@ -5,7 +5,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 > [!NOTE]
 > **About Together**: This platform addresses a critical social challenge in France - connecting non-profit organizations struggling to recruit volunteers with citizens eager to contribute to meaningful causes. Many associations lack visibility for their volunteer needs, while potential volunteers struggle to find missions matching their skills, availability, and values. Together bridges this gap by providing a simple, intuitive platform where associations can showcase their missions and required profiles, while volunteers can easily discover organizations aligned with their interests in areas like ecology, education, and social solidarity. Features like personalized mission tracking and symbolic rewards (badges, achievements) are planned enhancements currently not implemented due to time constraints.
 > While a similar government platform exists ([jeveuxaider.gouv.fr](https://www.jeveuxaider.gouv.fr/)), Together is **open-source** and designed with international adaptability in mind - it can be deployed and customized for volunteer coordination initiatives worldwide with minimal modifications.
-
+>
 > [!IMPORTANT]
 > **Academic Project**: Created at **IUT Paris - Rives de Seine** (University of Paris) as part of an academic curriculum. While "Together" is a conceptual platform designed for educational purposes, it demonstrates production-ready backend API development with modern software engineering practices, DevOps workflows, and full-stack observability. This repository serves as both a learning resource and a reusable template for building scalable FastAPI applications.
 
@@ -247,7 +247,7 @@ Frontend developers can run the complete backend stack locally using pre-built D
 > [!NOTE]
 > This setup is designed for frontend teams working on a separate repository. The Docker image is automatically built and published on every push to the `dev` branch.
 
-### Prerequisites
+### Prerequisites for frontend
 
 If you don't have Docker installed yet:
 
@@ -273,13 +273,13 @@ Use a [Personal Access Token](https://github.com/settings/tokens) with `read:pac
 Linux/macOS:
 
 ```bash
-docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
+docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up
 ```
 
 Windows (PowerShell):
 
 ```powershell
-docker-compose -f https://github.com/lyric-s/together-app-backend.git@dev:docker-compose.frontend-dev.yml up
+docker-compose -f docker-compose -f https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml up up
 ```
 
 ##### Option B: Save locally for customization
@@ -642,15 +642,15 @@ docs: TA-108 update API documentation
 | --- | --- | --- |
 | `feat:` | New feature | Minor bump |
 | `fix:` | Bug fix | Patch bump |
-| `docs:` | Documentation only | No bump |
-| `style:` | Code formatting (no logic change) | No bump |
-| `refactor:` | Code restructuring (no behavior change) | No bump |
+| `docs:` | Documentation only | Patch bump |
+| `style:` | Code formatting (no logic change) | Patch bump |
+| `refactor:` | Code restructuring (no behavior change) | Patch bump |
 | `perf:` | Performance improvement | Patch bump |
-| `test:` | Adding or updating tests | No bump |
-| `build:` | Build system changes | No bump |
-| `ci:` | CI/CD configuration | No bump |
-| `chore:` | Maintenance tasks | No bump |
-| `revert:` | Revert previous commit | Depends |
+| `test:` | Adding or updating tests | Patch bump |
+| `build:` | Build system changes | Patch bump |
+| `ci:` | CI/CD configuration | Patch bump |
+| chore: | Maintenance tasks | Patch bump |
+| revert: | Revert previous commit | Patch bump |
 
 ### Breaking Changes
 
