@@ -10,12 +10,14 @@ from app.models.admin import Admin, AdminCreate, AdminPublic
 from app.models.document import DocumentPublic
 from app.models.association import AssociationPublic
 from app.models.report import ReportPublic
+from app.models.category import CategoryPublic, CategoryCreate, CategoryUpdate
 from app.services import admin as admin_service
 from app.services import document as document_service
 from app.services import association as association_service
 from app.services import volunteer as volunteer_service
 from app.services import mission as mission_service
 from app.services import report as report_service
+from app.services import category as category_service
 from app.exceptions import NotFoundError
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
@@ -494,3 +496,138 @@ def get_all_documents_list(
     """
     documents = document_service.get_all_documents(session, offset=offset, limit=limit)
     return [DocumentPublic.model_validate(doc) for doc in documents]
+
+
+# Category management endpoints
+
+
+@router.get("/categories", response_model=list[CategoryPublic])
+def get_all_categories(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> list[CategoryPublic]:
+    """
+    Retrieve all categories.
+
+    Returns complete list of all mission categories, ordered alphabetically.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        list[CategoryPublic]: All categories sorted alphabetically.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    categories = category_service.get_all_categories(session)
+    return [CategoryPublic.model_validate(c) for c in categories]
+
+
+@router.post("/categories", response_model=CategoryPublic, status_code=201)
+def create_category(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    category_in: CategoryCreate,
+) -> CategoryPublic:
+    """
+    Create a new category.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Validation:
+    - Category label must be unique
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        category_in: Category data with label.
+
+    Returns:
+        CategoryPublic: The created category.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        400 AlreadyExistsError: If a category with the same label already exists.
+    """
+    category = category_service.create_category(session, category_in)
+    return CategoryPublic.model_validate(category)
+
+
+@router.patch("/categories/{category_id}", response_model=CategoryPublic)
+def update_category(
+    *,
+    category_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    category_update: CategoryUpdate,
+) -> CategoryPublic:
+    """
+    Update a category.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Validation:
+    - New label must be unique (if changing label)
+
+    Args:
+        category_id: The unique identifier of the category to update.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        category_update: Update data (label).
+
+    Returns:
+        CategoryPublic: The updated category.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If category doesn't exist.
+        400 AlreadyExistsError: If new label conflicts with existing category.
+    """
+    category = category_service.update_category(session, category_id, category_update)
+    return CategoryPublic.model_validate(category)
+
+
+@router.delete("/categories/{category_id}", status_code=204)
+def delete_category(
+    *,
+    category_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> None:
+    """
+    Delete a category.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Warning:
+    - This will fail if any missions are currently using this category
+    - Remove category from all missions before attempting deletion
+
+    Args:
+        category_id: The unique identifier of the category to delete.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        None: Returns 204 No Content on successful deletion.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If category doesn't exist.
+        400 IntegrityError: If missions are still using this category.
+    """
+    category_service.delete_category(session, category_id)

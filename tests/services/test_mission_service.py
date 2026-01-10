@@ -74,7 +74,7 @@ def sample_mission_create_fixture(
     return MissionCreate(
         name=TEST_MISSION_NAME,
         id_location=created_location.id_location,
-        id_categ=created_category.id_categ,
+        category_ids=[created_category.id_categ],  # type: ignore
         id_asso=created_association.id_asso,
         date_start=date.today(),
         date_end=date.today() + timedelta(days=1),
@@ -107,7 +107,7 @@ class TestCreateMission:
         self, session: Session, sample_mission_create: MissionCreate
     ):
         invalid_mission = sample_mission_create.model_copy()
-        invalid_mission.id_categ = 99999
+        invalid_mission.category_ids = [99999]
         with pytest.raises(NotFoundError) as exc_info:
             mission_service.create_mission(session, invalid_mission)
         assert exc_info.value.resource == "Category"
