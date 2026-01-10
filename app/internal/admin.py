@@ -9,8 +9,14 @@ from app.core.dependencies import get_current_admin
 from app.models.admin import Admin, AdminCreate, AdminPublic
 from app.models.document import DocumentPublic
 from app.models.association import AssociationPublic
-from app.models.report import ReportPublic
+from app.models.report import ReportPublic, ReportUpdate
 from app.models.category import CategoryPublic, CategoryCreate, CategoryUpdate
+from app.models.location import (
+    LocationPublic,
+    LocationCreate,
+    LocationUpdate,
+    LocationWithCount,
+)
 from app.services import admin as admin_service
 from app.services import document as document_service
 from app.services import association as association_service
@@ -18,6 +24,7 @@ from app.services import volunteer as volunteer_service
 from app.services import mission as mission_service
 from app.services import report as report_service
 from app.services import category as category_service
+from app.services import location as location_service
 from app.exceptions import NotFoundError
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
@@ -454,7 +461,73 @@ def get_all_reports(
         `401 Unauthorized`: If no valid admin authentication token is provided.
     """
     reports = report_service.get_all_reports(session, offset=offset, limit=limit)
-    return [ReportPublic.model_validate(r) for r in reports]
+    return [
+        ReportPublic.model_validate(report_service.to_report_public(r)) for r in reports
+    ]
+
+
+@router.patch("/reports/{report_id}", response_model=ReportPublic)
+def update_report_state(
+    *,
+    report_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    report_update: ReportUpdate,
+) -> ReportPublic:
+    """
+    Update report processing state (approve/reject).
+
+    Allows admins to change the state of a report to approve or reject it.
+    When updating, the report is reloaded with relationships to compute display names.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### State Transitions:
+    - PENDING → APPROVED: Accept the report as valid
+    - PENDING → REJECTED: Dismiss the report as invalid
+    - Can also transition between APPROVED and REJECTED
+
+    Args:
+        report_id: The unique identifier of the report to update.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        report_update: Update data containing the new state.
+
+    Returns:
+        ReportPublic: The updated report with reporter and reported user names.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If report doesn't exist.
+    """
+    from app.models.report import Report
+    from sqlmodel import select
+    from sqlalchemy.orm import selectinload
+    from app.models.user import User
+
+    # Update the report
+    report_service.update_report(session, report_id, report_update)
+
+    # Reload with relationships for name resolution
+    report_with_relations = session.exec(
+        select(Report)
+        .where(Report.id_report == report_id)
+        .options(
+            selectinload(Report.reporter).selectinload(User.volunteer_profile),  # type: ignore
+            selectinload(Report.reporter).selectinload(User.association_profile),  # type: ignore
+            selectinload(Report.reported_user).selectinload(User.volunteer_profile),  # type: ignore
+            selectinload(Report.reported_user).selectinload(User.association_profile),  # type: ignore
+        )
+    ).first()
+
+    if not report_with_relations:
+        raise NotFoundError("Report", report_id)
+
+    return ReportPublic.model_validate(
+        report_service.to_report_public(report_with_relations)
+    )
 
 
 # Document list endpoint
@@ -631,3 +704,351 @@ def delete_category(
         400 IntegrityError: If missions are still using this category.
     """
     category_service.delete_category(session, category_id)
+
+
+# Analytics endpoints
+
+
+@router.get("/stats/overview")
+def get_overview_statistics(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    """
+    Get dashboard overview statistics.
+
+    Returns key metrics for the admin dashboard including counts of validated
+    associations, completed missions, total users, pending reports, and pending
+    associations.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        OverviewStats: Overview statistics object.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    from app.services import analytics as analytics_service
+    from app.models.analytics import OverviewStats
+
+    stats = analytics_service.get_overview_statistics(session)
+    return OverviewStats.model_validate(stats)
+
+
+@router.get("/stats/volunteers-by-month")
+def get_volunteers_by_month(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    months: int = 12,
+):
+    """
+    Get volunteer registration counts by month.
+
+    Returns monthly volunteer registration data for the specified number of months,
+    useful for visualizing growth trends in chart format.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Query Parameters:
+    - **months**: Number of months to include (default: 12, max: 24)
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        months: Number of months to retrieve (1-24, default: 12).
+
+    Returns:
+        list[MonthlyDataPoint]: List of monthly data points with format {"month": "YYYY-MM", "value": count}.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    from app.services import analytics as analytics_service
+    from app.models.analytics import MonthlyDataPoint
+
+    # Cap at 24 months
+    months = min(months, 24)
+    data = analytics_service.get_volunteers_by_month(session, months)
+    return [MonthlyDataPoint.model_validate(d) for d in data]
+
+
+@router.get("/stats/missions-by-month")
+def get_missions_by_month(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    months: int = 12,
+):
+    """
+    Get completed mission counts by month.
+
+    Returns monthly completed mission data for the specified number of months,
+    useful for tracking platform activity over time.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Query Parameters:
+    - **months**: Number of months to include (default: 12, max: 24)
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        months: Number of months to retrieve (1-24, default: 12).
+
+    Returns:
+        list[MonthlyDataPoint]: List of monthly data points with format {"month": "YYYY-MM", "value": count}.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    from app.services import analytics as analytics_service
+    from app.models.analytics import MonthlyDataPoint
+
+    # Cap at 24 months
+    months = min(months, 24)
+    data = analytics_service.get_missions_by_month(session, months)
+    return [MonthlyDataPoint.model_validate(d) for d in data]
+
+
+@router.get("/reports/stats")
+def get_report_statistics(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+):
+    """
+    Get report counts by processing state.
+
+    Returns the total counts of reports grouped by their processing state
+    (pending, accepted, rejected), useful for monitoring moderation workload.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        ReportStats: Report statistics with counts by state.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    from app.services import analytics as analytics_service
+    from app.models.analytics import ReportStats
+
+    stats = analytics_service.get_report_statistics(session)
+    return ReportStats.model_validate(stats)
+
+
+# Location management endpoints
+
+
+@router.get("/locations", response_model=list[LocationWithCount])
+def get_all_locations(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    offset: int = 0,
+    limit: int = 100,
+) -> list[LocationWithCount]:
+    """
+    Retrieve all locations with mission counts.
+
+    Returns a paginated list of all locations in the system along with the count
+    of missions associated with each location. Useful for managing locations and
+    identifying unused ones.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Query Parameters:
+    - **offset**: Number of records to skip (default: 0)
+    - **limit**: Maximum number of records to return (default: 100)
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        offset: Pagination offset.
+        limit: Maximum results per page.
+
+    Returns:
+        list[LocationWithCount]: List of locations with mission_count field.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+    """
+    locations = location_service.get_all_locations_with_counts(
+        session, offset=offset, limit=limit
+    )
+    return [LocationWithCount.model_validate(loc) for loc in locations]
+
+
+@router.post("/locations", response_model=LocationPublic, status_code=201)
+def create_location(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    location_in: LocationCreate,
+) -> LocationPublic:
+    """
+    Create a new location.
+
+    Creates a new location that can be used by missions. All fields are optional,
+    allowing flexibility in how much location information is provided.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Request Body:
+    - **address**: Street address (optional, max 255 chars)
+    - **country**: Country name (optional, max 50 chars)
+    - **zip_code**: Postal/ZIP code (optional, max 50 chars)
+    - **lat**: Latitude coordinate (optional, -90 to 90)
+    - **long**: Longitude coordinate (optional, -180 to 180)
+
+    Args:
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        location_in: Location creation data.
+
+    Returns:
+        LocationPublic: The created location with generated ID.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        422 Validation Error: If location data is invalid.
+    """
+    location = location_service.create_location(session, location_in)
+    return LocationPublic.model_validate(location)
+
+
+@router.get("/locations/{location_id}", response_model=LocationWithCount)
+def get_location_by_id(
+    *,
+    location_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> LocationWithCount:
+    """
+    Retrieve a specific location by ID with mission count.
+
+    Returns detailed information about a location including how many missions
+    are currently using it.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        location_id: The unique identifier of the location.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        LocationWithCount: The location with mission_count field.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If location doesn't exist.
+    """
+    location = location_service.get_location_with_mission_count(session, location_id)
+    return LocationWithCount.model_validate(location)
+
+
+@router.patch("/locations/{location_id}", response_model=LocationPublic)
+def update_location(
+    *,
+    location_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    location_update: LocationUpdate,
+) -> LocationPublic:
+    """
+    Update an existing location.
+
+    Updates location information. Only provided fields will be updated (partial update).
+    Missions using this location will automatically reflect the updated information.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Request Body (all fields optional):
+    - **address**: New street address (max 255 chars)
+    - **country**: New country name (max 50 chars)
+    - **zip_code**: New postal/ZIP code (max 50 chars)
+    - **lat**: New latitude coordinate (-90 to 90)
+    - **long**: New longitude coordinate (-180 to 180)
+
+    Args:
+        location_id: The unique identifier of the location to update.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+        location_update: Update data (only provided fields will be updated).
+
+    Returns:
+        LocationPublic: The updated location.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If location doesn't exist.
+        422 Validation Error: If update data is invalid.
+    """
+    location = location_service.update_location(session, location_id, location_update)
+    return LocationPublic.model_validate(location)
+
+
+@router.delete("/locations/{location_id}", status_code=204)
+def delete_location(
+    *,
+    location_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> None:
+    """
+    Delete a location.
+
+    Deletes a location from the system. The location can only be deleted if no
+    missions are currently using it. If missions reference this location, they
+    must be reassigned or deleted first.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Important:
+    This operation will fail if any missions still reference this location.
+    The error message will indicate how many missions are using it.
+
+    Args:
+        location_id: The unique identifier of the location to delete.
+        session: Database session (automatically injected).
+        current_admin: Authenticated admin (automatically injected from token).
+
+    Returns:
+        None: 204 No Content on success.
+
+    Raises:
+        401 Unauthorized: If no valid admin authentication token is provided.
+        404 NotFoundError: If location doesn't exist.
+        400 ValidationError: If location is still referenced by missions.
+    """
+    location_service.delete_location(session, location_id)

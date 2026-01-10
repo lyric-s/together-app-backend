@@ -5,7 +5,7 @@ from typing import Literal
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.config import get_settings
 from app.core.password import verify_password
@@ -17,13 +17,33 @@ from app.services import admin as admin_service
 
 def authenticate_user(session: Session, username: str, password: str) -> User | None:
     """
-    Authenticate a user by username and password.
+    Authenticate a user by username or RNA code and password.
+
+    Supports both username and RNA code login for associations.
+    If the input looks like an RNA code (W + 9 digits), it will also check
+    associations by RNA code.
+
+    Args:
+        session: Database session
+        username: Username or RNA code
+        password: User password
 
     Returns:
-        User if authentication succeeds, `None` otherwise.
+        User if authentication succeeds, None otherwise.
     """
-    # Get user from service layer
+    # Try username first
     user = user_service.get_user_by_username(session, username)
+
+    # If not found and looks like RNA code (W + 9 digits), try RNA lookup
+    if not user and username.startswith("W") and len(username) == 10:
+        from app.models.association import Association
+
+        statement = select(Association).where(Association.rna_code == username)
+        association = session.exec(statement).first()
+        if association:
+            user = user_service.get_user(session, association.id_user)
+
+    # Timing-safe password verification (always verify to prevent timing attacks)
     hash_to_verify = (
         user.hashed_password if user else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
     )
