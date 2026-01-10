@@ -7,10 +7,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from app.internal import admin
-from app.routers import auth, volunteer, report
+from app.routers import auth, volunteer, report, association
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
 from app.core.error_handlers import register_exception_handlers
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from app.core.limiter import limiter
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Ensure static directory exists before later mount
@@ -39,6 +42,10 @@ app = FastAPI(
     description="RESTful API for the Together application",
     lifespan=lifespan,
 )
+
+# Register rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -86,5 +93,6 @@ def health_check():
 
 app.include_router(auth.router)
 app.include_router(volunteer.router)
+app.include_router(association.router)
 app.include_router(report.router)
 app.include_router(admin.router)
