@@ -1,11 +1,14 @@
 """User service module for CRUD operations."""
 
+import secrets
+from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
 from app.models.user import User, UserCreate, UserUpdate
-from app.core.password import get_password_hash
-from app.exceptions import NotFoundError, AlreadyExistsError
+from app.core.password import get_password_hash, get_token_hash
+from app.core.config import get_settings
+from app.exceptions import NotFoundError, AlreadyExistsError, InvalidTokenError
 
 
 def create_user(session: Session, user_in: UserCreate) -> User:
@@ -148,3 +151,136 @@ def delete_user(session: Session, user_id: int) -> None:
 
     session.delete(db_user)
     session.flush()
+
+
+def create_password_reset_token(session: Session, email: str) -> tuple[User, str]:
+    """
+    Generate and store a password reset token for a user.
+
+    Args:
+        session: Database session
+        email: User's email address
+
+    Returns:
+        tuple[User, str]: The user and the plain reset token (to send via email)
+
+    Raises:
+        NotFoundError: If no user exists with the given email
+    """
+    user = get_user_by_email(session, email)
+    if not user:
+        raise NotFoundError("User", email)
+
+    # Generate a URL-safe token (~64 characters)
+    reset_token = secrets.token_urlsafe(48)
+
+    # Hash and store the token
+    user.password_reset_token = get_token_hash(reset_token)
+
+    # Set expiration time
+    settings = get_settings()
+    user.password_reset_expires = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+    )
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user, reset_token
+
+
+def reset_password_with_token(session: Session, token: str, new_password: str) -> User:
+    """
+    Reset a user's password using a password reset token.
+
+    Args:
+        session: Database session
+        token: Plain password reset token (from email)
+        new_password: New password to set
+
+    Returns:
+        User: The updated user
+
+    Raises:
+        InvalidTokenError: If token is invalid or expired
+    """
+    hashed_token = get_token_hash(token)
+    user = session.exec(
+        select(User).where(User.password_reset_token == hashed_token)
+    ).first()
+
+    if not user or not user.password_reset_expires:
+        raise InvalidTokenError("Invalid password reset token")
+
+    # Check if token has expired
+    if datetime.now(timezone.utc) > user.password_reset_expires:
+        # Clear expired token
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        session.commit()
+        raise InvalidTokenError("Password reset token has expired")
+
+    # Update password and clear reset token fields
+    user.hashed_password = get_password_hash(new_password)
+    user.password_reset_token = None
+    user.password_reset_expires = None
+    # Force re-login by clearing refresh token
+    user.hashed_refresh_token = None
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+def get_user_with_profile(session: Session, user: User) -> dict:
+    """
+    Get user profile for volunteers and associations.
+
+    Args:
+        session: Database session
+        user: User instance
+
+    Returns:
+        dict: Profile dictionary containing user_type, user, and profile
+
+    Raises:
+        NotFoundError: If the profile doesn't exist for the user
+        ValidationError: If user type is invalid
+    """
+    from app.models.user import UserPublic
+    from app.models.enums import UserType
+    from app.services import volunteer as volunteer_service
+    from app.services import association as association_service
+    from app.exceptions import ValidationError
+
+    assert user.id_user is not None, "User ID must be set"
+    user_public = UserPublic.model_validate(user)
+
+    if user.user_type == UserType.VOLUNTEER:
+        volunteer = volunteer_service.get_volunteer_by_user_id(session, user.id_user)
+        if not volunteer:
+            raise NotFoundError("Volunteer profile", user.id_user)
+        volunteer_public = volunteer_service.to_volunteer_public(session, volunteer)
+        return {
+            "user_type": "volunteer",
+            "user": user_public,
+            "profile": volunteer_public,
+        }
+
+    elif user.user_type == UserType.ASSOCIATION:
+        association = association_service.get_association_by_user_id(
+            session, user.id_user
+        )
+        if not association:
+            raise NotFoundError("Association profile", user.id_user)
+        association_public = association_service.to_association_public(
+            session, association
+        )
+        return {
+            "user_type": "association",
+            "user": user_public,
+            "profile": association_public,
+        }
+
+    raise ValidationError(f"Invalid user type: {user.user_type}")

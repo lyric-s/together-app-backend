@@ -150,3 +150,19 @@ def delete_admin(session: Session, admin_id: int) -> None:
 
     session.delete(db_admin)
     session.commit()
+
+
+def get_admin_profile(admin: Admin) -> dict:
+    """
+    Get admin profile (no user relationship, admins are separate table).
+
+    Args:
+        admin: Admin instance
+
+    Returns:
+        dict: Profile dictionary containing user_type and profile
+    """
+    from app.models.admin import AdminPublic
+
+    admin_public = AdminPublic.model_validate(admin)
+    return {"user_type": "admin", "profile": admin_public}

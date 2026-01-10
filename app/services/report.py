@@ -2,6 +2,7 @@
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from app.models.report import Report, ReportCreate, ReportUpdate
 from app.models.user import User
@@ -135,7 +136,7 @@ def get_all_reports(
     session: Session, *, offset: int = 0, limit: int = 100
 ) -> list[Report]:
     """
-    Retrieve all reports (admin function).
+    Retrieve all reports with relationships eager-loaded (admin function).
 
     Parameters:
         session: Database session.
@@ -143,10 +144,17 @@ def get_all_reports(
         limit: Maximum number of records to return.
 
     Returns:
-        list[Report]: All reports, ordered by most recent first.
+        list[Report]: All reports with reporter and reported_user relationships loaded,
+                     ordered by most recent first.
     """
     statement = (
         select(Report)
+        .options(
+            selectinload(Report.reporter).selectinload(User.volunteer_profile),  # type: ignore
+            selectinload(Report.reporter).selectinload(User.association_profile),  # type: ignore
+            selectinload(Report.reported_user).selectinload(User.volunteer_profile),  # type: ignore
+            selectinload(Report.reported_user).selectinload(User.association_profile),  # type: ignore
+        )
         .order_by(Report.date_reporting.desc())  # type: ignore
         .offset(offset)
         .limit(limit)
@@ -203,3 +211,48 @@ def delete_report(session: Session, report_id: int) -> None:
 
     session.delete(db_report)
     session.commit()
+
+
+def _get_user_display_name(user: User) -> str:
+    """
+    Get display name for a user based on their type.
+
+    For volunteers: Returns "FirstName LastName"
+    For associations: Returns the association name
+    Otherwise: Returns the username
+
+    Args:
+        user: User instance with relationships loaded
+
+    Returns:
+        str: Display name for the user
+    """
+    from app.models.enums import UserType
+
+    if user.user_type == UserType.VOLUNTEER and user.volunteer_profile:
+        return f"{user.volunteer_profile.first_name} {user.volunteer_profile.last_name}"
+    elif user.user_type == UserType.ASSOCIATION and user.association_profile:
+        return user.association_profile.name
+    return user.username
+
+
+def to_report_public(report: Report) -> dict:
+    """
+    Convert Report to ReportPublic with computed name fields.
+
+    Args:
+        report: Report instance with reporter and reported_user relationships loaded
+
+    Returns:
+        dict: Dictionary suitable for ReportPublic model validation
+    """
+    reporter_name = _get_user_display_name(report.reporter) if report.reporter else ""
+    reported_name = (
+        _get_user_display_name(report.reported_user) if report.reported_user else ""
+    )
+
+    return {
+        **report.model_dump(exclude={"reporter", "reported_user"}),
+        "reporter_name": reporter_name,
+        "reported_name": reported_name,
+    }

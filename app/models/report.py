@@ -53,6 +53,9 @@ class ReportPublic(ReportBase):
     id_report: int
     state: ProcessingStatus
     date_reporting: datetime
+    # Computed name fields
+    reporter_name: str = ""
+    reported_name: str = ""
 
 
 class ReportUpdate(SQLModel):
