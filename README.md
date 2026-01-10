@@ -287,10 +287,19 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-b
 docker compose -f docker-compose.backend.yml up
 ```
 
-> **Tip:** You can combine these into a single command:
+> [!TIP]
+> You can combine these into a single command:
+>
+> **Linux/macOS:**
 >
 > ```bash
 > curl -o docker-compose.backend.yml https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml && docker compose -f docker-compose.backend.yml up
+> ```
+>
+> **Windows (PowerShell):**
+>
+> ```powershell
+> Invoke-WebRequest -Uri "https://raw.githubusercontent.com/lyric-s/together-app-backend/dev/docker-compose.frontend-dev.yml" -OutFile "docker-compose.backend.yml"; docker compose -f docker-compose.backend.yml up
 > ```
 
 ### What Gets Started
