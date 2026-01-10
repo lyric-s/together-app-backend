@@ -40,6 +40,13 @@ class LocationPublic(LocationBase):
     id_location: int
 
 
+class LocationWithCount(LocationBase):
+    """Location with computed mission count field for admin views."""
+
+    id_location: int
+    mission_count: int = 0
+
+
 class LocationUpdate(SQLModel):
     address: str | None = Field(default=None, max_length=255)
     country: str | None = Field(default=None, max_length=50)

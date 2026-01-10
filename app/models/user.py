@@ -26,6 +26,8 @@ class User(UserBase, table=True):
     hashed_password: str = Field(nullable=False)
     date_creation: datetime = Field(default_factory=datetime.now)
     hashed_refresh_token: str | None = Field(default=None, nullable=True)
+    password_reset_token: str | None = Field(default=None, nullable=True, index=True)
+    password_reset_expires: datetime | None = Field(default=None, nullable=True)
     volunteer_profile: "Volunteer" = Relationship(
         back_populates="user", sa_relationship_kwargs={"uselist": False}
     )

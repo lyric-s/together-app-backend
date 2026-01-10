@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: SecretStr
     MINIO_SECURE: bool
     MAX_UPLOAD_SIZE_MB: int = 100
+    # Email settings (optional - required only for password reset feature)
+    SMTP_HOST: str = "smtp-relay.brevo.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: SecretStr | None = None
+    SMTP_FROM_EMAIL: str | None = None
+    SMTP_FROM_NAME: str = "Together Platform"
+    FRONTEND_URL: str | None = None
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
