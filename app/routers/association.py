@@ -14,9 +14,10 @@ from app.models.association import (
     AssociationUpdate,
 )
 from app.models.mission import MissionCreate, MissionPublic, MissionUpdate
+from app.models.enums import ProcessingStatus
 from app.services import association as association_service
 from app.services import mission as mission_service
-from app.exceptions import NotFoundError, InsufficientPermissionsError
+from app.exceptions import NotFoundError, InsufficientPermissionsError, ValidationError
 
 router = APIRouter(prefix="/associations", tags=["associations"])
 
@@ -287,6 +288,16 @@ def create_association_mission(
         raise NotFoundError("Association profile", current_user.id_user)
 
     assert association.id_asso is not None
+
+    # Check if association is verified/approved
+    if association.verification_status != ProcessingStatus.APPROVED:
+        raise ValidationError(
+            f"Your association must be verified before creating missions. "
+            f"Current status: {association.verification_status.value}. "
+            f"Please upload a validation document and wait for admin approval.",
+            field="verification_status",
+        )
+
     # Enforce the association ID to be the current authenticated one
     mission_in.id_asso = association.id_asso
 
