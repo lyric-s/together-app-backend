@@ -115,3 +115,8 @@ def test_volunteer_retrieval_performance(
         return volunteer_service.get_volunteer(
             session=session, volunteer_id=volunteer_id
         )
+        # Cleanup: Remove the test volunteer
+
+    session.delete(volunteer)
+    session.delete(volunteer.user)
+    session.commit()
