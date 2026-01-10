@@ -15,6 +15,7 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
 )
+from app.core.password import get_token_hash, verify_token
 from app.core.limiter import limiter
 from app.models.token import Token
 from app.models.user import User
@@ -71,6 +72,12 @@ async def login_for_access_token(
         refresh_token = create_refresh_token(
             data={"sub": user.username}, expires_delta=refresh_token_expires
         )
+
+        # Store hashed refresh token
+        user.hashed_refresh_token = get_token_hash(refresh_token)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
 
         return Token(
             access_token=access_token,
@@ -154,23 +161,39 @@ async def refresh_token(
         token_type: str | None = payload.get("type")
         if username is None or token_type != "refresh":
             raise InvalidTokenError("Invalid token claims")
-        # TODO Optional: Check if user still exists / is active in DB (ex: banned -> disabled == true)
-        # For now this isn't implemented in the DB, so it should be
+
         user = session.exec(select(User).where(User.username == username)).first()
         if not user:
             raise InvalidTokenError("User no longer exists")
+
+        # Verify the refresh token matches the one stored in DB
+        if not user.hashed_refresh_token or not verify_token(
+            incoming_refresh_token, user.hashed_refresh_token
+        ):
+            raise InvalidTokenError("Token has been revoked or replaced")
+
     except PyJWTInvalidTokenError:
         raise InvalidTokenError()
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     new_access_token = create_access_token(
         data={"sub": username}, expires_delta=access_token_expires
     )
 
+    # Token Rotation: Issue a new refresh token and invalidate the old one
+    refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    new_refresh_token = create_refresh_token(
+        data={"sub": username}, expires_delta=refresh_token_expires
+    )
+
+    user.hashed_refresh_token = get_token_hash(new_refresh_token)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
     return Token(
         access_token=new_access_token,
-        # TODO Optional: Token rotation when possible
-        # (current implementation is enough but could be improved when time don't lack)
-        refresh_token=incoming_refresh_token,
+        refresh_token=new_refresh_token,
         token_type="bearer",
         user_type=user.user_type,
     )
