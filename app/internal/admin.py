@@ -9,12 +9,16 @@ from app.core.dependencies import get_current_admin
 from app.models.admin import Admin, AdminCreate, AdminPublic
 from app.models.document import DocumentPublic
 from app.models.association import AssociationPublic
+from app.models.report import ReportPublic
 from app.services import admin as admin_service
 from app.services import document as document_service
 from app.services import association as association_service
+from app.services import volunteer as volunteer_service
+from app.services import mission as mission_service
+from app.services import report as report_service
 from app.exceptions import NotFoundError
 
-router = APIRouter(prefix="/internal/admin", tags=["Internal Admin"])
+router = APIRouter(prefix="/internal/admin", tags=["admin"])
 
 
 @router.post("/", response_model=AdminPublic, dependencies=[Depends(get_current_admin)])
@@ -328,3 +332,165 @@ def delete_association(
         `404 NotFoundError`: If association doesn't exist.
     """
     association_service.delete_association(session, association_id)
+
+
+# Volunteer management endpoints
+
+
+@router.delete("/volunteers/{volunteer_id}", status_code=204)
+def delete_volunteer(
+    *,
+    volunteer_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> None:
+    """
+    Delete a volunteer and all related data.
+
+    Permanently removes a volunteer, including:
+    - The volunteer profile
+    - The associated user account
+    - All engagements (mission applications)
+    - All favorites
+    - Related data
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Warning:
+    This action is irreversible and cascades to all related data.
+
+    Args:
+        `volunteer_id`: The unique identifier of the volunteer to delete.
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+
+    Returns:
+        `None`: Returns 204 No Content on successful deletion.
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `404 NotFoundError`: If volunteer doesn't exist.
+    """
+    volunteer_service.delete_volunteer(session, volunteer_id)
+
+
+# Mission management endpoints
+
+
+@router.delete("/missions/{mission_id}", status_code=204)
+def delete_mission(
+    *,
+    mission_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> None:
+    """
+    Delete a mission and all related data.
+
+    Permanently removes a mission, including:
+    - The mission record
+    - All engagements (volunteer applications)
+    - All favorites referencing this mission
+    - Related data
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Warning:
+    This action is irreversible and cascades to all related data.
+
+    Args:
+        `mission_id`: The unique identifier of the mission to delete.
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+
+    Returns:
+        `None`: Returns 204 No Content on successful deletion.
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `404 NotFoundError`: If mission doesn't exist.
+    """
+    # Admin can delete any mission without association_id check
+    mission_service.delete_mission(session, mission_id, association_id=None)
+
+
+# Report management endpoints
+
+
+@router.get("/reports", response_model=list[ReportPublic])
+def get_all_reports(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    offset: int = 0,
+    limit: int = 100,
+) -> list[ReportPublic]:
+    """
+    Retrieve all user reports.
+
+    Returns a paginated list of all reports submitted by users, ordered by
+    most recent first. Allows admins to monitor and moderate user behavior.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+        `offset`: Number of records to skip (default: 0).
+        `limit`: Maximum number of records to return (default: 100).
+
+    Returns:
+        `list[ReportPublic]`: List of all reports ordered by date (newest first).
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+    """
+    reports = report_service.get_all_reports(session, offset=offset, limit=limit)
+    return [ReportPublic.model_validate(r) for r in reports]
+
+
+# Document list endpoint
+
+
+@router.get("/documents", response_model=list[DocumentPublic])
+def get_all_documents_list(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+    offset: int = 0,
+    limit: int = 100,
+) -> list[DocumentPublic]:
+    """
+    Retrieve all documents regardless of status.
+
+    Returns a paginated list of all documents (pending, approved, rejected),
+    ordered by most recent first. Provides a comprehensive view of all
+    validation documents in the system.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ### Note:
+    For pending documents specifically, use `/documents/pending` instead.
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+        `offset`: Number of records to skip (default: 0).
+        `limit`: Maximum number of records to return (default: 100).
+
+    Returns:
+        `list[DocumentPublic]`: List of all documents ordered by date (newest first).
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+    """
+    documents = document_service.get_all_documents(session, offset=offset, limit=limit)
+    return [DocumentPublic.model_validate(doc) for doc in documents]
