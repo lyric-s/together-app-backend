@@ -82,8 +82,9 @@ def test_volunteer_creation_performance(
 
     # Clean up all created volunteers after benchmark completes
     for volunteer in created_volunteers:
+        user = volunteer.user
         session.delete(volunteer)
-        session.delete(volunteer.user)
+        session.delete(user)
     session.commit()
 
 
