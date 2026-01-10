@@ -1,70 +1,34 @@
 """Performance benchmarks for user service operations."""
 
-import uuid
 import pytest
 from pytest_codspeed import BenchmarkFixture
 from sqlmodel import Session
 
 from app.models.user import UserCreate
-from app.models.enums import UserType
 from app.services import user as user_service
 
 
 @pytest.fixture(name="user_create_data")
-def user_create_data_fixture():
+def user_create_data_fixture(user_create_data_factory):
     """
     Provide a reusable UserCreate payload for benchmarks.
 
-    This fixture returns a UserCreate instance with a preset username, email, password, and user_type set to VOLUNTEER for use in performance tests.
+    This fixture returns a unique UserCreate instance by invoking the user_create_data_factory.
 
     Returns:
-        UserCreate: A preconfigured user creation payload.
+        UserCreate: A unique user creation payload.
     """
-    return UserCreate(
-        username="bench_user",
-        email="bench@example.com",
-        password="BenchPass123",
-        user_type=UserType.VOLUNTEER,
-    )
-
-
-@pytest.fixture(name="user_create_data_factory")
-def user_create_data_factory_fixture():
-    """
-    Create a factory that produces unique UserCreate payloads for benchmarks.
-
-    Each generated UserCreate has a unique username and email; password and user_type are fixed
-    ("BenchPass123" and UserType.VOLUNTEER respectively).
-
-    Returns:
-        create_callable (Callable[[], UserCreate]): A no-argument callable that returns a new,
-        unique UserCreate instance on each call.
-    """
-
-    def create():
-        """
-        Create a unique UserCreate payload for benchmark tests.
-
-        Generates a UserCreate with a short random hex suffix appended to the username and email to ensure uniqueness. The password is set to "BenchPass123" and the user_type is UserType.VOLUNTEER.
-
-        Returns:
-            UserCreate: A user creation model with unique `username` and `email`, fixed `password`, and `user_type` set to `UserType.VOLUNTEER`.
-        """
-        unique = uuid.uuid4().hex[:8]
-        return UserCreate(
-            username=f"bench_user_{unique}",
-            email=f"bench_{unique}@example.com",
-            password="BenchPass123",
-            user_type=UserType.VOLUNTEER,
-        )
-
-    return create
+    return user_create_data_factory()
 
 
 def test_user_creation_performance(
     benchmark: BenchmarkFixture, session: Session, user_create_data_factory
 ):
-    """Benchmark user creation operation."""
+    """
+    Benchmark user creation operation.
+
+    Each iteration uses a DB savepoint so cleanup is rolled back and excluded from timing.
+    """
 
     @benchmark
     def create_user():
@@ -76,13 +40,14 @@ def test_user_creation_performance(
         Returns:
             The created user model instance.
         """
-        user = user_service.create_user(
-            session=session, user_in=user_create_data_factory()
-        )
-        # Clean up to prevent row accumulation across benchmark iterations
-        session.delete(user)
-        session.flush()
-        return user
+        # Roll back each iteration via a savepoint to avoid accumulating work/rows.
+        # NOTE: This assumes `user_service.create_user` does NOT call `session.commit()`.
+        with session.begin_nested():
+            user = user_service.create_user(
+                session=session, user_in=user_create_data_factory()
+            )
+            session.flush()
+            return user.id_user
 
 
 def test_user_retrieval_by_id_performance(
@@ -96,7 +61,7 @@ def test_user_retrieval_by_id_performance(
     """
     # Setup: Create a user to retrieve
     user = user_service.create_user(session=session, user_in=user_create_data)
-    session.commit()
+    session.flush()
     user_id: int = user.id_user  # type: ignore[assignment]
 
     @benchmark
@@ -107,6 +72,7 @@ def test_user_retrieval_by_id_performance(
         Returns:
             The user record matching the provided `user_id`, or `None` if no such user exists.
         """
+        session.expire_all()
         return user_service.get_user(session=session, user_id=user_id)
 
 
@@ -116,7 +82,7 @@ def test_user_retrieval_by_email_performance(
     """Benchmark user retrieval by email operation."""
     # Setup: Create a user to retrieve
     user = user_service.create_user(session=session, user_in=user_create_data)
-    session.commit()
+    session.flush()
 
     @benchmark
     def get_user():
@@ -126,4 +92,8 @@ def test_user_retrieval_by_email_performance(
         Returns:
             user: The user model instance matching the given email, or `None` if no match is found.
         """
+        session.expire_all()
         return user_service.get_user_by_email(session=session, email=user.email)
+
+    session.delete(user)
+    session.flush()

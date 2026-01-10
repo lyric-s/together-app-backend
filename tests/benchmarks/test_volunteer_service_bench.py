@@ -6,24 +6,18 @@ from sqlmodel import Session
 
 from app.models.user import UserCreate
 from app.models.volunteer import VolunteerCreate
-from app.models.enums import UserType
 from app.services import volunteer as volunteer_service
 
 
 @pytest.fixture(name="user_create_data")
-def user_create_data_fixture():
+def user_create_data_fixture(user_create_data_factory):
     """
-    Provide a UserCreate instance populated with sample volunteer user data for tests.
+    Provide a unique UserCreate instance populated with sample volunteer user data for tests.
 
     Returns:
-        UserCreate: A UserCreate object with username "bench_volunteer", email "bench_vol@example.com", password "VolPass123", and user_type UserType.VOLUNTEER.
+        UserCreate: A UserCreate object with unique username and email.
     """
-    return UserCreate(
-        username="bench_volunteer",
-        email="bench_vol@example.com",
-        password="VolPass123",
-        user_type=UserType.VOLUNTEER,
-    )
+    return user_create_data_factory()
 
 
 @pytest.fixture(name="volunteer_create_data")

@@ -205,7 +205,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
    The API will be available at `http://127.0.0.1:8000`
 
 > [!WARNING]
-> Never commit the `.env` file. It contains sensitive credentials. Make sure it in your `.gitignore` if it's not already there. It's normally the case with the one present in the repo but we never know.
+> Never commit the `.env` file. It contains sensitive credentials. Make sure it is in your `.gitignore` if it's not already there.
 
 ### Docker Setup
 
@@ -843,4 +843,4 @@ This project was developed as part of an academic curriculum at **IUT Paris - Ri
 
 Built with ❤️ at IUT Paris - Rives de Seine
 
-[Report an Issue](https://github.com/Lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/Lyric-s/together-app-backend/issues)
+[Report an Issue](https://github.com/lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/lyric-s/together-app-backend/issues)
