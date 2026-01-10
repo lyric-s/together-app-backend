@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.user import UserPublic, EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH
+from app.models.enums import ProcessingStatus
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -39,6 +40,7 @@ class AssociationBase(SQLModel):
 class Association(AssociationBase, table=True):
     id_asso: int | None = Field(default=None, primary_key=True)
     id_user: int = Field(foreign_key="user.id_user", unique=True)
+    verification_status: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
     user: "User" = Relationship(back_populates="association_profile")
     missions: list["Mission"] = Relationship(back_populates="association")
     documents: list["Document"] = Relationship(back_populates="association")
@@ -66,6 +68,7 @@ class AssociationCreate(AssociationBase):
 class AssociationPublic(AssociationBase):
     id_asso: int
     id_user: int
+    verification_status: ProcessingStatus
     active_missions_count: int = 0
     finished_missions_count: int = 0
     # TODO use .options(selectinload(Association.user)) in the query
