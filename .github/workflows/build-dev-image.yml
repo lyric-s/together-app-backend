@@ -55,3 +55,81 @@ jobs:
           echo "Frontend team can pull and run with:"
           echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
           echo "  docker run -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
+
+      - name: Send Discord notification (Success)
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🔨 Dev Docker Image Built",
+                "description": "New development backend image available for frontend team",
+                "color": 3447003,
+                "fields": [
+                  {
+                    "name": "Branch",
+                    "value": "'"${{ github.ref_name }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Commit",
+                    "value": "'"${{ env.SHORT_SHA }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Image Tags",
+                    "value": "`dev` | `dev-'"${{ env.SHORT_SHA }}"'`"
+                  },
+                  {
+                    "name": "Pull Command",
+                    "value": "`docker pull '"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"'`"
+                  },
+                  {
+                    "name": "Links",
+                    "value": "[Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) | [Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+                  }
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
+                "footer": {
+                  "text": "Together API Development"
+                }
+              }]
+            }' \
+            "$DISCORD_WEBHOOK"
+
+      - name: Send Discord notification (Failure)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Dev Image Build Failed",
+                "description": "Failed to build development Docker image",
+                "color": 15158332,
+                "fields": [
+                  {
+                    "name": "Branch",
+                    "value": "'"${{ github.ref_name }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Commit",
+                    "value": "'"${{ env.SHORT_SHA }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Action Required",
+                    "value": "Check [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details"
+                  }
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
+                "footer": {
+                  "text": "Together API Development"
+                }
+              }]
+            }' \
+            "$DISCORD_WEBHOOK"
