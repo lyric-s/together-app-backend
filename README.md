@@ -252,12 +252,54 @@ Frontend developers can run the complete backend stack locally using pre-built D
 
 ### Prerequisites for frontend
 
-If you don't have Docker installed yet:
+If you don't have Docker installed yet, choose one of these options:
+
+#### Option 1: Docker Desktop (Recommended for most users)
 
 - **Install Docker Desktop**: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)
-  - Includes both Docker and Docker Compose
+  - Includes both Docker Engine and Docker Compose
+  - Provides a GUI for managing containers
   - Available for Windows, macOS, and Linux
-- **Verify installation**: `docker --version` and `docker compose version`
+  - **Verify installation**: `docker --version` and `docker compose version`
+
+#### Option 2: Docker Engine (CLI-only, no GUI)
+
+##### Linux
+
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+For other distributions, see the [official Linux installation guide](https://docs.docker.com/engine/install/).
+
+##### Windows (WSL2)
+
+1. **Install WSL2**: [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/install)
+
+   ```powershell
+   wsl --install
+   ```
+
+2. **Install Docker Engine in WSL2** (from within your WSL2 Ubuntu):
+
+   ```bash
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   sudo usermod -aG docker $USER
+   ```
+
+3. **Start Docker service**:
+
+   ```bash
+   sudo service docker start
+   ```
+
+> [!NOTE]
+> After installing Docker Engine, you may need to log out and back in (or restart WSL2) for group permissions to take effect.
 
 ### Quick Start for Frontend Team
 
