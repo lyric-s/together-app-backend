@@ -24,6 +24,7 @@ dependencies = [
     "pydantic-settings>=2.12.0",
     "pyjwt[crypto]>=2.10.1",
     "python-dotenv>=1.2.1",
+    "slowapi>=0.1.9",
     "sqlalchemy-citext>=1.8.0",
     "sqlmodel>=0.0.27",
     "uvicorn>=0.38.0",
