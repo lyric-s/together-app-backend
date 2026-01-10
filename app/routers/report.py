@@ -1,0 +1,89 @@
+"""Report router module for user reporting endpoints."""
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from app.exceptions import InvalidTokenError
+from sqlmodel import Session
+
+from app.database.database import get_session
+from app.core.dependencies import get_current_user
+from app.models.user import User
+from app.models.report import ReportCreate, ReportPublic
+from app.services import report as report_service
+
+router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@router.post("/", response_model=ReportPublic, status_code=201)
+def create_report(
+    *,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    report_in: ReportCreate,
+) -> ReportPublic:
+    """
+    Create a report against another user.
+
+    Any authenticated user can report another user (volunteer or association).
+    The report will be created with PENDING state and reviewed by administrators.
+
+    ### Reporting Process:
+    - User submits report with type, target, reason, and reported user ID
+    - Report is created with PENDING status
+    - Administrators review and take appropriate action
+    - Only one PENDING report per user against the same target is allowed
+
+    ### Authentication Required:
+    This endpoint requires a valid authentication token.
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_user`: Authenticated user (automatically injected from token).
+        `report_in`: Report data including type, target, reason, and id_user_reported.
+
+    Returns:
+        `ReportPublic`: The created report with its unique ID and timestamp.
+
+    Raises:
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `400 ValidationError`: If attempting to report oneself.
+        `404 NotFoundError`: If the reported user doesn't exist.
+        `400 AlreadyExistsError`: If a PENDING report against this user already exists.
+    """
+    if current_user.id_user is None:
+        raise InvalidTokenError("User ID not found in token")
+    report = report_service.create_report(session, current_user.id_user, report_in)
+    return ReportPublic.model_validate(report)
+
+
+@router.get("/me", response_model=list[ReportPublic])
+def get_my_reports(
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[ReportPublic]:
+    """
+    Retrieve all reports made by the authenticated user.
+
+    Returns all reports submitted by the authenticated user, ordered by most recent first.
+    Users can view their own report history to track the status of their submissions.
+
+    ### Authentication Required:
+    This endpoint requires a valid authentication token.
+
+    Args:
+        `session`: Database session (automatically injected).
+        `current_user`: Authenticated user (automatically injected from token).
+
+    Returns:
+        `list[ReportPublic]`: Reports submitted by the authenticated user, ordered by
+            most recent first. Each report includes type, target, reason, state, and timestamp.
+
+    Raises:
+        `401 Unauthorized`: If no valid authentication token is provided.
+    """
+    if current_user.id_user is None:
+        raise InvalidTokenError("User ID not found in token")
+    reports = report_service.get_reports_by_reporter(session, current_user.id_user)
+    return [ReportPublic.model_validate(r) for r in reports]

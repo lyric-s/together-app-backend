@@ -1,0 +1,55 @@
+# Codecov Configuration
+# Documentation: https://docs.codecov.com/docs/codecov-yaml
+
+codecov:
+  # Wait for CI to pass before processing coverage
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2              # Show coverage as XX.XX%
+  round: down              # 79.99% shows as 79.99%
+  range: "50...100"        # Color gradient: red at 50%, green at 100%
+
+  status:
+    # Overall project coverage target
+    # Docs: https://docs.codecov.com/docs/commit-status
+    project:
+      default:
+        target: 55%        # Realistic goal (current 53% + 2%)
+        threshold: 2%      # Allow 2% drop without failing (down to 53%)
+        if_ci_failed: error
+
+    # New code added in PRs should be well-tested
+    # Docs: https://docs.codecov.com/docs/commit-status#patch-status
+    patch:
+      default:
+        target: 60%        # New code should be better than current average
+        threshold: 6%      # Allow some flexibility for difficult-to-test code
+
+# PR comment configuration
+# Docs: https://docs.codecov.com/docs/pull-request-comments
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default        # Update existing comment instead of creating new ones
+  require_changes: false   # Comment even if coverage doesn't change
+  require_base: no        # Comment even on first PR
+  require_head: yes       # Only comment if head commit has coverage
+
+# Files to exclude from coverage calculation
+# Docs: https://docs.codecov.com/docs/ignoring-paths
+ignore:
+  - "tests/**"            # Don't measure coverage of tests themselves
+  - "**/__init__.py"      # Skip empty __init__ files
+  - "app/initial_data.py" # One-time data setup script
+  - "app/main.py"         # FastAPI app initialization (tested via integration)
+
+# Additional configuration options (commented out for reference)
+# Docs: https://docs.codecov.com/docs/codecov-yaml
+
+# flags:
+#   unittests:
+#     paths:
+#       - "app/"
+#     carryforward: true  # Use previous coverage if tests don't run

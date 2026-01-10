@@ -1,0 +1,119 @@
+# =============================================================================
+# Together Backend - Frontend Development Stack
+# Version: 2025-01-09
+# Source: https://github.com/lyric-s/together-app-backend
+# =============================================================================
+# This file provides a complete backend environment for frontend developers.
+# Environment variables below are pre-configured for local development.
+# =============================================================================
+
+services:
+  # DATABASE (PostgreSQL for Dev)
+  postgres:
+    image: postgres:17.6
+    container_name: frontend-dev-postgres
+    environment:
+      - POSTGRES_USER=api_user
+      - POSTGRES_PASSWORD=dev_pass
+      - POSTGRES_DB=together
+    ports:
+      - "5432:5432"
+    networks:
+      - frontend_dev
+    volumes:
+      - postgres_data_frontend_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api_user -d together"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # OBJECT STORAGE (MinIO - S3 Compatible)
+  # Pinned to last AGPL3 release with full admin console UI (user/policy/bucket management).
+  # Versions after April 2025 have stripped-down "Community Edition" UI.
+  # See: https://github.com/community-scripts/ProxmoxVE/blob/main/ct/minio.sh
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: frontend-dev-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console UI
+    networks:
+      - frontend_dev
+    volumes:
+      - minio_data_frontend_dev:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Client - Create bucket on startup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: frontend-dev-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - frontend_dev
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/together-uploads --ignore-existing;
+      mc anonymous set download myminio/together-uploads;
+      echo 'MinIO bucket setup complete';
+      exit 0;
+      "
+
+  # API (Using pre-built image from GitHub Container Registry)
+  # This image is automatically built from the backend repo's dev branch
+  fastapi:
+    image: ghcr.io/lyric-s/together-app-backend:dev
+    pull_policy: always
+    container_name: frontend-dev-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
+      - LOG_LEVEL=debug
+      # CORS origins for frontend development
+      - BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:8080
+      # Authentication configuration
+      - SECRET_KEY=dev_secret_key_not_for_production_use_openssl_rand_hex_32_for_an_appropriate_one
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=90
+      # Initial superuser credentials
+      - FIRST_SUPERUSER_EMAIL=admin@example.com
+      - FIRST_SUPERUSER_PASSWORD=password
+      - FIRST_SUPERUSER_USERNAME=admin
+      # MinIO/S3 configuration
+      - DOCUMENTS_BUCKET=together-uploads
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MAX_UPLOAD_SIZE_MB=100
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+    networks:
+      - frontend_dev
+
+networks:
+  frontend_dev:
+    driver: bridge
+
+volumes:
+  postgres_data_frontend_dev:
+  minio_data_frontend_dev:

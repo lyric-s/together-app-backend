@@ -1,0 +1,222 @@
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://together-api.out-online.net
+    steps:
+      - name: Trigger Coolify Deployment
+        id: deploy
+        run: |
+          echo "Triggering Coolify deployment for version ${{ needs.build-and-push.outputs.version }}"
+          response=$(curl --write-out '%{http_code}' --silent --output /dev/null \
+            --fail --show-error --request GET \
+            --max-time 30 \
+            '${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}')
+
+          if [ "$response" -eq 200 ] || [ "$response" -eq 201 ]; then
+            echo "✅ Deployment webhook triggered successfully (HTTP $response)"
+          else
+            echo "❌ Deployment webhook failed with HTTP $response"
+            exit 1
+          fi
+
+      - name: Wait for deployment
+        run: |
+          echo "⏳ Waiting for Coolify to deploy... (this may take a few minutes)"
+          sleep 60
+
+      - name: Verify deployment health
+        id: health_check
+        continue-on-error: true
+        run: |
+          max_attempts=5
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Health check attempt $attempt/$max_attempts..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://together-api.out-online.net/health || echo "000")
+
+            if [ "$response" -eq 200 ]; then
+              echo "✅ Health check passed (HTTP $response)"
+              echo "status=success" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "⏳ Service not ready yet (HTTP $response), waiting..."
+            sleep 15
+            attempt=$((attempt + 1))
+          done
+
+          echo "❌ Health check failed after $max_attempts attempts"
+          echo "status=failed" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          if [ "${{ steps.health_check.outputs.status }}" = "success" ]; then
+            health_status="✅ Healthy"
+          else
+            health_status="⚠️ Health check inconclusive"
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🚀 Production Deployment
+
+          **Version:** \`${{ needs.build-and-push.outputs.version }}\`
+          **Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`
+          **Triggered at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Health Status:** $health_status
+
+          ### Docker Image Tags
+          - \`${{ needs.build-and-push.outputs.version }}\`
+          - \`latest\`
+
+          ### Resources
+          - 🌐 [API Production](https://together-api.out-online.net)
+          - 📚 [API Documentation](https://together-api.out-online.net/docs)
+
+          ### Next Steps
+          1. ✅ Verify deployment at [production URL](https://together-api.out-online.net/health)
+          2. 📊 Check SigNoz for any errors
+          3. 📋 Monitor application logs
+          4. 🧪 Run smoke tests if needed
+
+          ---
+
+          _Deployed via Coolify webhook_
+          EOF
+
+      - name: Send Discord notification (Success)
+        if: success() && steps.health_check.outputs.status == 'success'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🚀 Production Deployment Successful",
+                "description": "New version deployed to production",
+                "color": 3066993,
+                "fields": [
+                  {
+                    "name": "Version",
+                    "value": "'"${{ needs.build-and-push.outputs.version }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Status",
+                    "value": "✅ Deployed & Healthy",
+                    "inline": true
+                  },
+                  {
+                    "name": "Links",
+                    "value": "[API](https://together-api.out-online.net) | [Docs](https://together-api.out-online.net/docs) | [Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                  }
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
+                "footer": {
+                  "text": "Together API Production"
+                }
+              }]
+            }' \
+            "$DISCORD_WEBHOOK"
+
+      - name: Send Discord notification (Failure)
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "❌ Production Deployment Failed",
+                "description": "Deployment to production encountered an error",
+                "color": 15158332,
+                "fields": [
+                  {
+                    "name": "Version",
+                    "value": "'"${{ needs.build-and-push.outputs.version }}"'",
+                    "inline": true
+                  },
+                  {
+                    "name": "Status",
+                    "value": "❌ Failed",
+                    "inline": true
+                  },
+                  {
+                    "name": "Action Required",
+                    "value": "Check [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details"
+                  }
+                ],
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
+                "footer": {
+                  "text": "Together API Production"
+                }
+              }]
+            }' \
+            "$DISCORD_WEBHOOK"

@@ -1,0 +1,68 @@
+[project]
+name = "together-app-backend"
+version = "0.1.0"
+description = "REST API of the Together platform"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.17.2",
+    "databases>=0.9.0",
+    "fastapi[standard]>=0.122.0",
+    "loguru>=0.7.3",
+    "minio>=7.2.20",
+    "opentelemetry-distro>=0.60b1",
+    "opentelemetry-exporter-otlp>=1.39.1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
+    "opentelemetry-instrumentation-asyncpg>=0.60b1",
+    "opentelemetry-instrumentation-fastapi>=0.60b1",
+    "opentelemetry-instrumentation-logging>=0.60b1",
+    "opentelemetry-instrumentation-psycopg2>=0.60b1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.60b1",
+    "psycopg2-binary>=2.9.11",
+    "pwdlib[argon2]>=0.3.0",
+    "pydantic>=2.12.4",
+    "pydantic-settings>=2.12.0",
+    "pyjwt[crypto]>=2.10.1",
+    "python-dotenv>=1.2.1",
+    "sqlalchemy-citext>=1.8.0",
+    "sqlmodel>=0.0.27",
+    "uvicorn>=0.38.0",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.pyrefly]
+infer-with-first-use = false
+project_excludes = ["alembic/versions/*"]
+
+[tool.ruff]
+exclude = ["alembic/versions/*"]
+
+[tool.pytest.ini_options]
+# Benchmark markers for CodSpeed
+markers = [
+    "benchmark: marks tests as benchmarks (deselect with '-m \"not benchmark\"')",
+]
+# Separate benchmark tests from regular tests
+testpaths = ["tests"]
+# Make benchmark fixtures available
+python_files = ["test_*.py", "*_bench.py"]
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.10.0",
+    "pre-commit>=4.5.0",
+    "prek>=0.2.19",
+    "pyrefly>=0.45.1",
+    "pytest>=9.0.1",
+    "pytest-codspeed>=4.2.0",
+    "pytest-cov>=7.0.0",
+    "requests>=2.32.5",
+    "ruff>=0.14.8",
+]
