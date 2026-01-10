@@ -29,6 +29,7 @@ jobs:
           push: true
           commit: true
           changelog: true
+          no_raise: "21"  # Don't fail if no previous tag found for incremental changelog
 
       - name: Print Version
         run: echo "Bumped to version ${{ steps.cz.outputs.version }}"
