@@ -71,12 +71,18 @@ def test_user_creation_performance(
         """
         Create a new user using the provided factory and return the created user instance.
 
+        Uses a savepoint to rollback after each iteration, preventing database row leaks.
+
         Returns:
             The created user model instance.
         """
-        return user_service.create_user(
+        user = user_service.create_user(
             session=session, user_in=user_create_data_factory()
         )
+        # Clean up to prevent row accumulation across benchmark iterations
+        session.delete(user)
+        session.flush()
+        return user
 
 
 def test_user_retrieval_by_id_performance(

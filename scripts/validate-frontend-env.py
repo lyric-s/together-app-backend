@@ -7,6 +7,7 @@ This ensures the frontend team's docker-compose setup stays in sync
 with backend requirements.
 """
 
+import ast
 import sys
 from pathlib import Path
 
@@ -21,7 +22,8 @@ def get_required_settings_fields() -> set[str]:
     """
     Collects the names of fields declared without a default value on the Settings subclass in app/core/config.py.
 
-    Reads the project's Settings (a BaseSettings subclass) and returns the set of attribute names that are required (i.e., declared without an assignment/default).
+    Uses AST parsing to reliably extract field names from the Settings class,
+    handling multi-line annotations, comments, and complex type definitions.
 
     Returns:
         set[str]: Field names that are required (have no default value) as declared in the Settings class.
@@ -37,32 +39,31 @@ def get_required_settings_fields() -> set[str]:
 
     required_fields = set()
     content = config_file.read_text()
-    in_settings_class = False
+    tree = ast.parse(content)
 
-    for line in content.split("\n"):
-        if "class Settings(BaseSettings):" in line:
-            in_settings_class = True
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef) or node.name != "Settings":
             continue
 
-        if in_settings_class:
-            # End of class
-            if line and not line.startswith(" ") and not line.startswith("\t"):
-                break
+        # Check if this class inherits from BaseSettings
+        inherits_base_settings = any(
+            (isinstance(base, ast.Name) and base.id == "BaseSettings")
+            for base in node.bases
+        )
+        if not inherits_base_settings:
+            continue
 
-            # Skip comments, empty lines, and model_config
-            if (
-                not line.strip()
-                or line.strip().startswith("#")
-                or "model_config" in line
-            ):
-                continue
-
-            # Extract field name without default value (required fields)
-            stripped = line.strip()
-            if ":" in stripped and not stripped.startswith("def"):
-                field_name = stripped.split(":")[0].strip()
-                if "=" not in stripped:  # No default = required
+        # Iterate through class body for field definitions
+        for item in node.body:
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                field_name = item.target.id
+                # Skip model_config and private fields
+                if field_name.startswith("_") or field_name == "model_config":
+                    continue
+                # Required if no default value (item.value is None)
+                if item.value is None:
                     required_fields.add(field_name)
+        break
 
     return required_fields
 

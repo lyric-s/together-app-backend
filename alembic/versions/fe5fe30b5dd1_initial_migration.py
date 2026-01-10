@@ -195,4 +195,8 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_admin_username'), table_name='admin')
     op.drop_index(op.f('ix_admin_email'), table_name='admin')
     op.drop_table('admin')
+
+    # Drop enum types created in upgrade
+    op.execute("DROP TYPE IF EXISTS usertype")
+    op.execute("DROP TYPE IF EXISTS processingstatus")
     # ### end Alembic commands ###

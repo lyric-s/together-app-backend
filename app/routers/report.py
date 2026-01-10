@@ -3,6 +3,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+
+from app.exceptions import InvalidTokenError
 from sqlmodel import Session
 
 from app.database.database import get_session
@@ -50,7 +52,8 @@ def create_report(
         `404 NotFoundError`: If the reported user doesn't exist.
         `400 AlreadyExistsError`: If a PENDING report against this user already exists.
     """
-    assert current_user.id_user is not None
+    if current_user.id_user is None:
+        raise InvalidTokenError("User ID not found in token")
     report = report_service.create_report(session, current_user.id_user, report_in)
     return ReportPublic.model_validate(report)
 
@@ -80,6 +83,7 @@ def get_my_reports(
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
     """
-    assert current_user.id_user is not None
+    if current_user.id_user is None:
+        raise InvalidTokenError("User ID not found in token")
     reports = report_service.get_reports_by_reporter(session, current_user.id_user)
     return [ReportPublic.model_validate(r) for r in reports]

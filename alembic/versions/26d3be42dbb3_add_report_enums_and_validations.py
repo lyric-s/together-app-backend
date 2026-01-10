@@ -51,4 +51,8 @@ def downgrade() -> None:
                existing_type=sa.Enum('HARASSMENT', 'INAPPROPRIATE_BEHAVIOR', 'SPAM', 'FRAUD', 'OTHER', name='reporttype'),
                type_=sa.VARCHAR(length=50),
                nullable=True)
+
+    # Drop the enum types to avoid orphaned types on re-apply
+    op.execute("DROP TYPE IF EXISTS reporttype")
+    op.execute("DROP TYPE IF EXISTS reporttarget")
     # ### end Alembic commands ###

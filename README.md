@@ -527,6 +527,8 @@ The application is fully instrumented with **OpenTelemetry** for production-grad
 > [!NOTE]
 > The local development environment does not include SigNoz by default to keep it lightweight. The application exports telemetry data when configured with a SigNoz endpoint.
 
+The OpenTelemetry instrumentation packages used in this project (e.g., `opentelemetry-instrumentation-fastapi`, `opentelemetry-instrumentation-sqlalchemy`) are currently in **beta** (version 0.60b1). While widely used in production, the [official documentation](https://github.com/open-telemetry/opentelemetry-python-contrib) notes they may have breaking changes. The instrumentation itself is stable, but semantic conventions (data format/attributes) may evolve.
+
 ### Observability Configuration
 
 Set these environment variables in `.env`:
