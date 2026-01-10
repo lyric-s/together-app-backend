@@ -1,47 +1,52 @@
 """Mission service module for CRUD operations."""
 
-from sqlmodel import Session, select
+from datetime import date
+from sqlmodel import Session, select, func, or_
+from sqlalchemy.orm import selectinload
 
-from app.models.mission import Mission, MissionCreate, MissionUpdate
-from app.models.location import Location
-from app.models.category import Category
+from app.models.mission import Mission, MissionCreate, MissionUpdate, MissionPublic
+from app.models.location import Location, LocationPublic
+from app.models.category import Category, CategoryPublic
+from app.models.association import AssociationPublic
+from app.models.engagement import Engagement
+from app.models.enums import ProcessingStatus
 from app.exceptions import NotFoundError, InsufficientPermissionsError
 
 
 def create_mission(session: Session, mission_in: MissionCreate) -> Mission:
     """
-    Create a new mission.
+    Create a new mission with multiple categories.
 
-    Validates that the provided location and category IDs exist.
+    Validates that the provided location and all category IDs exist.
 
     Parameters:
         session: Database session.
-        mission_in: Mission creation data.
+        mission_in: Mission creation data including category_ids list.
 
     Returns:
-        Mission: The created Mission model instance.
+        Mission: The created Mission model instance with categories relationship.
 
     Raises:
-        NotFoundError: If the location or category ID does not exist.
+        NotFoundError: If the location or any category ID does not exist.
     """
     # Validate location exists
     location = session.get(Location, mission_in.id_location)
     if not location:
         raise NotFoundError("Location", mission_in.id_location)
 
-    # Validate category exists
-    category = session.get(Category, mission_in.id_categ)
-    if not category:
-        raise NotFoundError("Category", mission_in.id_categ)
+    # Validate all categories exist
+    categories = []
+    for cat_id in mission_in.category_ids:
+        category = session.get(Category, cat_id)
+        if not category:
+            raise NotFoundError("Category", cat_id)
+        categories.append(category)
 
-    # Association ID existence is implicitly checked by FK constraint,
-    # but logically checked before calling this service in the router usually.
-    # However, if we want explicit check:
-    # from app.models.association import Association
-    # if not session.get(Association, mission_in.id_asso):
-    #     raise NotFoundError("Association", mission_in.id_asso)
+    # Create mission (exclude category_ids from dict as it's not a db field)
+    mission_data = mission_in.model_dump(exclude={"category_ids"})
+    mission = Mission.model_validate(mission_data)
+    mission.categories = categories  # Set many-to-many relationship
 
-    mission = Mission.model_validate(mission_in)
     session.add(mission)
     session.commit()
     session.refresh(mission)
@@ -91,14 +96,14 @@ def update_mission(
     Parameters:
         session: Database session.
         mission_id: Primary key of the mission to update.
-        mission_update: Update data.
+        mission_update: Update data (can include category_ids to update categories).
         association_id: Optional ID of the association requesting update.
 
     Returns:
         Mission: The updated Mission model.
 
     Raises:
-        NotFoundError: If no mission exists with the given mission_id.
+        NotFoundError: If no mission exists with the given mission_id or category doesn't exist.
         InsufficientPermissionsError: If association_id is provided but does not match the mission's owner.
     """
     mission = session.get(Mission, mission_id)
@@ -109,6 +114,20 @@ def update_mission(
         raise InsufficientPermissionsError("update this mission")
 
     update_data = mission_update.model_dump(exclude_unset=True)
+
+    # Handle category_ids separately (many-to-many relationship)
+    category_ids = update_data.pop("category_ids", None)
+    if category_ids is not None:
+        # Validate all categories exist
+        categories = []
+        for cat_id in category_ids:
+            category = session.get(Category, cat_id)
+            if not category:
+                raise NotFoundError("Category", cat_id)
+            categories.append(category)
+        mission.categories = categories
+
+    # Update other fields
     for key, value in update_data.items():
         setattr(mission, key, value)
 
@@ -144,3 +163,166 @@ def delete_mission(
 
     session.delete(mission)
     session.commit()
+
+
+def search_missions(
+    session: Session,
+    *,
+    category_ids: list[int] | None = None,
+    country: str | None = None,
+    zip_code: str | None = None,
+    date_available: date | None = None,
+    search: str | None = None,
+    show_full: bool = True,
+    offset: int = 0,
+    limit: int = 100,
+    sort_by: str = "date_start",
+) -> list[Mission]:
+    """
+    Search missions with filters and pagination.
+
+    Parameters:
+        session: Database session.
+        category_ids: Filter by categories (missions matching ANY category - OR logic).
+        country: Filter by location country (exact match).
+        zip_code: Filter by zip code prefix.
+        date_available: Show missions active on/after this date (defaults to today).
+        search: Text search in mission name and description (case-insensitive).
+        show_full: Include full missions (default: True). When False, filters out missions at capacity.
+        offset: Pagination offset (default: 0).
+        limit: Pagination limit (default: 100).
+        sort_by: Sort field - "date_start", "name", or "created_at" (default: "date_start").
+
+    Returns:
+        list[Mission]: Missions matching filters with eager-loaded relationships.
+    """
+    # Build query with eager loading
+    from app.models.mission_category import MissionCategory
+
+    statement = select(Mission).options(
+        selectinload(Mission.location),  # type: ignore
+        selectinload(Mission.categories),  # type: ignore
+        selectinload(Mission.association),  # type: ignore
+    )
+
+    # Filter by categories (OR logic - mission must have at least one of the categories)
+    if category_ids:
+        statement = (
+            statement.join(
+                MissionCategory,
+                Mission.id_mission == MissionCategory.id_mission,  # type: ignore
+            )
+            .join(Category, MissionCategory.id_categ == Category.id_categ)  # type: ignore
+            .where(Category.id_categ.in_(category_ids))  # type: ignore
+            .distinct()
+        )
+
+    # Filter by location
+    if country or zip_code:
+        statement = statement.join(
+            Location,
+            Mission.id_location == Location.id_location,  # type: ignore
+        )
+        if country:
+            statement = statement.where(Location.country == country)
+        if zip_code:
+            statement = statement.where(Location.zip_code.startswith(zip_code))  # type: ignore
+
+    # Filter by date availability
+    if date_available:
+        statement = statement.where(Mission.date_end >= date_available)
+    else:
+        # Default: only show future/active missions
+        today = date.today()
+        statement = statement.where(Mission.date_end >= today)
+
+    # Text search in name and description
+    if search:
+        search_term = f"%{search}%"
+        statement = statement.where(
+            or_(
+                Mission.name.ilike(search_term),  # type: ignore
+                Mission.description.ilike(search_term),  # type: ignore
+            )
+        )
+
+    # Capacity filter (hide full missions if requested)
+    if not show_full:
+        # Subquery to count approved volunteers per mission
+        enrolled_subquery = (
+            select(Engagement.id_mission, func.count().label("enrolled_count"))
+            .where(Engagement.state == ProcessingStatus.APPROVED)
+            .group_by(Engagement.id_mission)  # type: ignore
+            .subquery()
+        )
+        statement = statement.outerjoin(
+            enrolled_subquery,
+            Mission.id_mission == enrolled_subquery.c.id_mission,  # type: ignore
+        ).where(
+            or_(
+                enrolled_subquery.c.enrolled_count < Mission.capacity_max,  # type: ignore
+                enrolled_subquery.c.enrolled_count.is_(None),  # type: ignore
+            )
+        )
+
+    # Sorting
+    if sort_by == "name":
+        statement = statement.order_by(Mission.name)
+    elif sort_by == "created_at":
+        statement = statement.order_by(Mission.id_mission.desc())  # type: ignore
+    else:  # default: date_start
+        statement = statement.order_by(Mission.date_start)  # type: ignore
+
+    # Pagination
+    statement = statement.offset(offset).limit(limit)
+
+    return list(session.exec(statement).all())
+
+
+def to_mission_public(session: Session, mission: Mission) -> MissionPublic:
+    """
+    Convert Mission to MissionPublic with computed capacity fields.
+
+    Counts APPROVED volunteers and calculates availability information.
+
+    Parameters:
+        session: Database session.
+        mission: Mission instance with relationships loaded.
+
+    Returns:
+        MissionPublic: Mission with embedded relationships and capacity tracking.
+    """
+    # Count APPROVED volunteers for this mission
+    enrolled_count = session.exec(
+        select(func.count())
+        .select_from(Engagement)
+        .where(
+            Engagement.id_mission == mission.id_mission,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).one()
+
+    # Compute derived fields
+    available_slots = max(0, mission.capacity_max - enrolled_count)
+    is_full = enrolled_count >= mission.capacity_max
+
+    # Convert relationships to public models
+    location_public = (
+        LocationPublic.model_validate(mission.location) if mission.location else None
+    )
+    categories_public = [CategoryPublic.model_validate(c) for c in mission.categories]
+    association_public = (
+        AssociationPublic.model_validate(mission.association)
+        if mission.association
+        else None
+    )
+
+    return MissionPublic(
+        **mission.model_dump(exclude={"location", "categories", "association"}),
+        location=location_public,
+        categories=categories_public,
+        association=association_public,
+        volunteers_enrolled=enrolled_count,
+        available_slots=available_slots,
+        is_full=is_full,
+    )
