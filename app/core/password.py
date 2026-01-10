@@ -1,5 +1,6 @@
 """Password hashing utilities."""
 
+import hashlib
 from pwdlib import PasswordHash
 
 # pwdlib is the modern, recommended way (Argon2 by default)
@@ -27,3 +28,33 @@ def get_password_hash(password: str) -> str:
         str: Password hash suitable for secure storage.
     """
     return password_hash.hash(password)
+
+
+def get_token_hash(token: str) -> str:
+    """
+    Hash a token using SHA-256.
+
+    Used for storing refresh tokens securely. SHA-256 is appropriate because tokens
+    are high-entropy strings, unlike user passwords.
+
+    Parameters:
+        token (str): The token to hash.
+
+    Returns:
+        str: The SHA-256 hash of the token.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def verify_token(token: str, hashed_token: str) -> bool:
+    """
+    Verify a token against its stored hash.
+
+    Parameters:
+        token (str): The plaintext token to check.
+        hashed_token (str): The stored SHA-256 hash.
+
+    Returns:
+        bool: True if the token matches the hash, False otherwise.
+    """
+    return get_token_hash(token) == hashed_token
