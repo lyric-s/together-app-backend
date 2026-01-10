@@ -26,6 +26,7 @@ class AdminBase(SQLModel):
 class Admin(AdminBase, table=True):
     id_admin: int | None = Field(default=None, primary_key=True)
     hashed_password: str = Field(nullable=False)
+    hashed_refresh_token: str | None = Field(default=None, nullable=True)
     documents: list["Document"] = Relationship(back_populates="admin")
 
 
