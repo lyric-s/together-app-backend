@@ -45,41 +45,46 @@ def volunteer_create_data_fixture():
 def test_volunteer_creation_performance(
     benchmark: BenchmarkFixture,
     session: Session,
-    user_create_data: UserCreate,
+    user_create_data_factory,
     volunteer_create_data: VolunteerCreate,
 ):
     """
     Benchmark the volunteer creation path and measure its performance.
 
-    This test repeatedly creates a volunteer using the provided database session and input fixtures, and removes the created volunteer and its associated user after each measured iteration to keep the database state clean.
+    This test repeatedly creates a volunteer using the provided database session and input fixtures.
+    Cleanup is performed outside the benchmark to avoid inflating the performance measurement.
 
     Parameters:
         benchmark (BenchmarkFixture): pytest-benchmark fixture used to measure execution.
         session (Session): SQLModel database session used for creating and deleting records.
-        user_create_data (UserCreate): Input data for the user associated with the volunteer.
+        user_create_data_factory: Factory to generate unique user input data.
         volunteer_create_data (VolunteerCreate): Input data for the volunteer to be created.
     """
+    created_volunteers = []
 
     @benchmark
     def create_volunteer():
         """
-        Create a volunteer using the test fixtures and remove it from the session afterwards.
+        Create a volunteer using the test fixtures.
 
-        Creates a volunteer via volunteer_service.create_volunteer with the test session and fixture inputs, deletes the created volunteer and its associated user from the session, commits the transaction, and returns the created volunteer.
+        Creates a volunteer via volunteer_service.create_volunteer with the test session and fixture inputs.
 
         Returns:
             volunteer: The created Volunteer model instance.
         """
         volunteer = volunteer_service.create_volunteer(
             session=session,
-            user_in=user_create_data,
+            user_in=user_create_data_factory(),
             volunteer_in=volunteer_create_data,
         )
-        # Clean up after each iteration
+        created_volunteers.append(volunteer)
+        return volunteer
+
+    # Clean up all created volunteers after benchmark completes
+    for volunteer in created_volunteers:
         session.delete(volunteer)
         session.delete(volunteer.user)
-        session.commit()
-        return volunteer
+    session.commit()
 
 
 def test_volunteer_retrieval_performance(

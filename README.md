@@ -301,7 +301,7 @@ The stack automatically sets up:
 | :--- | :--- | :--- |
 | **API** | `http://localhost:8000` | See [default credentials](#default-credentials) |
 | **API Docs (Swagger)** | `http://localhost:8000/docs` | - |
-| **MinIO Console** | `http://localhost:9001` | `minioadmin` / `minioadmin123` |
+| **MinIO Console** | `http://localhost:9001` | `minioadmin` / `minioadmin` |
 
 The backend automatically:
 
