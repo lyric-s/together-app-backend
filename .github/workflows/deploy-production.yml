@@ -1,9 +1,12 @@
 name: Deploy Production
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v0.3.0)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -24,7 +27,7 @@ jobs:
       - name: Get Version
         id: get_version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION="${{ github.event.inputs.version }}"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
