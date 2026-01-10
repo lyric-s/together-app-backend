@@ -92,6 +92,33 @@ def get_documents_by_association(
     return list(session.exec(statement).all())
 
 
+def get_all_documents(
+    session: Session, *, offset: int = 0, limit: int = 100
+) -> list[Document]:
+    """
+    Retrieve all documents (admin function).
+
+    Parameters:
+        session: Database session.
+        offset: Number of records to skip.
+        limit: Maximum number of records to return.
+
+    Returns:
+        list[Document]: All documents, ordered by most recent first.
+    """
+    statement = (
+        select(Document)
+        .options(
+            selectinload(Document.association),  # type: ignore
+            selectinload(Document.admin),  # type: ignore
+        )
+        .order_by(Document.date_upload.desc())  # type: ignore
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(session.exec(statement).all())
+
+
 def get_pending_documents(session: Session) -> list[Document]:
     """
     Retrieve all documents with PENDING verification status.
