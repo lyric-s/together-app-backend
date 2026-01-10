@@ -70,29 +70,14 @@ jobs:
     steps:
       - name: Trigger Coolify Deployment
         id: deploy
-        env:
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
-          COOLIFY_URL: ${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}
         run: |
           echo "Triggering Coolify deployment for version ${{ needs.build-and-push.outputs.version }}"
 
-          HTTP_CODE=$(curl --write-out '%{http_code}' --silent \
-            --output /tmp/response.txt \
-            --request GET \
-            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
-            --max-time 30 \
-            "${COOLIFY_URL}")
+          curl --request GET "${{ secrets.COOLIFY_WEBHOOK_PRODUCTION }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            --fail --show-error
 
-          echo "Response code: $HTTP_CODE"
-          echo "Response body:"
-          cat /tmp/response.txt || echo "(empty response)"
-
-          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
-            echo "✅ Deployment triggered successfully (HTTP $HTTP_CODE)"
-          else
-            echo "❌ Deployment failed with HTTP $HTTP_CODE"
-            exit 1
-          fi
+          echo "✅ Deployment triggered successfully"
 
       - name: Wait for deployment
         run: |
