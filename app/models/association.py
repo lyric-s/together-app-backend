@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING, Optional
+from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
+from app.models.user import UserPublic, EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH
 
 if TYPE_CHECKING:
-    from app.models.user import User, UserPublic
+    from app.models.user import User
     from app.models.mission import Mission
     from app.models.document import Document
 
@@ -64,6 +66,8 @@ class AssociationCreate(AssociationBase):
 class AssociationPublic(AssociationBase):
     id_asso: int
     id_user: int
+    active_missions_count: int = 0
+    finished_missions_count: int = 0
     # TODO use .options(selectinload(Association.user)) in the query
     user: Optional["UserPublic"] = None
 
@@ -85,6 +89,9 @@ class AssociationUpdate(SQLModel):
     description: str | None = Field(
         default=None, max_length=ASSOCIATION_DESCRIPTION_MAX_LENGTH
     )
+    # User account fields
+    email: EmailStr | None = Field(default=None, max_length=EMAIL_MAX_LENGTH)
+    password: str | None = Field(default=None, min_length=PASSWORD_MIN_LENGTH)
 
     model_config = {
         "json_schema_extra": {

@@ -47,6 +47,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - ✅ **Database Migrations** with [Alembic](https://alembic.sqlalchemy.org/)
 - ✅ **File Storage** integration with [MinIO](https://min.io/)/S3-compatible services
 - ✅ **CORS Configuration** for secure cross-origin requests
+- ✅ **Rate Limiting** with [slowapi](https://github.com/laurentS/slowapi) to prevent abuse
 
 ### Development Experience
 
@@ -99,6 +100,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
 | File Storage | [MinIO](https://min.io/) (S3-compatible) |
 | Security | [OAuth2](https://oauth.net/2/) ([JWT](https://jwt.io/)) & CORS |
+| Rate Limiting | [slowapi](https://github.com/laurentS/slowapi) |
 
 ### Observability & Infrastructure
 
@@ -754,7 +756,6 @@ This project is designed to be reusable as a starting point for your own FastAPI
 
 ### Potential Improvements
 
-- **Rate limiting** with [slowapi](https://github.com/laurentS/slowapi) or custom middleware
 - **Caching** with [Redis](https://redis.io/) for frequently accessed data
 - **Background tasks** with [Celery](https://docs.celeryq.dev/) or [ARQ](https://arq-docs.helpmanual.io/)
 - **WebSocket support** for real-time features
