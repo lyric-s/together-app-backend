@@ -81,32 +81,34 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "🎉 New Version Released",
-                "description": "A new version has been released and will be deployed to production",
-                "color": 5814783,
-                "fields": [
+          jq -n \
+            --arg version "${{ steps.cz.outputs.version }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg repository "${{ github.repository }}" \
+            '{
+              embeds: [{
+                title: "🎉 New Version Released",
+                description: "A new version has been released and will be deployed to production",
+                color: 5814783,
+                fields: [
                   {
-                    "name": "Version",
-                    "value": "v${{ steps.cz.outputs.version }}",
-                    "inline": true
+                    name: "Version",
+                    value: ("v" + $version),
+                    inline: true
                   },
                   {
-                    "name": "Commit",
-                    "value": "[`${{ github.sha }}...`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})",
-                    "inline": true
+                    name: "Commit",
+                    value: ("[`" + $commit_sha + "...`](https://github.com/" + $repository + "/commit/" + $commit_sha + ")"),
+                    inline: true
                   },
                   {
-                    "name": "Links",
-                    "value": "[Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.cz.outputs.version }}) | [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)"
+                    name: "Links",
+                    value: ("[Release](https://github.com/" + $repository + "/releases/tag/v" + $version + ") | [Changelog](https://github.com/" + $repository + "/blob/main/CHANGELOG.md)")
                   }
                 ],
-                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
-                "footer": {
-                  "text": "Together API Release"
+                timestamp: (now | strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+                footer: {
+                  text: "Together API Release"
                 }
               }]
-            }' \
-            "$DISCORD_WEBHOOK" || echo "Discord notification failed (non-critical)"
+            }' | curl -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK" || echo "Discord notification failed (non-critical)"

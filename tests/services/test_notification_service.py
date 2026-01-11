@@ -97,7 +97,7 @@ class TestCreateNotificationHelpers:
             session,
             association_id=association_user.association_profile.id_asso,
             mission_id=created_mission.id_mission,
-            volunteer_id=volunteer_user.id_user,
+            user_id=volunteer_user.id_user,
             volunteer_name="Vol Unteer",
             mission_name=created_mission.name,
         )
@@ -113,7 +113,7 @@ class TestCreateNotificationHelpers:
             session,
             association_id=association_user.association_profile.id_asso,
             mission_id=created_mission.id_mission,
-            volunteer_id=volunteer_user.id_user,
+            user_id=volunteer_user.id_user,
             volunteer_name="Vol Unteer",
             mission_name=created_mission.name,
         )
@@ -127,7 +127,7 @@ class TestCreateNotificationHelpers:
             session,
             association_id=association_user.association_profile.id_asso,
             mission_id=created_mission.id_mission,
-            volunteer_id=volunteer_user.id_user,
+            user_id=volunteer_user.id_user,
             volunteer_name="Vol Unteer",
             mission_name=created_mission.name,
         )

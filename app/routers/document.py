@@ -2,17 +2,16 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, status
 from sqlmodel import Session
 
 from app.database.database import get_session
-from app.core.dependencies import get_current_user
-from app.models.user import User
+from app.core.dependencies import get_current_association
+from app.models.association import Association
 from app.models.document import DocumentCreate, DocumentPublic
 from app.services import document as document_service
-from app.services import association as association_service
 from app.services.storage import storage_service
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, ValidationError
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -23,7 +22,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 async def upload_document(
     *,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
     file: Annotated[
         UploadFile, File(description="Document file to upload (PDF, image, etc.)")
     ],
@@ -48,7 +47,7 @@ async def upload_document(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
         `file`: The document file to upload (multipart/form-data).
         `doc_name`: Human-readable name for the document.
 
@@ -60,22 +59,9 @@ async def upload_document(
         `404 NotFoundError`: If the authenticated user has no association profile.
         `400 Bad Request`: If file upload fails or file is too large.
     """
-    # Verify user has an association profile
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
-    assert association.id_asso is not None
-
     # Read file content
     if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must have a filename",
-        )
+        raise ValidationError("File must have a filename")
 
     file_content = await file.read()
 
@@ -90,23 +76,22 @@ async def upload_document(
             file_data=file_data,
             file_name=file.filename,
             content_type=file.content_type or "application/octet-stream",
-            user_id=str(current_user.id_user) if current_user.id_user else None,
+            user_id=str(current_association.id_user),
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File upload failed: {str(e)}",
-        )
+        raise ValidationError(f"File upload failed: {str(e)}")
 
     # Create document record
     document_in = DocumentCreate(
         doc_name=doc_name,
         url_doc=object_name,  # Store the object name/key
-        id_asso=association.id_asso,
+        id_asso=current_association.id_asso,  # type: ignore
     )
 
     db_document = document_service.create_document(
-        session, document_in, association.id_asso
+        session,
+        document_in,
+        current_association.id_asso,  # type: ignore
     )
 
     return DocumentPublic.model_validate(db_document)
@@ -115,7 +100,7 @@ async def upload_document(
 @router.get("/me", response_model=list[DocumentPublic])
 def read_my_documents(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> list[DocumentPublic]:
     """
     Retrieve all documents uploaded by the authenticated association.
@@ -128,7 +113,7 @@ def read_my_documents(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `list[DocumentPublic]`: List of all documents for the association, including
@@ -138,17 +123,9 @@ def read_my_documents(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the authenticated user has no association profile.
     """
-    # Verify user has an association profile
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
-    assert association.id_asso is not None
     documents = document_service.get_documents_by_association(
-        session, association.id_asso
+        session,
+        current_association.id_asso,  # type: ignore
     )
 
     return [DocumentPublic.model_validate(doc) for doc in documents]
@@ -158,7 +135,7 @@ def read_my_documents(
 def read_document(
     document_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> DocumentPublic:
     """
     Retrieve a specific document by ID.
@@ -173,7 +150,7 @@ def read_document(
     Args:
         `document_id`: The unique identifier of the document to retrieve.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `DocumentPublic`: The document's complete information including verification
@@ -184,22 +161,16 @@ def read_document(
         `404 NotFoundError`: If document or association profile doesn't exist.
         `403 InsufficientPermissionsError`: If document belongs to another association.
     """
-    # Verify user has an association profile
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Get document
     document = document_service.get_document(session, document_id)
     if not document:
         raise NotFoundError("Document", document_id)
 
     # Verify ownership
-    assert association.id_asso is not None
-    document_service.verify_document_ownership(document, association.id_asso)
+    document_service.verify_document_ownership(
+        document,
+        current_association.id_asso,  # type: ignore
+    )
 
     return DocumentPublic.model_validate(document)
 
@@ -208,7 +179,7 @@ def read_document(
 def get_document_download_url(
     document_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> dict[str, str | int]:
     """
     Generate a temporary download URL for a document.
@@ -223,7 +194,7 @@ def get_document_download_url(
     Args:
         `document_id`: The unique identifier of the document.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `dict`: Object containing:
@@ -235,22 +206,16 @@ def get_document_download_url(
         `404 NotFoundError`: If document or association profile doesn't exist.
         `403 InsufficientPermissionsError`: If document belongs to another association.
     """
-    # Verify user has an association profile
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Get document
     document = document_service.get_document(session, document_id)
     if not document:
         raise NotFoundError("Document", document_id)
 
     # Verify ownership
-    assert association.id_asso is not None
-    document_service.verify_document_ownership(document, association.id_asso)
+    document_service.verify_document_ownership(
+        document,
+        current_association.id_asso,  # type: ignore
+    )
 
     # Generate presigned URL (returns None | str)
     download_url = storage_service.get_presigned_url(document.url_doc)
@@ -265,7 +230,7 @@ def get_document_download_url(
 def delete_document(
     document_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> None:
     """
     Delete a document and its file from storage.
@@ -284,7 +249,7 @@ def delete_document(
     Args:
         `document_id`: The unique identifier of the document to delete.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `None`: Returns 204 No Content on successful deletion.
@@ -294,22 +259,16 @@ def delete_document(
         `404 NotFoundError`: If document or association profile doesn't exist.
         `403 InsufficientPermissionsError`: If document belongs to another association.
     """
-    # Verify user has an association profile
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Get document
     document = document_service.get_document(session, document_id)
     if not document:
         raise NotFoundError("Document", document_id)
 
     # Verify ownership
-    assert association.id_asso is not None
-    document_service.verify_document_ownership(document, association.id_asso)
+    document_service.verify_document_ownership(
+        document,
+        current_association.id_asso,  # type: ignore
+    )
 
     # Delete document
     document_service.delete_document(session, document_id)

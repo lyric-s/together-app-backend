@@ -9,8 +9,14 @@ from app.core.config import get_settings
 from app.database.database import get_session
 from app.models.user import User
 from app.models.admin import Admin
+from app.models.volunteer import Volunteer
+from app.models.association import Association
 from app.services import user as user_service
 from app.services import admin as admin_service
+from app.services import volunteer as volunteer_service
+from app.services import association as association_service
+from app.exceptions import NotFoundError
+from app.utils.validation import ensure_id
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -106,3 +112,55 @@ def get_current_admin(
         raise credentials_exception
 
     return admin
+
+
+def get_current_volunteer(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Session = Depends(get_session),
+) -> Volunteer:
+    """
+    Resolve and return the Volunteer profile associated with the authenticated user.
+
+    Returns:
+        Volunteer: The profile linked to the current user.
+
+    Raises:
+        AuthenticationError: If the user ID is missing from the token.
+        NotFoundError: If no volunteer profile exists for the user.
+        AppException: If the volunteer ID is missing.
+    """
+    user_id = ensure_id(current_user.id_user, "User")
+
+    volunteer = volunteer_service.get_volunteer_by_user_id(session, user_id)
+    if not volunteer:
+        raise NotFoundError("Volunteer profile", user_id)
+
+    ensure_id(volunteer.id_volunteer, "Volunteer")
+
+    return volunteer
+
+
+def get_current_association(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Session = Depends(get_session),
+) -> Association:
+    """
+    Resolve and return the Association profile associated with the authenticated user.
+
+    Returns:
+        Association: The profile linked to the current user.
+
+    Raises:
+        AuthenticationError: If the user ID is missing from the token.
+        NotFoundError: If no association profile exists for the user.
+        AppException: If the association ID is missing.
+    """
+    user_id = ensure_id(current_user.id_user, "User")
+
+    association = association_service.get_association_by_user_id(session, user_id)
+    if not association:
+        raise NotFoundError("Association profile", user_id)
+
+    ensure_id(association.id_asso, "Association")
+
+    return association

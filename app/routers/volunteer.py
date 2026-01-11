@@ -7,16 +7,18 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from app.database.database import get_session
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_volunteer
 from app.models.user import User, UserCreate
 from app.models.mission import MissionPublic
 from app.models.volunteer import (
+    Volunteer,
     VolunteerCreate,
     VolunteerPublic,
     VolunteerUpdate,
 )
 from app.services import volunteer as volunteer_service
 from app.exceptions import NotFoundError, InsufficientPermissionsError
+from app.utils.validation import ensure_id
 
 router = APIRouter(prefix="/volunteers", tags=["volunteers"])
 
@@ -87,8 +89,8 @@ def read_volunteers(
 
 @router.get("/me", response_model=VolunteerPublic)
 def read_current_volunteer(
+    volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
 ) -> VolunteerPublic:
     """
     Retrieve the authenticated user's volunteer profile.
@@ -101,7 +103,7 @@ def read_current_volunteer(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `VolunteerPublic`: The authenticated user's volunteer profile including personal
@@ -111,20 +113,13 @@ def read_current_volunteer(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If no volunteer profile exists for the authenticated user.
     """
-    # current_user.id_user is guaranteed to be int after authentication
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
     return volunteer_service.to_volunteer_public(session, volunteer)
 
 
 @router.get("/me/missions", response_model=list[MissionPublic])
 def read_current_volunteer_missions(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
     target_date: Annotated[
         Literal["today"] | date | None,
         Query(
@@ -151,7 +146,7 @@ def read_current_volunteer_missions(
         `target_date`: Optional date filter. Use "today" for current date, YYYY-MM-DD format
             for a specific date, or omit entirely to get all missions.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `list[MissionPublic]`: List of missions matching the filter criteria. Only includes
@@ -161,15 +156,6 @@ def read_current_volunteer_missions(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the current user has no associated volunteer profile.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-
     # Handle "today" string or actual date
     filter_date: date | None = None
     if target_date == "today":
@@ -177,8 +163,10 @@ def read_current_volunteer_missions(
     elif target_date is not None:
         filter_date = target_date
 
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+
     return volunteer_service.get_volunteer_missions(
-        session, volunteer.id_volunteer, target_date=filter_date
+        session, volunteer_id, target_date=filter_date
     )
 
 
@@ -313,7 +301,7 @@ async def delete_volunteer(
 @router.get("/me/favorites", response_model=list[MissionPublic])
 def read_favorite_missions(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
 ) -> list[MissionPublic]:
     """
     Retrieve the authenticated volunteer's favorite missions list.
@@ -326,7 +314,7 @@ def read_favorite_missions(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `list[MissionPublic]`: The authenticated user's favorite missions, ordered by most
@@ -336,22 +324,15 @@ def read_favorite_missions(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the current user has no volunteer profile.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-    return volunteer_service.get_favorite_missions(session, volunteer.id_volunteer)
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+    return volunteer_service.get_favorite_missions(session, volunteer_id)
 
 
 @router.post("/me/favorites/{mission_id}", status_code=201)
 def add_favorite_mission(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
 ) -> None:
     """
     Add a mission to the authenticated volunteer's favorites list.
@@ -365,7 +346,7 @@ def add_favorite_mission(
     Args:
         `mission_id`: The unique identifier of the mission to add to favorites.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `None`: Returns 201 Created on success.
@@ -375,22 +356,15 @@ def add_favorite_mission(
         `404 NotFoundError`: If the user has no volunteer profile or the mission doesn't exist.
         `400 AlreadyExistsError`: If the mission is already in the user's favorites list.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-    volunteer_service.add_favorite_mission(session, volunteer.id_volunteer, mission_id)
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+    volunteer_service.add_favorite_mission(session, volunteer_id, mission_id)
 
 
 @router.delete("/me/favorites/{mission_id}", status_code=204)
 def remove_favorite_mission(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
 ) -> None:
     """
     Remove a mission from the authenticated volunteer's favorites list.
@@ -404,7 +378,7 @@ def remove_favorite_mission(
     Args:
         `mission_id`: The unique identifier of the mission to remove from favorites.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `None`: Returns 204 No Content on successful removal.
@@ -414,17 +388,8 @@ def remove_favorite_mission(
         `404 NotFoundError`: If the volunteer profile doesn't exist or the mission
             is not in the favorites list.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-    volunteer_service.remove_favorite_mission(
-        session, volunteer.id_volunteer, mission_id
-    )
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+    volunteer_service.remove_favorite_mission(session, volunteer_id, mission_id)
 
 
 # Application/Engagement endpoints
@@ -434,7 +399,7 @@ def remove_favorite_mission(
 def apply_to_mission(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
     message: str | None = None,
 ) -> None:
     """
@@ -457,7 +422,7 @@ def apply_to_mission(
         `message`: Optional message to the association explaining the motivation to volunteer
             (maximum 1000 characters).
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `None`: Returns 201 Created on successful application submission.
@@ -467,24 +432,15 @@ def apply_to_mission(
         `404 NotFoundError`: If the volunteer profile or the mission doesn't exist.
         `400 AlreadyExistsError`: If an application for this mission already exists.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-    volunteer_service.apply_to_mission(
-        session, volunteer.id_volunteer, mission_id, message
-    )
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+    volunteer_service.apply_to_mission(session, volunteer_id, mission_id, message)
 
 
 @router.delete("/me/missions/{mission_id}/application", status_code=204)
 async def withdraw_application(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_volunteer: Annotated[Volunteer, Depends(get_current_volunteer)],
 ) -> None:
     """
     Withdraw a pending mission application for the authenticated volunteer.
@@ -504,7 +460,7 @@ async def withdraw_application(
     Args:
         `mission_id`: The unique identifier of the mission whose application to withdraw.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_volunteer`: Authenticated volunteer profile (automatically injected).
 
     Returns:
         `None`: Returns 204 No Content on successful withdrawal.
@@ -514,14 +470,5 @@ async def withdraw_application(
         `404 NotFoundError`: If the volunteer profile doesn't exist or no pending
             application exists for this mission.
     """
-    assert current_user.id_user is not None
-    volunteer = volunteer_service.get_volunteer_by_user_id(
-        session, current_user.id_user
-    )
-    if not volunteer:
-        raise NotFoundError("Volunteer profile", current_user.id_user)
-
-    assert volunteer.id_volunteer is not None
-    await volunteer_service.withdraw_application(
-        session, volunteer.id_volunteer, mission_id
-    )
+    volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
+    await volunteer_service.withdraw_application(session, volunteer_id, mission_id)
