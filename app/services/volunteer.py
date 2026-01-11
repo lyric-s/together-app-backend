@@ -459,9 +459,9 @@ def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -
     favorite = Favorite(id_volunteer=volunteer_id, id_mission=mission_id)
     session.add(favorite)
     try:
-        session.flush()
+        with session.begin_nested():
+            session.flush()
     except IntegrityError:
-        session.rollback()
         # Handle rare race where another transaction inserted the same favorite
         raise AlreadyExistsError("Favorite", "mission", mission_id)
 
@@ -546,10 +546,10 @@ def apply_to_mission(
     )
     session.add(engagement)
     try:
-        session.flush()
-        session.refresh(engagement)
+        with session.begin_nested():
+            session.flush()
+            session.refresh(engagement)
     except IntegrityError:
-        session.rollback()
         raise AlreadyExistsError("Application", "mission", mission_id)
 
     return engagement
@@ -606,14 +606,17 @@ async def withdraw_application(
             volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
 
             # Create notification for association
-            notification_service.create_volunteer_withdrew_notification(
-                session=session,
-                association_id=association.id_asso,
-                mission_id=mission.id_mission,
-                user_id=volunteer.user.id_user,
-                volunteer_name=volunteer_name,
-                mission_name=mission.name,
-            )
+            try:
+                notification_service.create_volunteer_withdrew_notification(
+                    session=session,
+                    association_id=association.id_asso,
+                    mission_id=mission.id_mission,
+                    user_id=volunteer.user.id_user,
+                    volunteer_name=volunteer_name,
+                    mission_name=mission.name,
+                )
+            except Exception:
+                logger.exception("Failed to create withdrawal notification")
 
     # Delete engagement
     session.delete(engagement)
@@ -691,31 +694,34 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         and mission.id_mission is not None
         and volunteer.user.id_user is not None
     ):
-        notification_service.create_volunteer_left_notification(
-            session=session,
-            association_id=association.id_asso,
-            mission_id=mission.id_mission,
-            user_id=volunteer.user.id_user,
-            volunteer_name=volunteer_name,
-            mission_name=mission.name,
-        )
+        try:
+            notification_service.create_volunteer_left_notification(
+                session=session,
+                association_id=association.id_asso,
+                mission_id=mission.id_mission,
+                user_id=volunteer.user.id_user,
+                volunteer_name=volunteer_name,
+                mission_name=mission.name,
+            )
 
-        # Send email to association
-        if association.user:
-            try:
-                await send_notification_email(
-                    template_name="volunteer_left",
-                    recipient_email=association.user.email,
-                    context={
-                        "association_name": association.name,
-                        "volunteer_name": volunteer_name,
-                        "mission_name": mission.name,
-                        "current_count": current_count_after_leave,
-                        "max_capacity": mission.capacity_max,
-                    },
-                )
-            except Exception:
-                logger.exception("Failed to send volunteer left email")
+            # Send email to association
+            if association.user:
+                try:
+                    await send_notification_email(
+                        template_name="volunteer_left",
+                        recipient_email=association.user.email,
+                        context={
+                            "association_name": association.name,
+                            "volunteer_name": volunteer_name,
+                            "mission_name": mission.name,
+                            "current_count": current_count_after_leave,
+                            "max_capacity": mission.capacity_max,
+                        },
+                    )
+                except Exception:
+                    logger.exception("Failed to send volunteer left email")
+        except Exception:
+            logger.exception("Failed to create volunteer left notification")
 
     # Delete engagement
     session.delete(engagement)
