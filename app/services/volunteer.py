@@ -705,25 +705,25 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
                     volunteer_name=volunteer_name,
                     mission_name=mission.name,
                 )
-
-            # Send email to association
-            if association.user:
-                try:
-                    await send_notification_email(
-                        template_name="volunteer_left",
-                        recipient_email=association.user.email,
-                        context={
-                            "association_name": association.name,
-                            "volunteer_name": volunteer_name,
-                            "mission_name": mission.name,
-                            "current_count": current_count_after_leave,
-                            "max_capacity": mission.capacity_max,
-                        },
-                    )
-                except Exception:
-                    logger.exception("Failed to send volunteer left email")
         except Exception:
             logger.exception("Failed to create volunteer left notification")
+
+        # Send email to association
+        if association.user:
+            try:
+                await send_notification_email(
+                    template_name="volunteer_left",
+                    recipient_email=association.user.email,
+                    context={
+                        "association_name": association.name,
+                        "volunteer_name": volunteer_name,
+                        "mission_name": mission.name,
+                        "current_count": current_count_after_leave,
+                        "max_capacity": mission.capacity_max,
+                    },
+                )
+            except Exception:
+                logger.exception("Failed to send volunteer left email")
 
     # Delete engagement
     session.delete(engagement)
