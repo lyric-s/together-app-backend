@@ -202,7 +202,7 @@ def create_password_reset_token(session: Session, email: str) -> tuple[User, str
     )
 
     session.add(user)
-    session.commit()
+    session.flush()
     session.refresh(user)
     return user, reset_token
 
@@ -235,7 +235,7 @@ def reset_password_with_token(session: Session, token: str, new_password: str) -
         # Clear expired token
         user.password_reset_token = None
         user.password_reset_expires = None
-        session.commit()
+        session.flush()
         raise InvalidTokenError("Password reset token has expired")
 
     # Update password and clear reset token fields
@@ -246,7 +246,7 @@ def reset_password_with_token(session: Session, token: str, new_password: str) -
     user.hashed_refresh_token = None
 
     session.add(user)
-    session.commit()
+    session.flush()
     session.refresh(user)
     return user
 

@@ -24,7 +24,12 @@ def upgrade() -> None:
     # Add verification_status column to association table
     op.add_column(
         'association',
-        sa.Column('verification_status', sa.String(), nullable=False, server_default='pending')
+        sa.Column(
+            'verification_status',
+            sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='processingstatus'),
+            nullable=False,
+            server_default='PENDING'
+        )
     )
 
     # Add rejection_reason column to document table

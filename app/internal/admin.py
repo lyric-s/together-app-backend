@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, Query
 from sqlmodel import Session
 
 from app.database.database import get_session
@@ -762,7 +762,7 @@ def get_volunteers_by_month(
     *,
     session: Annotated[Session, Depends(get_session)],
     current_admin: Annotated[Admin, Depends(get_current_admin)],
-    months: int = 12,
+    months: int = Query(12, ge=1, le=24, description="Number of months (1-24)"),
 ):
     """
     Get volunteer registration counts by month.
@@ -791,8 +791,6 @@ def get_volunteers_by_month(
     from app.services import analytics as analytics_service
     from app.models.analytics import MonthlyDataPoint
 
-    # Cap at 24 months
-    months = min(months, 24)
     data = analytics_service.get_volunteers_by_month(session, months)
     return [MonthlyDataPoint.model_validate(d) for d in data]
 
@@ -802,7 +800,7 @@ def get_missions_by_month(
     *,
     session: Annotated[Session, Depends(get_session)],
     current_admin: Annotated[Admin, Depends(get_current_admin)],
-    months: int = 12,
+    months: int = Query(12, ge=1, le=24, description="Number of months (1-24)"),
 ):
     """
     Get completed mission counts by month.
@@ -831,8 +829,6 @@ def get_missions_by_month(
     from app.services import analytics as analytics_service
     from app.models.analytics import MonthlyDataPoint
 
-    # Cap at 24 months
-    months = min(months, 24)
     data = analytics_service.get_missions_by_month(session, months)
     return [MonthlyDataPoint.model_validate(d) for d in data]
 

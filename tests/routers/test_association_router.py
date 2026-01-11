@@ -211,6 +211,74 @@ class TestEngagementManagement:
             # multiple emails are sent (approval, volunteer joined, and capacity reached because min=1)
             assert mock_email.call_count >= 1
 
+    def test_reject_engagement_success(
+        self, session: Session, client: TestClient, test_asso, asso_token
+    ):
+        """Reject a pending volunteer engagement for a mission."""
+        # Setup mission
+        loc = Location(address="L", country="F", zip_code="0")
+        session.add(loc)
+        session.commit()
+
+        mission = Mission(
+            name="M",
+            id_location=loc.id_location,
+            id_asso=test_asso.id_asso,
+            date_start=date.today(),
+            date_end=date.today(),
+            skills="S",
+            description="D",
+            capacity_min=1,
+            capacity_max=5,
+        )
+        session.add(mission)
+
+        # Setup volunteer
+        uv = user_service.create_user(
+            session,
+            UserCreate(
+                username="vol_reject",
+                email="vol_reject@test.com",
+                password="Password123",
+                user_type=UserType.VOLUNTEER,
+            ),
+        )
+        vol = Volunteer(
+            id_user=uv.id_user,
+            first_name="Vol",
+            last_name="Reject",
+            phone_number="123",
+            birthdate=date(1990, 1, 1),
+        )
+        session.add(vol)
+        session.commit()
+
+        # Create pending engagement
+        eng = Engagement(
+            id_volunteer=vol.id_volunteer,
+            id_mission=mission.id_mission,
+            state=ProcessingStatus.PENDING,
+        )
+        session.add(eng)
+        session.commit()
+
+        with patch(
+            "app.services.engagement.send_notification_email",
+            new_callable=AsyncMock,
+        ) as mock_email:
+            rejection_payload = {"rejection_reason": "Not enough experience"}
+
+            response = client.patch(
+                f"/associations/me/engagements/{vol.id_volunteer}/{mission.id_mission}/reject",
+                headers={"Authorization": f"Bearer {asso_token}"},
+                json=rejection_payload,
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["state"] == ProcessingStatus.REJECTED.value
+            assert data["rejection_reason"] == "Not enough experience"
+            assert mock_email.call_count == 1
+
 
 class TestAssociationNotifications:
     """Test unread count and notification listing for associations."""

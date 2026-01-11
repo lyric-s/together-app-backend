@@ -21,3 +21,17 @@ def ensure_id(id_value: T | None, resource_name: str = "Resource") -> T:
     if id_value is None:
         raise AppException(f"{resource_name} ID is missing")
     return id_value
+
+
+def mask_email(email: str) -> str:
+    """
+    Mask an email address for safe logging.
+    Example: 'user@example.com' -> 'u***r@example.com'
+    """
+    try:
+        user_part, domain = email.split("@")
+        if len(user_part) <= 2:
+            return f"{user_part[0]}***@{domain}"
+        return f"{user_part[0]}***{user_part[-1]}@{domain}"
+    except Exception:
+        return "***@***.***"
