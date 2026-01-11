@@ -555,8 +555,7 @@ class TestApplyToMission:
 
 
 class TestWithdrawApplication:
-    @pytest.mark.asyncio
-    async def test_withdraw_application_success(
+    def test_withdraw_application_success(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Successfully withdraw a PENDING application."""
@@ -570,7 +569,7 @@ class TestWithdrawApplication:
         )
 
         # Withdraw it
-        await volunteer_service.withdraw_application(
+        volunteer_service.withdraw_application(
             session, created_volunteer.id_volunteer, mission.id_mission
         )
 
@@ -583,8 +582,7 @@ class TestWithdrawApplication:
         ).first()
         assert engagement is None
 
-    @pytest.mark.asyncio
-    async def test_withdraw_application_not_found(
+    def test_withdraw_application_not_found(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Withdrawing non-existent application raises NotFoundError."""
@@ -593,12 +591,11 @@ class TestWithdrawApplication:
         assert mission.id_mission is not None
 
         with pytest.raises(NotFoundError):
-            await volunteer_service.withdraw_application(
+            volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
 
-    @pytest.mark.asyncio
-    async def test_withdraw_application_approved_engagement(
+    def test_withdraw_application_approved_engagement(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Cannot withdraw APPROVED engagement."""
@@ -617,12 +614,11 @@ class TestWithdrawApplication:
 
         # Try to withdraw
         with pytest.raises(NotFoundError):
-            await volunteer_service.withdraw_application(
+            volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
 
-    @pytest.mark.asyncio
-    async def test_withdraw_application_rejected_engagement(
+    def test_withdraw_application_rejected_engagement(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Cannot withdraw REJECTED engagement."""
@@ -641,6 +637,6 @@ class TestWithdrawApplication:
 
         # Try to withdraw
         with pytest.raises(NotFoundError):
-            await volunteer_service.withdraw_application(
+            volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
