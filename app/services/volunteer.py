@@ -607,14 +607,15 @@ async def withdraw_application(
 
             # Create notification for association
             try:
-                notification_service.create_volunteer_withdrew_notification(
-                    session=session,
-                    association_id=association.id_asso,
-                    mission_id=mission.id_mission,
-                    user_id=volunteer.user.id_user,
-                    volunteer_name=volunteer_name,
-                    mission_name=mission.name,
-                )
+                with session.begin_nested():
+                    notification_service.create_volunteer_withdrew_notification(
+                        session=session,
+                        association_id=association.id_asso,
+                        mission_id=mission.id_mission,
+                        user_id=volunteer.user.id_user,
+                        volunteer_name=volunteer_name,
+                        mission_name=mission.name,
+                    )
             except Exception:
                 logger.exception("Failed to create withdrawal notification")
 
@@ -695,14 +696,15 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         and volunteer.user.id_user is not None
     ):
         try:
-            notification_service.create_volunteer_left_notification(
-                session=session,
-                association_id=association.id_asso,
-                mission_id=mission.id_mission,
-                user_id=volunteer.user.id_user,
-                volunteer_name=volunteer_name,
-                mission_name=mission.name,
-            )
+            with session.begin_nested():
+                notification_service.create_volunteer_left_notification(
+                    session=session,
+                    association_id=association.id_asso,
+                    mission_id=mission.id_mission,
+                    user_id=volunteer.user.id_user,
+                    volunteer_name=volunteer_name,
+                    mission_name=mission.name,
+                )
 
             # Send email to association
             if association.user:
