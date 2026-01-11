@@ -3,7 +3,7 @@
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
-from app.models.admin import Admin, AdminCreate, AdminUpdate
+from app.models.admin import Admin, AdminCreate, AdminUpdate, AdminPublic
 from app.core.password import get_password_hash
 from app.exceptions import NotFoundError, AlreadyExistsError
 
@@ -162,7 +162,5 @@ def get_admin_profile(admin: Admin) -> dict:
     Returns:
         dict: Profile dictionary containing user_type and profile
     """
-    from app.models.admin import AdminPublic
-
     admin_public = AdminPublic.model_validate(admin)
     return {"user_type": "admin", "profile": admin_public}

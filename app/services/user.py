@@ -1,14 +1,22 @@
 """User service module for CRUD operations."""
 
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
-from app.models.user import User, UserCreate, UserUpdate
+from app.models.user import User, UserCreate, UserUpdate, UserPublic
+from app.models.enums import UserType
 from app.core.password import get_password_hash, get_token_hash
 from app.core.config import get_settings
-from app.exceptions import NotFoundError, AlreadyExistsError, InvalidTokenError
+from app.exceptions import (
+    NotFoundError,
+    AlreadyExistsError,
+    InvalidTokenError,
+    ValidationError,
+)
+from app.services.email import send_notification_email
 from app.utils.validation import ensure_id
 
 
@@ -154,9 +162,6 @@ async def delete_user(session: Session, user_id: int) -> None:
         raise NotFoundError("User", user_id)
 
     # Send email notification before deletion
-    from app.services.email import send_notification_email
-    import logging
-
     try:
         await send_notification_email(
             template_name="account_deleted",
@@ -262,11 +267,8 @@ def get_user_with_profile(session: Session, user: User) -> dict:
         NotFoundError: If the profile doesn't exist for the user
         ValidationError: If user type is invalid
     """
-    from app.models.user import UserPublic
-    from app.models.enums import UserType
     from app.services import volunteer as volunteer_service
     from app.services import association as association_service
-    from app.exceptions import ValidationError
 
     user_id = ensure_id(user.id_user, "User")
     user_public = UserPublic.model_validate(user)
