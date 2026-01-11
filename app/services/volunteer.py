@@ -685,11 +685,7 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         )
     ).one()
 
-    # Delete engagement
-    session.delete(engagement)
-    session.commit()
-
-    # Create notification for association
+    # Create notification for association (before commit for atomicity)
     if (
         association
         and association.id_asso is not None
@@ -726,3 +722,7 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
                 )
             except Exception as e:
                 logging.error(f"Failed to send volunteer left email: {e}")
+
+    # Delete engagement
+    session.delete(engagement)
+    session.commit()
