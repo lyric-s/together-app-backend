@@ -1,4 +1,5 @@
 from pathlib import Path
+import tomllib
 from app.utils.logger import setup_logging
 from contextlib import asynccontextmanager
 from app.core.config import get_settings, parse_comma_separated_origins
@@ -30,6 +31,16 @@ static_dir = BASE_DIR / "static"
 static_dir.mkdir(exist_ok=True)
 
 
+def get_project_version() -> str:
+    """Read version from pyproject.toml."""
+    try:
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+            return data["project"]["version"]
+    except Exception:
+        return "0.0.0"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -46,9 +57,19 @@ async def lifespan(app: FastAPI):
     yield
 
 
+def get_api_description() -> str:
+    """Read API description from markdown file."""
+    try:
+        with open("app/DESCRIPTION.md", "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return "Together API"
+
+
 app = FastAPI(
     title="Together API",
-    description="RESTful API for the Together application",
+    version=get_project_version(),
+    description=get_api_description(),
     lifespan=lifespan,
 )
 
@@ -103,9 +124,9 @@ def health_check():
 app.include_router(auth.router)
 app.include_router(volunteer.router)
 app.include_router(association.router)
+app.include_router(notification.router)
 app.include_router(document.router)
-app.include_router(report.router)
 app.include_router(mission.router)
 app.include_router(category.router)
-app.include_router(notification.router)
+app.include_router(report.router)
 app.include_router(admin.router)
