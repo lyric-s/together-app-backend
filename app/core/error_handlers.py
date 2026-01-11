@@ -26,6 +26,10 @@ async def not_found_handler(request: Request, exc: NotFoundError) -> JSONRespons
     """
     Map a NotFoundError to an HTTP 404 JSON response.
 
+    Parameters:
+        request (Request): The incoming HTTP request.
+        exc (NotFoundError): The exception indicating that a requested resource was not found.
+
     Returns:
         JSONResponse: Response with status 404 and a JSON body `{"detail": "<exception message>"}`.
     """
@@ -39,6 +43,10 @@ async def already_exists_handler(
 ) -> JSONResponse:
     """
     Convert an AlreadyExistsError into an HTTP 400 Bad Request JSON response.
+
+    Parameters:
+        request (Request): The incoming HTTP request.
+        exc (AlreadyExistsError): The exception indicating that a resource already exists.
 
     Returns:
         JSONResponse: Response with status code 400 and content containing a `detail` key with the exception message.
@@ -55,6 +63,7 @@ async def validation_error_handler(
     Convert a ValidationError into an HTTP 422 Unprocessable Entity JSON response.
 
     Parameters:
+        request (Request): The incoming HTTP request.
         exc (ValidationError): The domain validation error; if `exc.field` is set, the response will include a `field` key indicating the related field.
 
     Returns:
@@ -64,7 +73,7 @@ async def validation_error_handler(
     if exc.field:
         content["field"] = exc.field
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=content
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content=content
     )
 
 
@@ -74,7 +83,12 @@ async def insufficient_permissions_handler(
     """
     Handle an InsufficientPermissionsError by returning a 403 Forbidden JSON response.
 
-    @returns JSONResponse with status code 403 and a `detail` field containing the exception message.
+    Parameters:
+        request (Request): The incoming HTTP request.
+        exc (InsufficientPermissionsError): The exception indicating that the user lacks the required permissions.
+
+    Returns:
+        JSONResponse: Response with status code 403 and a `detail` field containing the exception message.
     """
     return JSONResponse(
         status_code=status.HTTP_403_FORBIDDEN, content={"detail": str(exc)}
@@ -104,6 +118,10 @@ async def authentication_error_handler(
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """
     Handle unhandled application-level exceptions and produce a standardized 500 Internal Server Error response.
+
+    Parameters:
+        request (Request): The incoming HTTP request.
+        exc (AppException): The unhandled application-level exception.
 
     Returns:
         JSONResponse: HTTP 500 response with content {"detail": "An internal error occurred"}.

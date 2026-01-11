@@ -65,7 +65,7 @@ jobs:
             -d '{
               "embeds": [{
                 "title": "🔨 Dev Docker Image Built",
-                "description": "New development backend image available for frontend team",
+                "description": "New development backend image available for frontend team. Mind restarting your stack !",
                 "color": 3447003,
                 "fields": [
                   {
@@ -108,7 +108,7 @@ jobs:
             -d '{
               "embeds": [{
                 "title": "❌ Dev Image Build Failed",
-                "description": "Failed to build development Docker image",
+                "description": "Failed to build development Docker image. Oopsi...",
                 "color": 15158332,
                 "fields": [
                   {

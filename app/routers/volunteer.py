@@ -129,7 +129,7 @@ def read_current_volunteer_missions(
         Literal["today"] | date | None,
         Query(
             description='Filter missions by date. Use "today" for current date, YYYY-MM-DD format for specific date, or omit to get all missions.',
-            example="2026-01-15",
+            examples=["2026-01-15"],
         ),
     ] = None,
 ) -> list[MissionPublic]:

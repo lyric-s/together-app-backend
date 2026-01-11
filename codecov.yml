@@ -25,8 +25,8 @@ coverage:
     # Docs: https://docs.codecov.com/docs/commit-status#patch-status
     patch:
       default:
-        target: 60%        # New code should be better than current average
-        threshold: 6%      # Allow some flexibility for difficult-to-test code
+        target: 80%        # New code should be better than current average
+        threshold: 5%      # Allow some flexibility for difficult-to-test code
 
 # PR comment configuration
 # Docs: https://docs.codecov.com/docs/pull-request-comments
