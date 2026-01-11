@@ -900,6 +900,6 @@ Built with ❤️ at IUT Paris - Rives de Seine
 ---
 
 > [!NOTE]
-> **Agentic AI Tools** such as [Claude CLI](https://github.com/anthropics/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [CodeRabbit](https://coderabbit.ai/) came as great help on tests, docstrings, and reviews making when we came short on time before the end of this project.
+> **Agentic AI Tools** such as [Claude CLI](https://github.com/anthropics/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [CodeRabbit](https://coderabbit.ai/) came as great help on tests, documentation, and reviews making when we came short on time before the end of this project, and it was a great opportunity to try them. But be aware that they may have introduced some inconsticencies in the codebase despite the amount of time spent on the reviewing of their outputs.
 
 [Report an Issue](https://github.com/lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/lyric-s/together-app-backend/issues)
