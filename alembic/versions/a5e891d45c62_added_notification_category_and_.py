@@ -44,6 +44,8 @@ def upgrade() -> None:
     op.create_foreign_key('notification_related_mission_id_fkey', 'notification', 'mission', ['related_mission_id'], ['id_mission'], ondelete='CASCADE')
     op.create_foreign_key('notification_related_user_id_fkey', 'notification', 'user', ['related_user_id'], ['id_user'], ondelete='SET NULL')
     op.create_foreign_key('notification_id_asso_fkey', 'notification', 'association', ['id_asso'], ['id_asso'], ondelete='CASCADE')
+    op.create_index(op.f('ix_notification_created_at'), 'notification', ['created_at'], unique=False)
+    op.create_index(op.f('ix_notification_association'), 'notification', ['id_asso'], unique=False)
     op.alter_column('user', 'password_reset_expires',
                existing_type=postgresql.TIMESTAMP(timezone=True),
                type_=sa.DateTime(timezone=True),

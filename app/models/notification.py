@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime, ForeignKey
 from enum import Enum
 
 if TYPE_CHECKING:
@@ -26,10 +27,8 @@ class NotificationBase(SQLModel):
 
     notification_type: NotificationType
     message: str = Field(max_length=500)
-    related_mission_id: int | None = Field(
-        default=None, foreign_key="mission.id_mission"
-    )
-    related_user_id: int | None = Field(default=None, foreign_key="user.id_user")
+    related_mission_id: int | None = Field(default=None)
+    related_user_id: int | None = Field(default=None)
     is_read: bool = Field(default=False)
 
 
@@ -37,8 +36,43 @@ class Notification(NotificationBase, table=True):
     """Database notification model."""
 
     id_notification: int | None = Field(default=None, primary_key=True)
-    id_asso: int = Field(foreign_key="association.id_asso")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    id_asso: int = Field(
+        sa_column=Column(
+            ForeignKey(
+                "association.id_asso",
+                ondelete="CASCADE",
+                name="notification_id_asso_fkey",
+            ),
+            nullable=False,
+            index=True,
+        )
+    )
+    related_mission_id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey(
+                "mission.id_mission",
+                ondelete="CASCADE",
+                name="notification_related_mission_id_fkey",
+            ),
+            nullable=True,
+        ),
+    )
+    related_user_id: int | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey(
+                "user.id_user",
+                ondelete="SET NULL",
+                name="notification_related_user_id_fkey",
+            ),
+            nullable=True,
+        ),
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+    )
 
     # Relationships
     association: "Association" = Relationship(back_populates="notifications")
