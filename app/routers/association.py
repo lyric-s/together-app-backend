@@ -15,7 +15,7 @@ from app.models.association import (
     AssociationUpdate,
 )
 from app.models.mission import MissionCreate, MissionPublic, MissionUpdate
-from app.models.engagement import Engagement
+from app.models.engagement import Engagement, RejectEngagementRequest
 from app.models.notification import (
     BulkEmailRequest,
     NotificationPublic,
@@ -67,6 +67,8 @@ def create_association(
     association = association_service.create_association(
         session, user_in, association_in
     )
+    session.commit()
+    session.refresh(association)
     return association_service.to_association_public(session, association)
 
 
@@ -246,6 +248,7 @@ def mark_notifications_as_read(
         notification_ids=mark_read.notification_ids,
         association_id=current_association.id_asso,  # type: ignore
     )
+    session.commit()
 
     return {"marked_count": marked_count}
 
@@ -327,6 +330,8 @@ def update_association(
     updated = association_service.update_association(
         session, association_id, association_update
     )
+    session.commit()
+    session.refresh(updated)
     return association_service.to_association_public(session, updated)
 
 
@@ -370,6 +375,7 @@ async def delete_association(
         raise InsufficientPermissionsError("delete this association profile")
 
     await association_service.delete_association(session, association_id)
+    session.commit()
 
 
 # Mission endpoints
@@ -580,6 +586,8 @@ async def approve_engagement(
     engagement = await engagement_service.approve_application_by_ids(
         session, volunteer_id, mission_id
     )
+    session.commit()
+    session.refresh(engagement)
     return engagement
 
 
@@ -587,7 +595,7 @@ async def approve_engagement(
 async def reject_engagement(
     volunteer_id: int,
     mission_id: int,
-    rejection_reason: str,
+    rejection: RejectEngagementRequest,
     session: Annotated[Session, Depends(get_session)],
     current_association: Annotated[Association, Depends(get_current_association)],
 ) -> Engagement:
@@ -603,7 +611,7 @@ async def reject_engagement(
     Args:
         volunteer_id: The volunteer's ID.
         mission_id: The mission's ID.
-        rejection_reason: Reason for rejection.
+        rejection: Request body containing rejection reason.
         session: Database session (automatically injected).
         current_association: Authenticated association profile (automatically injected).
 
@@ -623,8 +631,10 @@ async def reject_engagement(
         raise InsufficientPermissionsError("reject applications for this mission")
 
     engagement = await engagement_service.reject_application(
-        session, volunteer_id, mission_id, rejection_reason
+        session, volunteer_id, mission_id, rejection.rejection_reason
     )
+    session.commit()
+    session.refresh(engagement)
     return engagement
 
 

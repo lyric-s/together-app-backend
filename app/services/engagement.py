@@ -8,29 +8,9 @@ from app.models.association import Association
 from app.models.enums import ProcessingStatus
 from app.services.email import send_notification_email
 from app.services import notification as notification_service
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, ValidationError
 from app.core.config import get_settings
-
-
-async def approve_application(session: Session, engagement_id: int) -> Engagement:
-    """
-    Approve a volunteer's mission application and send notifications.
-
-    Sends email to volunteer and creates notification for association.
-    Checks if mission reached minimum capacity.
-
-    Args:
-        session: Database session
-        engagement_id: Engagement ID (composite key not supported, use volunteer_id + mission_id)
-
-    Returns:
-        Engagement: Updated engagement
-    """
-    # Note: Since Engagement has composite PK, we need volunteer_id and mission_id
-    # This function signature will be updated in the router
-    raise NotImplementedError(
-        "Use approve_application_by_ids with volunteer_id and mission_id"
-    )
+from app.utils.logger import logger
 
 
 async def approve_application_by_ids(
@@ -61,6 +41,12 @@ async def approve_application_by_ids(
     if not engagement:
         raise NotFoundError(
             "Engagement", f"volunteer_{volunteer_id}_mission_{mission_id}"
+        )
+
+    if engagement.state != ProcessingStatus.PENDING:
+        raise ValidationError(
+            f"Cannot approve engagement in state {engagement.state.value}",
+            field="state",
         )
 
     # Get mission
@@ -103,7 +89,7 @@ async def approve_application_by_ids(
     engagement.state = ProcessingStatus.APPROVED
     engagement.rejection_reason = None
     session.add(engagement)
-    session.commit()
+    session.flush()
     session.refresh(engagement)
 
     # Current count after approval
@@ -125,10 +111,8 @@ async def approve_application_by_ids(
                 "frontend_url": settings.FRONTEND_URL,
             },
         )
-    except Exception as e:
-        import logging
-
-        logging.error(f"Failed to send application approval email: {e}")
+    except Exception:
+        logger.exception("Failed to send application approval email")
 
     # Create notification for association
     if (
@@ -159,10 +143,8 @@ async def approve_application_by_ids(
                     "max_capacity": mission.capacity_max,
                 },
             )
-        except Exception as e:
-            import logging
-
-            logging.error(f"Failed to send volunteer joined email: {e}")
+        except Exception:
+            logger.exception("Failed to send volunteer joined email")
 
     # Check if mission just reached minimum capacity
     if (
@@ -194,10 +176,8 @@ async def approve_application_by_ids(
                         "max_capacity": mission.capacity_max,
                     },
                 )
-            except Exception as e:
-                import logging
-
-                logging.error(f"Failed to send capacity reached email: {e}")
+            except Exception:
+                logger.exception("Failed to send capacity reached email")
 
     return engagement
 
@@ -230,6 +210,12 @@ async def reject_application(
             "Engagement", f"volunteer_{volunteer_id}_mission_{mission_id}"
         )
 
+    if engagement.state != ProcessingStatus.PENDING:
+        raise ValidationError(
+            f"Cannot reject engagement in state {engagement.state.value}",
+            field="state",
+        )
+
     # Get mission
     mission = session.exec(
         select(Mission).where(Mission.id_mission == mission_id)
@@ -250,7 +236,7 @@ async def reject_application(
     engagement.state = ProcessingStatus.REJECTED
     engagement.rejection_reason = rejection_reason
     session.add(engagement)
-    session.commit()
+    session.flush()
     session.refresh(engagement)
 
     # Send email to volunteer
@@ -266,9 +252,7 @@ async def reject_application(
                 "rejection_reason": rejection_reason,
             },
         )
-    except Exception as e:
-        import logging
-
-        logging.error(f"Failed to send application rejection email: {e}")
+    except Exception:
+        logger.exception("Failed to send application rejection email")
 
     return engagement

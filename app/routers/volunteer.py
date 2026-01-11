@@ -55,6 +55,8 @@ def create_volunteer(
         `400 AlreadyExistsError`: If the username or email already exists in the system.
     """
     volunteer = volunteer_service.create_volunteer(session, user_in, volunteer_in)
+    session.commit()
+    session.refresh(volunteer)
     return volunteer_service.to_volunteer_public(session, volunteer)
 
 
@@ -249,6 +251,8 @@ def update_volunteer(
     updated = volunteer_service.update_volunteer(
         session, volunteer_id, volunteer_update
     )
+    session.commit()
+    session.refresh(updated)
     return volunteer_service.to_volunteer_public(session, updated)
 
 
@@ -293,6 +297,7 @@ async def delete_volunteer(
         raise InsufficientPermissionsError("delete this volunteer profile")
 
     await volunteer_service.delete_volunteer(session, volunteer_id)
+    session.commit()
 
 
 # Favorite endpoints
@@ -358,6 +363,7 @@ def add_favorite_mission(
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.add_favorite_mission(session, volunteer_id, mission_id)
+    session.commit()
 
 
 @router.delete("/me/favorites/{mission_id}", status_code=204)
@@ -390,6 +396,7 @@ def remove_favorite_mission(
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.remove_favorite_mission(session, volunteer_id, mission_id)
+    session.commit()
 
 
 # Application/Engagement endpoints
@@ -434,6 +441,7 @@ def apply_to_mission(
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.apply_to_mission(session, volunteer_id, mission_id, message)
+    session.commit()
 
 
 @router.delete("/me/missions/{mission_id}/application", status_code=204)
@@ -472,3 +480,4 @@ async def withdraw_application(
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     await volunteer_service.withdraw_application(session, volunteer_id, mission_id)
+    session.commit()

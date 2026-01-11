@@ -19,7 +19,7 @@ from app.models.category import CategoryCreate
 from app.services import category as category_service
 
 
-# Fixtures from test_engagement_service.py
+# Test fixtures for notification service tests
 @pytest.fixture(name="volunteer_user")
 def volunteer_user_fixture(session: Session):
     user_create = UserCreate(

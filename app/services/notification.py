@@ -24,7 +24,7 @@ def create_notification(
     """
     notification = Notification.model_validate(notification_in)
     session.add(notification)
-    session.commit()
+    session.flush()
     session.refresh(notification)
     return notification
 
@@ -92,7 +92,7 @@ def mark_notifications_as_read(
             session.add(notification)
             count += 1
 
-    session.commit()
+    session.flush()
     return count
 
 
