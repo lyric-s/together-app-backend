@@ -28,6 +28,7 @@ from app.exceptions import InvalidCredentialsError, InvalidTokenError, NotFoundE
 from app.services import user as user_service
 from app.services.email import send_password_reset_email
 from app.utils.logger import logger
+from app.utils.validation import mask_email
 from sqlmodel import select
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -219,7 +220,7 @@ async def request_password_reset(
     Request a password reset email.
 
     Generates a password reset token and sends it via email to the user.
-    Always returns success to prevent email enumeration attacks.
+    Always returns success to reduce email enumeration risk.
 
     ### Rate Limiting:
     - **Limit**: 3 attempts per hour per IP address.
@@ -244,20 +245,21 @@ async def request_password_reset(
         user, reset_token = user_service.create_password_reset_token(
             session, reset_request.email
         )
+        session.commit()
         await send_password_reset_email(
             email=user.email,
             reset_token=reset_token,
             username=user.username,
         )
     except NotFoundError:
-        # Don't reveal if email exists - timing-safe response
+        # Don't reveal if email exists - constant response
         logger.debug(
-            f"Password reset requested for non-existent email: {reset_request.email}"
+            f"Password reset requested for non-existent email: {mask_email(reset_request.email)}"
         )
     except Exception:
         # Log error but don't expose to prevent information leakage
         logger.exception(
-            f"Failed to send password reset email to {reset_request.email}"
+            f"Failed to send password reset email to {mask_email(reset_request.email)}"
         )
 
     return PasswordResetResponse(
@@ -300,6 +302,7 @@ async def confirm_password_reset(
     user_service.reset_password_with_token(
         session, reset_confirm.token, reset_confirm.new_password
     )
+    session.commit()
     return PasswordResetResponse(
         message="Password has been reset successfully. Please log in with your new password."
     )

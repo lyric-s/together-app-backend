@@ -200,7 +200,7 @@ def create_association(
     )
 
     session.add(db_association)
-    session.commit()
+    session.flush()
     session.refresh(db_association)
 
     return db_association
@@ -324,7 +324,7 @@ def update_association(
         user_service.update_user(session, db_association.id_user, user_update)
 
     session.add(db_association)
-    session.commit()
+    session.flush()
     session.refresh(db_association)
     # Force reload of user relationship to ensure it reflects changes
     session.expire(db_association, ["user"])
@@ -357,4 +357,4 @@ async def delete_association(session: Session, association_id: int) -> None:
     # Delete associated user (sends email notification)
     await user_service.delete_user(session, user_id)
 
-    session.commit()
+    session.flush()

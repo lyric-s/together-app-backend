@@ -16,10 +16,14 @@ from app.models.user import UserCreate, UserUpdate, UserPublic
 from app.models.engagement import Engagement
 from app.models.favorite import Favorite
 from app.models.mission import Mission, MissionPublic
+from app.models.association import Association
 from app.models.enums import UserType, ProcessingStatus
 from app.exceptions import NotFoundError, AlreadyExistsError
 from app.services import user as user_service
+from app.services import notification as notification_service
+from app.services.email import send_notification_email
 from app.utils.validation import ensure_id
+from app.utils.logger import logger
 
 
 def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, int]:
@@ -199,7 +203,7 @@ def create_volunteer(
     )
 
     session.add(db_volunteer)
-    session.commit()
+    session.flush()
     session.refresh(db_volunteer)
 
     return db_volunteer
@@ -579,9 +583,6 @@ async def withdraw_application(
         raise NotFoundError("Pending application", mission_id)
 
     # Get mission and association for notification
-    from app.models.mission import Mission
-    from app.models.association import Association
-
     mission = session.exec(
         select(Mission).where(Mission.id_mission == mission_id)
     ).first()
@@ -605,8 +606,6 @@ async def withdraw_application(
             volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
 
             # Create notification for association
-            from app.services import notification as notification_service
-
             notification_service.create_volunteer_withdrew_notification(
                 session=session,
                 association_id=association.id_asso,
@@ -618,7 +617,7 @@ async def withdraw_application(
 
     # Delete engagement
     session.delete(engagement)
-    session.commit()
+    session.flush()
 
 
 async def leave_mission(session: Session, volunteer_id: int, mission_id: int) -> None:
@@ -685,15 +684,13 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         )
     ).one()
 
-    # Create notification for association (before commit for atomicity)
+    # Create notification for association
     if (
         association
         and association.id_asso is not None
         and mission.id_mission is not None
         and volunteer.user.id_user is not None
     ):
-        from app.services import notification as notification_service
-
         notification_service.create_volunteer_left_notification(
             session=session,
             association_id=association.id_asso,
@@ -705,9 +702,6 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
 
         # Send email to association
         if association.user:
-            from app.services.email import send_notification_email
-            import logging
-
             try:
                 await send_notification_email(
                     template_name="volunteer_left",
@@ -720,9 +714,9 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
                         "max_capacity": mission.capacity_max,
                     },
                 )
-            except Exception as e:
-                logging.error(f"Failed to send volunteer left email: {e}")
+            except Exception:
+                logger.exception("Failed to send volunteer left email")
 
     # Delete engagement
     session.delete(engagement)
-    session.commit()
+    session.flush()

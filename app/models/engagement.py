@@ -10,3 +10,7 @@ class Engagement(SQLModel, table=True):
     message: str | None = Field(default=None, max_length=1000, nullable=True)
     application_date: date = Field(default_factory=date.today)
     rejection_reason: str | None = Field(default=None, max_length=500, nullable=True)
+
+
+class RejectEngagementRequest(SQLModel):
+    rejection_reason: str = Field(min_length=1, max_length=500)
