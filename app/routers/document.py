@@ -12,6 +12,8 @@ from app.models.document import DocumentCreate, DocumentPublic
 from app.services import document as document_service
 from app.services.storage import storage_service
 from app.exceptions import NotFoundError, ValidationError
+from app.utils.validation import ensure_id
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -63,35 +65,31 @@ async def upload_document(
     if not file.filename:
         raise ValidationError("File must have a filename")
 
-    file_content = await file.read()
-
     # Upload file to storage
     try:
-        # Convert bytes to BinaryIO (BytesIO)
-        from io import BytesIO
-
-        file_data = BytesIO(file_content)
-
+        file.file.seek(0)
         object_name = storage_service.upload_file(
-            file_data=file_data,
+            file_data=file.file,
             file_name=file.filename,
             content_type=file.content_type or "application/octet-stream",
-            user_id=str(current_association.id_user),
+            user_id=str(ensure_id(current_association.id_user, "User")),
         )
     except Exception as e:
-        raise ValidationError(f"File upload failed: {str(e)}")
+        logger.exception(e)
+        raise ValidationError("File upload failed")
 
     # Create document record
+    association_id = ensure_id(current_association.id_asso, "Association")
     document_in = DocumentCreate(
         doc_name=doc_name,
         url_doc=object_name,  # Store the object name/key
-        id_asso=current_association.id_asso,  # type: ignore
+        id_asso=association_id,
     )
 
     db_document = document_service.create_document(
         session,
         document_in,
-        current_association.id_asso,  # type: ignore
+        association_id,
     )
     session.commit()
     session.refresh(db_document)
