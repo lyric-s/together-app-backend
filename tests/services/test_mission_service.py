@@ -167,10 +167,9 @@ class TestDeleteMission:
         sample_mission_create: MissionCreate,
     ):
         mission = mission_service.create_mission(session, sample_mission_create)
-        assert mission.id_mission is not None
-
+        assert isinstance(mission.id_mission, int)
         with patch(
-            "app.services.email.send_notification_email", new_callable=AsyncMock
+            "app.services.mission.send_notification_email", new_callable=AsyncMock
         ) as mock_email:
             await mission_service.delete_mission(
                 session, mission.id_mission, association_id=mission.id_asso
@@ -193,7 +192,7 @@ class TestDeleteMission:
 
         with (
             patch(
-                "app.services.email.send_notification_email", new_callable=AsyncMock
+                "app.services.mission.send_notification_email", new_callable=AsyncMock
             ) as mock_email,
             patch(
                 "app.services.notification.create_mission_deleted_notification"
@@ -256,7 +255,7 @@ class TestDeleteMission:
         session.commit()
 
         with patch(
-            "app.services.email.send_notification_email", new_callable=AsyncMock
+            "app.services.mission.send_notification_email", new_callable=AsyncMock
         ) as mock_email:
             await mission_service.delete_mission(
                 session, mission.id_mission, association_id=mission.id_asso

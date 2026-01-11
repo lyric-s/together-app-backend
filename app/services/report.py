@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.report import Report, ReportCreate, ReportUpdate
 from app.models.user import User
-from app.models.enums import ProcessingStatus
+from app.models.enums import ProcessingStatus, UserType
 from app.exceptions import NotFoundError, AlreadyExistsError, ValidationError
 
 
@@ -227,8 +227,6 @@ def _get_user_display_name(user: User) -> str:
     Returns:
         str: Display name for the user
     """
-    from app.models.enums import UserType
-
     if user.user_type == UserType.VOLUNTEER and user.volunteer_profile:
         return f"{user.volunteer_profile.first_name} {user.volunteer_profile.last_name}"
     elif user.user_type == UserType.ASSOCIATION and user.association_profile:

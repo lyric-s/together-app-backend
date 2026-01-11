@@ -1,5 +1,6 @@
 """Mission service module for CRUD operations."""
 
+import logging
 from datetime import date
 from sqlmodel import Session, select, func, or_
 from sqlalchemy.orm import selectinload
@@ -7,10 +8,14 @@ from sqlalchemy.orm import selectinload
 from app.models.mission import Mission, MissionCreate, MissionUpdate, MissionPublic
 from app.models.location import Location, LocationPublic
 from app.models.category import Category, CategoryPublic
-from app.models.association import AssociationPublic
+from app.models.association import Association, AssociationPublic
 from app.models.engagement import Engagement
+from app.models.volunteer import Volunteer
 from app.models.enums import ProcessingStatus
+from app.models.mission_category import MissionCategory
 from app.exceptions import NotFoundError, InsufficientPermissionsError
+from app.services.email import send_notification_email
+from app.services import notification as notification_service
 
 
 def create_mission(session: Session, mission_in: MissionCreate) -> Mission:
@@ -157,15 +162,6 @@ async def delete_mission(
         NotFoundError: If no mission exists with the given mission_id.
         InsufficientPermissionsError: If association_id is provided but does not match the mission's owner.
     """
-    from sqlmodel import select
-    from app.models.engagement import Engagement
-    from app.models.volunteer import Volunteer
-    from app.models.association import Association
-    from app.models.enums import ProcessingStatus
-    from app.services.email import send_notification_email
-    from app.services import notification as notification_service
-    import logging
-
     mission = session.get(Mission, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
@@ -276,8 +272,6 @@ def search_missions(
         list[Mission]: Missions matching filters with eager-loaded relationships.
     """
     # Build query with eager loading
-    from app.models.mission_category import MissionCategory
-
     statement = select(Mission).options(
         selectinload(Mission.location),  # type: ignore
         selectinload(Mission.categories),  # type: ignore
