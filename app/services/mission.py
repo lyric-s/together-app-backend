@@ -53,7 +53,7 @@ def create_mission(session: Session, mission_in: MissionCreate) -> Mission:
     mission.categories = categories  # Set many-to-many relationship
 
     session.add(mission)
-    session.commit()
+    session.flush()
     session.refresh(mission)
     return mission
 
@@ -137,7 +137,7 @@ def update_mission(
         setattr(mission, key, value)
 
     session.add(mission)
-    session.commit()
+    session.flush()
     session.refresh(mission)
     return mission
 
@@ -237,7 +237,7 @@ async def delete_mission(
 
     # Delete mission (cascades to engagements)
     session.delete(mission)
-    session.commit()
+    session.flush()
 
 
 def search_missions(

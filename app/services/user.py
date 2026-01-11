@@ -6,18 +6,15 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
-from app.models.user import User, UserCreate, UserUpdate, UserPublic
-from app.models.enums import UserType
+from app.models.user import User, UserCreate, UserUpdate
 from app.core.password import get_password_hash, get_token_hash
 from app.core.config import get_settings
 from app.exceptions import (
     NotFoundError,
     AlreadyExistsError,
     InvalidTokenError,
-    ValidationError,
 )
 from app.services.email import send_notification_email
-from app.utils.validation import ensure_id
 
 
 def create_user(session: Session, user_in: UserCreate) -> User:
@@ -236,7 +233,12 @@ def reset_password_with_token(session: Session, token: str, new_password: str) -
         raise InvalidTokenError("Invalid password reset token")
 
     # Check if token has expired
-    if datetime.now(timezone.utc) > user.password_reset_expires:
+    expires = user.password_reset_expires
+    # SQLite may drop tzinfo; assume UTC if missing
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+
+    if datetime.now(timezone.utc) > expires:
         raise InvalidTokenError("Password reset token has expired")
 
     # Update password and clear reset token fields
@@ -250,51 +252,3 @@ def reset_password_with_token(session: Session, token: str, new_password: str) -
     session.flush()
     session.refresh(user)
     return user
-
-
-def get_user_with_profile(session: Session, user: User) -> dict:
-    """
-    Get user profile for volunteers and associations.
-
-    Args:
-        session: Database session
-        user: User instance
-
-    Returns:
-        dict: Profile dictionary containing user_type, user, and profile
-
-    Raises:
-        NotFoundError: If the profile doesn't exist for the user
-        ValidationError: If user type is invalid
-    """
-    from app.services import volunteer as volunteer_service
-    from app.services import association as association_service
-
-    user_id = ensure_id(user.id_user, "User")
-    user_public = UserPublic.model_validate(user)
-
-    if user.user_type == UserType.VOLUNTEER:
-        volunteer = volunteer_service.get_volunteer_by_user_id(session, user_id)
-        if not volunteer:
-            raise NotFoundError("Volunteer profile", user_id)
-        volunteer_public = volunteer_service.to_volunteer_public(session, volunteer)
-        return {
-            "user_type": "volunteer",
-            "user": user_public,
-            "profile": volunteer_public,
-        }
-
-    elif user.user_type == UserType.ASSOCIATION:
-        association = association_service.get_association_by_user_id(session, user_id)
-        if not association:
-            raise NotFoundError("Association profile", user_id)
-        association_public = association_service.to_association_public(
-            session, association
-        )
-        return {
-            "user_type": "association",
-            "user": user_public,
-            "profile": association_public,
-        }
-
-    raise ValidationError(f"Invalid user type: {user.user_type}")

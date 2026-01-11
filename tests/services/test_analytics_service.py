@@ -7,7 +7,9 @@ from sqlmodel import Session
 
 from app.models.user import UserCreate
 from app.models.association import Association
+from app.models.mission import Mission
 from app.models.report import Report
+
 from app.models.enums import ProcessingStatus, UserType, ReportType, ReportTarget
 from app.services import analytics as analytics_service
 from app.services import user as user_service
@@ -78,8 +80,6 @@ class TestAnalytics:
 
         session.commit()
         session.refresh(a1)
-
-        from app.models.mission import Mission
 
         m1 = Mission(
             name="Past Mission",
@@ -251,8 +251,6 @@ class TestAnalytics:
         )
         session.commit()
         session.refresh(a1)
-
-        from app.models.mission import Mission
 
         today = date.today()
         last_month_date = today - relativedelta(months=1)
