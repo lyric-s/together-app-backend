@@ -8,9 +8,9 @@ class UserType(str, Enum):
 
 
 class ProcessingStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 class ReportType(str, Enum):
