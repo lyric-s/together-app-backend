@@ -635,9 +635,6 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
     Raises:
         NotFoundError: If no APPROVED engagement exists for this volunteer-mission pair.
     """
-    from app.models.mission import Mission
-    from app.models.association import Association
-
     # Get engagement
     engagement = session.exec(
         select(Engagement).where(
@@ -673,8 +670,6 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
     volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
 
     # Count current approved volunteers
-    from sqlmodel import func
-
     current_count = session.exec(
         select(func.count())
         .select_from(Engagement)

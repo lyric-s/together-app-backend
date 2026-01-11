@@ -349,7 +349,7 @@ class TestDeleteUser:
         user_id = created_user.id_user
 
         with patch(
-            "app.services.email.send_notification_email", new_callable=AsyncMock
+            "app.services.user.send_notification_email", new_callable=AsyncMock
         ) as mock_email:
             await user_service.delete_user(session, user_id)
 

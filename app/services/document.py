@@ -1,5 +1,6 @@
 """Document service module for CRUD operations and validation workflow."""
 
+import logging
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 
@@ -8,6 +9,7 @@ from app.models.enums import ProcessingStatus
 from app.exceptions import NotFoundError, ValidationError, InsufficientPermissionsError
 from app.services.storage import storage_service
 from app.services import association as association_service
+from app.services.email import send_notification_email
 
 
 def create_document(
@@ -229,9 +231,6 @@ async def approve_document(
 
     # Send email notification to association
     if association and association.user:
-        from app.services.email import send_notification_email
-        import logging
-
         try:
             await send_notification_email(
                 template_name="document_approved",
@@ -304,9 +303,6 @@ async def reject_document(
 
     # Send email notification to association
     if association and association.user:
-        from app.services.email import send_notification_email
-        import logging
-
         try:
             await send_notification_email(
                 template_name="document_rejected",
