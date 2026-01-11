@@ -16,7 +16,6 @@ from app.routers import (
     document,
     mission,
     category,
-    notification,
 )
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
@@ -124,7 +123,6 @@ def health_check():
 app.include_router(auth.router)
 app.include_router(volunteer.router)
 app.include_router(association.router)
-app.include_router(notification.router)
 app.include_router(document.router)
 app.include_router(mission.router)
 app.include_router(category.router)
