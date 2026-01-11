@@ -42,10 +42,10 @@ major_version_zero = true
 
 [tool.pyrefly]
 infer-with-first-use = false
-project_excludes = ["alembic/versions/*"]
+project-excludes = ["alembic/**"]
 
 [tool.ruff]
-exclude = ["alembic/versions/*"]
+exclude = ["alembic/**"]
 
 [tool.pytest.ini_options]
 # Benchmark markers for CodSpeed
