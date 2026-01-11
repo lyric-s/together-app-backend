@@ -232,10 +232,6 @@ def reset_password_with_token(session: Session, token: str, new_password: str) -
 
     # Check if token has expired
     if datetime.now(timezone.utc) > user.password_reset_expires:
-        # Clear expired token
-        user.password_reset_token = None
-        user.password_reset_expires = None
-        session.flush()
         raise InvalidTokenError("Password reset token has expired")
 
     # Update password and clear reset token fields

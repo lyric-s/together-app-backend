@@ -321,7 +321,7 @@ def update_volunteer(
         user_service.update_user(session, db_volunteer.id_user, user_update)
 
     session.add(db_volunteer)
-    session.commit()
+    session.flush()
     session.refresh(db_volunteer)
 
     return db_volunteer
@@ -352,7 +352,7 @@ async def delete_volunteer(session: Session, volunteer_id: int) -> None:
     # Delete associated user (sends email notification)
     await user_service.delete_user(session, user_id)
 
-    session.commit()
+    session.flush()
 
 
 def get_volunteer_missions(
@@ -459,7 +459,7 @@ def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -
     favorite = Favorite(id_volunteer=volunteer_id, id_mission=mission_id)
     session.add(favorite)
     try:
-        session.commit()
+        session.flush()
     except IntegrityError:
         session.rollback()
         # Handle rare race where another transaction inserted the same favorite
@@ -485,7 +485,7 @@ def remove_favorite_mission(
         raise NotFoundError("Favorite", mission_id)
 
     session.delete(favorite)
-    session.commit()
+    session.flush()
 
 
 # Engagement/Application operations
@@ -546,7 +546,7 @@ def apply_to_mission(
     )
     session.add(engagement)
     try:
-        session.commit()
+        session.flush()
         session.refresh(engagement)
     except IntegrityError:
         session.rollback()
