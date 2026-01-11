@@ -65,7 +65,7 @@ jobs:
         uses: CodSpeedHQ/action@v4
         with:
           mode: simulation
-          run: uv run pytest tests/ --codspeed
+          run: uv run pytest tests/benchmarks --codspeed
 
   quality:
     name: Code quality checks

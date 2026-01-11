@@ -20,7 +20,7 @@ def search_missions(
         str | None,
         Query(
             description="Comma-separated category IDs (OR logic - missions matching ANY category)",
-            example="1,3,5",
+            examples=["1,3,5"],
         ),
     ] = None,
     country: str | None = Query(default=None, description="Filter by location country"),
