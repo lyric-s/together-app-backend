@@ -100,7 +100,7 @@ class NotificationCreate(SQLModel):
 class NotificationMarkRead(SQLModel):
     """Schema for marking notifications as read."""
 
-    notification_ids: list[int] = Field(min_items=1)
+    notification_ids: list[int] = Field(min_length=1)
 
 
 class BulkEmailRequest(SQLModel):
