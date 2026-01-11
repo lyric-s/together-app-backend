@@ -9,6 +9,7 @@ from app.models.user import User, UserCreate, UserUpdate
 from app.core.password import get_password_hash, get_token_hash
 from app.core.config import get_settings
 from app.exceptions import NotFoundError, AlreadyExistsError, InvalidTokenError
+from app.utils.validation import ensure_id
 
 
 def create_user(session: Session, user_in: UserCreate) -> User:
@@ -271,13 +272,13 @@ def get_user_with_profile(session: Session, user: User) -> dict:
     from app.services import association as association_service
     from app.exceptions import ValidationError
 
-    assert user.id_user is not None, "User ID must be set"
+    user_id = ensure_id(user.id_user, "User")
     user_public = UserPublic.model_validate(user)
 
     if user.user_type == UserType.VOLUNTEER:
-        volunteer = volunteer_service.get_volunteer_by_user_id(session, user.id_user)
+        volunteer = volunteer_service.get_volunteer_by_user_id(session, user_id)
         if not volunteer:
-            raise NotFoundError("Volunteer profile", user.id_user)
+            raise NotFoundError("Volunteer profile", user_id)
         volunteer_public = volunteer_service.to_volunteer_public(session, volunteer)
         return {
             "user_type": "volunteer",
@@ -286,11 +287,9 @@ def get_user_with_profile(session: Session, user: User) -> dict:
         }
 
     elif user.user_type == UserType.ASSOCIATION:
-        association = association_service.get_association_by_user_id(
-            session, user.id_user
-        )
+        association = association_service.get_association_by_user_id(session, user_id)
         if not association:
-            raise NotFoundError("Association profile", user.id_user)
+            raise NotFoundError("Association profile", user_id)
         association_public = association_service.to_association_public(
             session, association
         )

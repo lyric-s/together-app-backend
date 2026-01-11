@@ -140,7 +140,7 @@ async def approve_application_by_ids(
             session=session,
             association_id=association.id_asso,
             mission_id=mission.id_mission,
-            volunteer_id=volunteer.user.id_user,
+            user_id=volunteer.user.id_user,
             volunteer_name=volunteer_name,
             mission_name=mission.name,
         )

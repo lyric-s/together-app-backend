@@ -61,75 +61,53 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "🔨 Dev Docker Image Built",
-                "description": "New development backend image available for frontend team. Mind restarting your stack !",
-                "color": 3447003,
-                "fields": [
-                  {
-                    "name": "Branch",
-                    "value": "'"${{ github.ref_name }}"'",
-                    "inline": true
-                  },
-                  {
-                    "name": "Commit",
-                    "value": "'"${{ env.SHORT_SHA }}"'",
-                    "inline": true
-                  },
-                  {
-                    "name": "Image Tags",
-                    "value": "`dev` | `dev-'"${{ env.SHORT_SHA }}"'`"
-                  },
-                  {
-                    "name": "Pull Command",
-                    "value": "`docker pull '"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"'`"
-                  },
-                  {
-                    "name": "Links",
-                    "value": "[Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) | [Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-                  }
+          jq -n \
+            --arg title "🔨 Dev Docker Image Built" \
+            --arg description "New development backend image available for frontend team. Mind restarting your stack !" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg commit "${{ env.SHORT_SHA }}" \
+            --arg image "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev" \
+            --arg commit_url "https://github.com/${{ github.repository }}/commit/${{ github.sha }}" \
+            --arg workflow_url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $description,
+                color: 3447003,
+                fields: [
+                  { name: "Branch", value: $branch, inline: true },
+                  { name: "Commit", value: $commit, inline: true },
+                  { name: "Image Tags", value: ("`dev` | `dev-" + $commit + "`") },
+                  { name: "Pull Command", value: ("`docker pull " + $image + "`") },
+                  { name: "Links", value: ("[Commit](" + $commit_url + ") | [Workflow](" + $workflow_url + ")") }
                 ],
-                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
-                "footer": {
-                  "text": "Together API Development"
-                }
+                timestamp: (now | strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+                footer: { text: "Together API Development" }
               }]
-            }' \
-            "$DISCORD_WEBHOOK"
+            }' | curl -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
 
       - name: Send Discord notification (Failure)
         if: failure()
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "❌ Dev Image Build Failed",
-                "description": "Failed to build development Docker image. Oopsi...",
-                "color": 15158332,
-                "fields": [
-                  {
-                    "name": "Branch",
-                    "value": "'"${{ github.ref_name }}"'",
-                    "inline": true
-                  },
-                  {
-                    "name": "Commit",
-                    "value": "'"${{ env.SHORT_SHA }}"'",
-                    "inline": true
-                  },
-                  {
-                    "name": "Action Required",
-                    "value": "Check [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details"
-                  }
+          jq -n \
+            --arg title "❌ Dev Image Build Failed" \
+            --arg description "Failed to build development Docker image. Oopsi..." \
+            --arg branch "${{ github.ref_name }}" \
+            --arg commit "${{ env.SHORT_SHA }}" \
+            --arg workflow_url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $description,
+                color: 15158332,
+                fields: [
+                  { name: "Branch", value: $branch, inline: true },
+                  { name: "Commit", value: $commit, inline: true },
+                  { name: "Action Required", value: ("Check [workflow run](" + $workflow_url + ") for details") }
                 ],
-                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
-                "footer": {
-                  "text": "Together API Development"
-                }
+                timestamp: (now | strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+                footer: { text: "Together API Development" }
               }]
-            }' \
-            "$DISCORD_WEBHOOK"
+            }' | curl -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"

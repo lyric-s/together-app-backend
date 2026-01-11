@@ -13,7 +13,7 @@ class DocumentBase(SQLModel):
     url_doc: str
     date_upload: datetime = Field(default_factory=datetime.now)
     verif_state: ProcessingStatus = Field(default=ProcessingStatus.PENDING)
-    rejection_reason: str | None = Field(default=None, nullable=True)
+    rejection_reason: str | None = Field(default=None, max_length=500, nullable=True)
     id_admin: int | None = Field(
         default=None, foreign_key="admin.id_admin", nullable=True
     )
@@ -51,7 +51,7 @@ class DocumentUpdate(SQLModel):
     doc_name: str | None = None
     url_doc: str | None = None
     verif_state: ProcessingStatus | None = None
-    rejection_reason: str | None = None
+    rejection_reason: str | None = Field(default=None, max_length=500)
     id_admin: int | None = None
 
     model_config = {

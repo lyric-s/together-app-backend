@@ -30,7 +30,7 @@ def upgrade() -> None:
     # Add rejection_reason column to document table
     op.add_column(
         'document',
-        sa.Column('rejection_reason', sa.String(), nullable=True)
+        sa.Column('rejection_reason', sa.String(length=500), nullable=True)
     )
 
 

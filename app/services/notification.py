@@ -126,7 +126,7 @@ def create_volunteer_joined_notification(
     session: Session,
     association_id: int,
     mission_id: int,
-    volunteer_id: int,
+    user_id: int,
     volunteer_name: str,
     mission_name: str,
 ) -> Notification:
@@ -138,7 +138,7 @@ def create_volunteer_joined_notification(
         notification_type=NotificationType.VOLUNTEER_JOINED,
         message=message,
         related_mission_id=mission_id,
-        related_user_id=volunteer_id,
+        related_user_id=user_id,
     )
 
     return create_notification(session, notification_in)
@@ -148,7 +148,7 @@ def create_volunteer_left_notification(
     session: Session,
     association_id: int,
     mission_id: int,
-    volunteer_id: int,
+    user_id: int,
     volunteer_name: str,
     mission_name: str,
 ) -> Notification:
@@ -160,7 +160,7 @@ def create_volunteer_left_notification(
         notification_type=NotificationType.VOLUNTEER_LEFT,
         message=message,
         related_mission_id=mission_id,
-        related_user_id=volunteer_id,
+        related_user_id=user_id,
     )
 
     return create_notification(session, notification_in)
@@ -170,7 +170,7 @@ def create_volunteer_withdrew_notification(
     session: Session,
     association_id: int,
     mission_id: int,
-    volunteer_id: int,
+    user_id: int,
     volunteer_name: str,
     mission_name: str,
 ) -> Notification:
@@ -182,7 +182,7 @@ def create_volunteer_withdrew_notification(
         notification_type=NotificationType.VOLUNTEER_WITHDREW,
         message=message,
         related_mission_id=mission_id,
-        related_user_id=volunteer_id,
+        related_user_id=user_id,
     )
 
     return create_notification(session, notification_in)

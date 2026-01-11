@@ -1,6 +1,7 @@
 """Analytics service for admin dashboard statistics."""
 
 from datetime import date, datetime
+from collections import Counter
 from typing import cast
 from dateutil.relativedelta import relativedelta
 from sqlmodel import Session, select, func
@@ -76,26 +77,21 @@ def get_volunteers_by_month(session: Session, months: int = 12) -> list[dict]:
         datetime, start_of_current_month - relativedelta(months=months - 1)
     )
 
-    # Query volunteer registrations grouped by month
-    results = session.exec(
-        select(
-            func.date_trunc("month", User.date_creation).label("month"),
-            func.count().label("count"),
-        )
-        .where(User.user_type == UserType.VOLUNTEER, User.date_creation >= start_date)
-        .group_by("month")
-        .order_by("month")
-    ).all()
+    # Query volunteer registrations in range
+    statement = select(User).where(
+        User.user_type == UserType.VOLUNTEER, User.date_creation >= start_date
+    )
+    users = session.exec(statement).all()
 
-    # Convert results to dict for easy lookup
-    data_by_month = {r[0].strftime("%Y-%m"): r[1] for r in results}
+    # Group by month string in Python for database compatibility (avoiding date_trunc)
+    data_by_month = Counter(u.date_creation.strftime("%Y-%m") for u in users)
 
     # Fill all months including zeros for months with no data
     result = []
     current: datetime = start_date
     for _ in range(months):
         month_str = current.strftime("%Y-%m")
-        result.append({"month": month_str, "value": data_by_month.get(month_str, 0)})
+        result.append({"month": month_str, "value": data_by_month[month_str]})
         current = cast(datetime, current + relativedelta(months=1))
     return result
 
@@ -113,31 +109,26 @@ def get_missions_by_month(session: Session, months: int = 12) -> list[dict]:
     """
     today = date.today()
     start_of_current_month = datetime(today.year, today.month, 1)
-    temp_start: datetime = cast(
+    start_date_dt: datetime = cast(
         datetime, start_of_current_month - relativedelta(months=months - 1)
     )
-    start_date: date = temp_start.date()
+    start_date: date = start_date_dt.date()
 
-    # Query completed missions grouped by month (where date_end is in that month and before today)
-    results = session.exec(
-        select(
-            func.date_trunc("month", Mission.date_end).label("month"),
-            func.count().label("count"),
-        )
-        .where(Mission.date_end >= start_date, Mission.date_end < today)
-        .group_by("month")
-        .order_by("month")
-    ).all()
+    # Query completed missions dates in range (avoiding date_trunc for sqlite compat)
+    statement = select(Mission).where(
+        Mission.date_end >= start_date, Mission.date_end < today
+    )
+    missions = session.exec(statement).all()
 
-    # Convert results to dict for easy lookup
-    data_by_month = {r[0].strftime("%Y-%m"): r[1] for r in results}
+    # Group by month string in Python
+    data_by_month = Counter(m.date_end.strftime("%Y-%m") for m in missions)
 
     # Fill all months including zeros
     result = []
     current: datetime = datetime(start_date.year, start_date.month, 1)
     for _ in range(months):
         month_str = current.strftime("%Y-%m")
-        result.append({"month": month_str, "value": data_by_month.get(month_str, 0)})
+        result.append({"month": month_str, "value": data_by_month[month_str]})
         current = cast(datetime, current + relativedelta(months=1))
     return result
 

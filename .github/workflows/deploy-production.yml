@@ -154,67 +154,71 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "🚀 Production Deployment Successful",
-                "description": "New version deployed to production",
-                "color": 3066993,
-                "fields": [
+          jq -n \
+            --arg version "${{ needs.build-and-push.outputs.version }}" \
+            --arg repository "${{ github.repository }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            '{
+              embeds: [{
+                title: "🚀 Production Deployment Successful",
+                description: "New version deployed to production",
+                color: 3066993,
+                fields: [
                   {
-                    "name": "Version",
-                    "value": "'"${{ needs.build-and-push.outputs.version }}"'",
-                    "inline": true
+                    name: "Version",
+                    value: $version,
+                    inline: true
                   },
                   {
-                    "name": "Status",
-                    "value": "✅ Deployed & Healthy",
-                    "inline": true
+                    name: "Status",
+                    value: "✅ Deployed & Healthy",
+                    inline: true
                   },
                   {
-                    "name": "Links",
-                    "value": "[API](https://together-api.out-online.net) | [Docs](https://together-api.out-online.net/docs) | [Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                    name: "Links",
+                    value: ("[API](https://together-api.out-online.net) | [Docs](https://together-api.out-online.net/docs) | [Commit](https://github.com/" + $repository + "/commit/" + $commit_sha + ")")
                   }
                 ],
-                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
-                "footer": {
-                  "text": "Together API Production"
+                timestamp: (now | strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+                footer: {
+                  text: "Together API Production"
                 }
               }]
-            }' \
-            "$DISCORD_WEBHOOK"
+            }' | curl -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
 
       - name: Send Discord notification (Failure)
         if: failure()
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          curl -H "Content-Type: application/json" \
-            -d '{
-              "embeds": [{
-                "title": "❌ Production Deployment Failed",
-                "description": "Deployment to production encountered an error",
-                "color": 15158332,
-                "fields": [
+          jq -n \
+            --arg version "${{ needs.build-and-push.outputs.version }}" \
+            --arg repository "${{ github.repository }}" \
+            --arg run_id "${{ github.run_id }}" \
+            '{
+              embeds: [{
+                title: "❌ Production Deployment Failed",
+                description: "Deployment to production encountered an error",
+                color: 15158332,
+                fields: [
                   {
-                    "name": "Version",
-                    "value": "'"${{ needs.build-and-push.outputs.version }}"'",
-                    "inline": true
+                    name: "Version",
+                    value: $version,
+                    inline: true
                   },
                   {
-                    "name": "Status",
-                    "value": "❌ Failed",
-                    "inline": true
+                    name: "Status",
+                    value: "❌ Failed",
+                    inline: true
                   },
                   {
-                    "name": "Action Required",
-                    "value": "Check [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details"
+                    name: "Action Required",
+                    value: ("Check [workflow run](https://github.com/" + $repository + "/actions/runs/" + $run_id + ") for details")
                   }
                 ],
-                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'",
-                "footer": {
-                  "text": "Together API Production"
+                timestamp: (now | strftime("%Y-%m-%dT%H:%M:%S.000Z")),
+                footer: {
+                  text: "Together API Production"
                 }
               }]
-            }' \
-            "$DISCORD_WEBHOOK"
+            }' | curl -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
