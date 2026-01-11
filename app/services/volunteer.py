@@ -679,6 +679,9 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         )
     ).one()
 
+    # Compute count after leaving (clamped to 0)
+    current_count_after_leave = max(0, current_count - 1)
+
     # Create notification for association
     if (
         association
@@ -705,7 +708,7 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
                         "association_name": association.name,
                         "volunteer_name": volunteer_name,
                         "mission_name": mission.name,
-                        "current_count": current_count - 1,
+                        "current_count": current_count_after_leave,
                         "max_capacity": mission.capacity_max,
                     },
                 )
