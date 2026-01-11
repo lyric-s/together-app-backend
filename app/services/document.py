@@ -10,6 +10,7 @@ from app.exceptions import NotFoundError, ValidationError, InsufficientPermissio
 from app.services.storage import storage_service
 from app.services import association as association_service
 from app.services.email import send_notification_email
+from app.utils.validation import ensure_id
 
 
 def create_document(
@@ -92,6 +93,28 @@ def get_documents_by_association(
         .order_by(Document.date_upload.desc())  # type: ignore
     )
     return list(session.exec(statement).all())
+
+
+def get_latest_document_by_association(
+    session: Session, association_id: int
+) -> Document | None:
+    """
+    Retrieve the latest document for a specific association.
+
+    Parameters:
+        session: Database session.
+        association_id: The association's ID.
+
+    Returns:
+        Document | None: The most recent document, or None if no documents exist.
+    """
+    statement = (
+        select(Document)
+        .where(Document.id_asso == association_id)
+        .order_by(Document.date_upload.desc())  # type: ignore
+        .limit(1)
+    )
+    return session.exec(statement).first()
 
 
 def get_all_documents(
@@ -220,7 +243,8 @@ async def approve_document(
     db_document.rejection_reason = None  # Clear any previous rejection reason
 
     # Update association verification status
-    association = association_service.get_association(session, db_document.id_asso)
+    association_id = ensure_id(db_document.id_asso, "Association")
+    association = association_service.get_association(session, association_id)
     if association:
         association.verification_status = ProcessingStatus.APPROVED
         session.add(association)
@@ -292,7 +316,8 @@ async def reject_document(
     db_document.rejection_reason = rejection_reason
 
     # Update association verification status
-    association = association_service.get_association(session, db_document.id_asso)
+    association_id = ensure_id(db_document.id_asso, "Association")
+    association = association_service.get_association(session, association_id)
     if association:
         association.verification_status = ProcessingStatus.REJECTED
         session.add(association)
@@ -365,7 +390,7 @@ def can_association_create_missions(session: Session, association_id: int) -> bo
     """
     Check if an association is allowed to create missions.
 
-    An association can create missions only if their verification status is APPROVED.
+    An association can create missions only if their latest document's status is APPROVED.
 
     Parameters:
         session: Database session.
@@ -374,8 +399,15 @@ def can_association_create_missions(session: Session, association_id: int) -> bo
     Returns:
         bool: True if association can create missions, False otherwise.
     """
-    association = association_service.get_association(session, association_id)
-    if not association:
+    # Fetch the latest document for the association
+    latest_document = session.exec(
+        select(Document)
+        .where(Document.id_asso == association_id)
+        .order_by(Document.date_upload.desc())  # type: ignore
+        .limit(1)
+    ).first()
+
+    if not latest_document:
         return False
 
-    return association.verification_status == ProcessingStatus.APPROVED
+    return latest_document.verif_state == ProcessingStatus.APPROVED

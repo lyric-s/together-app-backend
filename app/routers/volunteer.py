@@ -2,6 +2,7 @@
 
 from datetime import date
 from typing import Annotated, Literal
+from anyio import to_thread
 
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
@@ -297,7 +298,7 @@ async def delete_volunteer(
         raise InsufficientPermissionsError("delete this volunteer profile")
 
     await volunteer_service.delete_volunteer(session, volunteer_id)
-    session.commit()
+    await to_thread.run_sync(session.commit)
 
 
 # Favorite endpoints
@@ -480,4 +481,4 @@ async def withdraw_application(
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     await volunteer_service.withdraw_application(session, volunteer_id, mission_id)
-    session.commit()
+    await to_thread.run_sync(session.commit)

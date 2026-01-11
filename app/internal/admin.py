@@ -360,6 +360,46 @@ async def delete_association(
     session.commit()
 
 
+@router.get(
+    "/associations/{association_id}/documents/latest", response_model=DocumentPublic
+)
+def get_latest_association_document(
+    *,
+    association_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> DocumentPublic:
+    """
+    Retrieve the latest document for a specific association.
+
+    Returns the most recently uploaded document for the specified association,
+    regardless of its verification status.
+
+    ### Authorization Required:
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    Args:
+        `association_id`: The unique identifier of the association.
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+
+    Returns:
+        `DocumentPublic`: The latest document's complete information.
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `404 NotFoundError`: If no documents exist for this association.
+    """
+    document = document_service.get_latest_document_by_association(
+        session, association_id
+    )
+    if not document:
+        raise NotFoundError("Document for association", association_id)
+
+    return DocumentPublic.model_validate(document)
+
+
 # Volunteer management endpoints
 
 

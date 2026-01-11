@@ -1,9 +1,12 @@
 """Association router module for CRUD endpoints."""
 
-from typing import Annotated
+from typing import Annotated, cast
+import logging
+from anyio import to_thread
 
 from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload, InstrumentedAttribute
 
 from app.database.database import get_session
 from app.core.dependencies import get_current_user, get_current_association
@@ -14,8 +17,9 @@ from app.models.association import (
     AssociationPublic,
     AssociationUpdate,
 )
-from app.models.mission import MissionCreate, MissionPublic, MissionUpdate
-from app.models.engagement import Engagement, RejectEngagementRequest
+from app.models.mission import Mission, MissionCreate, MissionPublic, MissionUpdate
+from app.models.engagement import Engagement, RejectEngagementRequest, EngagementPublic
+from app.models.volunteer import Volunteer
 from app.models.notification import (
     BulkEmailRequest,
     NotificationPublic,
@@ -26,10 +30,12 @@ from app.services import association as association_service
 from app.services import mission as mission_service
 from app.services import engagement as engagement_service
 from app.services import notification as notification_service
+from app.services.email import send_notification_email
 from app.exceptions import NotFoundError, InsufficientPermissionsError, ValidationError
 from app.utils.validation import ensure_id
 
 router = APIRouter(prefix="/associations", tags=["associations"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/", response_model=AssociationPublic)
@@ -367,7 +373,7 @@ async def delete_association(
         `403 InsufficientPermissionsError`: If the authenticated user is not the profile owner.
         `404 NotFoundError`: If no association exists with the given ID.
     """
-    association = association_service.get_association(session, association_id)
+    association = session.get(Association, association_id)
     if not association:
         raise NotFoundError("Association", association_id)
 
@@ -375,7 +381,7 @@ async def delete_association(
         raise InsufficientPermissionsError("delete this association profile")
 
     await association_service.delete_association(session, association_id)
-    session.commit()
+    await to_thread.run_sync(session.commit)
 
 
 # Mission endpoints
@@ -542,7 +548,7 @@ async def delete_association_mission(
     await mission_service.delete_mission(
         session, mission_id, association_id=current_association.id_asso
     )
-    session.commit()
+    await to_thread.run_sync(session.commit)
 
 
 # ============================================================================
@@ -550,13 +556,16 @@ async def delete_association_mission(
 # ============================================================================
 
 
-@router.patch("/me/engagements/{volunteer_id}/{mission_id}/approve")
+@router.patch(
+    "/me/engagements/{volunteer_id}/{mission_id}/approve",
+    response_model=EngagementPublic,
+)
 async def approve_engagement(
     volunteer_id: int,
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
     current_association: Annotated[Association, Depends(get_current_association)],
-) -> Engagement:
+) -> EngagementPublic:
     """
     Approve a volunteer's application to a mission.
 
@@ -574,14 +583,14 @@ async def approve_engagement(
         current_association: Authenticated association profile (automatically injected).
 
     Returns:
-        Engagement: The approved engagement.
+        EngagementPublic: The approved engagement.
 
     Raises:
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile, mission, volunteer, or engagement doesn't exist.
     """
     # Verify mission belongs to association
-    mission = mission_service.get_mission(session, mission_id)
+    mission = session.get(Mission, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
@@ -591,19 +600,21 @@ async def approve_engagement(
     engagement = await engagement_service.approve_application_by_ids(
         session, volunteer_id, mission_id
     )
-    session.commit()
-    session.refresh(engagement)
-    return engagement
+    await to_thread.run_sync(lambda: (session.commit(), session.refresh(engagement)))
+    return EngagementPublic.model_validate(engagement)
 
 
-@router.patch("/me/engagements/{volunteer_id}/{mission_id}/reject")
+@router.patch(
+    "/me/engagements/{volunteer_id}/{mission_id}/reject",
+    response_model=EngagementPublic,
+)
 async def reject_engagement(
     volunteer_id: int,
     mission_id: int,
     rejection: RejectEngagementRequest,
     session: Annotated[Session, Depends(get_session)],
     current_association: Annotated[Association, Depends(get_current_association)],
-) -> Engagement:
+) -> EngagementPublic:
     """
     Reject a volunteer's application to a mission.
 
@@ -621,7 +632,7 @@ async def reject_engagement(
         current_association: Authenticated association profile (automatically injected).
 
     Returns:
-        Engagement: The rejected engagement.
+        EngagementPublic: The rejected engagement.
 
     Raises:
         401 Unauthorized: If no valid authentication token is provided.
@@ -638,9 +649,8 @@ async def reject_engagement(
     engagement = await engagement_service.reject_application(
         session, volunteer_id, mission_id, rejection.rejection_reason
     )
-    session.commit()
-    session.refresh(engagement)
-    return engagement
+    await to_thread.run_sync(lambda: (session.commit(), session.refresh(engagement)))
+    return EngagementPublic.model_validate(engagement)
 
 
 # ============================================================================
@@ -684,10 +694,6 @@ async def send_bulk_email_to_volunteers(
         404 NotFoundError: If the association profile or mission doesn't exist.
         403 InsufficientPermissionsError: If mission doesn't belong to association.
     """
-    from app.models.volunteer import Volunteer
-    from app.services.email import send_notification_email
-    from sqlmodel import select
-
     # Get mission and verify ownership
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
@@ -697,22 +703,38 @@ async def send_bulk_email_to_volunteers(
         raise InsufficientPermissionsError("send emails for this mission")
 
     # Get all approved volunteers
-    from app.models.engagement import Engagement
 
-    engagements = session.exec(
-        select(Engagement).where(
-            Engagement.id_mission == mission_id,
-            Engagement.state == ProcessingStatus.APPROVED,
-        )
-    ).all()
+    engagements = await to_thread.run_sync(
+        lambda: session.exec(
+            select(Engagement).where(
+                Engagement.id_mission == mission_id,
+                Engagement.state == ProcessingStatus.APPROVED,
+            )
+        ).all()
+    )
+
+    volunteer_ids = [e.id_volunteer for e in engagements]
+
+    def get_volunteers():
+        return session.exec(
+            select(Volunteer)
+            .where(
+                cast(InstrumentedAttribute, Volunteer.id_volunteer).in_(volunteer_ids)
+            )
+            .options(selectinload(cast(InstrumentedAttribute, Volunteer.user)))
+        ).all()
+
+    if volunteer_ids:
+        volunteers = await to_thread.run_sync(get_volunteers)
+        volunteers_by_id = {v.id_volunteer: v for v in volunteers}
+    else:
+        volunteers_by_id = {}
 
     sent_count = 0
     failed_count = 0
 
     for engagement in engagements:
-        volunteer = session.exec(
-            select(Volunteer).where(Volunteer.id_volunteer == engagement.id_volunteer)
-        ).first()
+        volunteer = volunteers_by_id.get(engagement.id_volunteer)
 
         if volunteer and volunteer.user:
             volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
@@ -730,11 +752,10 @@ async def send_bulk_email_to_volunteers(
                     },
                 )
                 sent_count += 1
-            except Exception as e:
-                import logging
-
-                logging.error(
-                    f"Failed to send bulk email to {volunteer.user.email}: {e}"
+            except Exception:
+                # Avoid logging full recipient emails (PII)
+                logger.exception(
+                    "Failed to send bulk email (mission_id=%s)", mission_id
                 )
                 failed_count += 1
 

@@ -27,6 +27,7 @@ from app.models.password_reset import (
 from app.exceptions import InvalidCredentialsError, InvalidTokenError, NotFoundError
 from app.services import user as user_service
 from app.services import profile as profile_service
+from app.services import admin as admin_service
 from app.services.email import send_password_reset_email
 from app.utils.logger import logger
 from app.utils.validation import mask_email
@@ -361,15 +362,6 @@ async def get_current_profile(
         curl -H "Authorization: Bearer <token>" http://api/auth/me
         ```
     """
-    from app.services import admin as admin_service
-    from fastapi import HTTPException, status
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
     try:
         settings = get_settings()
         payload = jwt.decode(
@@ -382,20 +374,20 @@ async def get_current_profile(
         token_type: str | None = payload.get("type")
 
         if username is None or token_type != "access":
-            raise credentials_exception
+            raise InvalidCredentialsError()
 
         # Check if it's an admin token
         if mode == "admin":
             admin = admin_service.get_admin_by_username(session, username)
             if not admin:
-                raise credentials_exception
+                raise InvalidCredentialsError()
             return admin_service.get_admin_profile(admin)
 
         # Otherwise it's a user token
         user = user_service.get_user_by_username(session, username)
         if not user:
-            raise credentials_exception
+            raise InvalidCredentialsError()
         return profile_service.get_user_with_profile(session, user)
 
     except PyJWTInvalidTokenError:
-        raise credentials_exception
+        raise InvalidCredentialsError()

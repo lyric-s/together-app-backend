@@ -14,3 +14,12 @@ class Engagement(SQLModel, table=True):
 
 class RejectEngagementRequest(SQLModel):
     rejection_reason: str = Field(min_length=1, max_length=500)
+
+
+class EngagementPublic(SQLModel):
+    id_volunteer: int
+    id_mission: int
+    state: ProcessingStatus
+    message: str | None
+    application_date: date
+    rejection_reason: str | None
