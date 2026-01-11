@@ -7,7 +7,9 @@ from sqlmodel import Session
 
 from app.models.user import User, UserCreate, UserUpdate
 from app.models.enums import UserType
+from app.models.volunteer import Volunteer
 from app.services import user as user_service
+from app.services import profile as profile_service
 from app.core.password import verify_password, get_token_hash
 from app.exceptions import (
     NotFoundError,
@@ -465,7 +467,6 @@ class TestGetUserWithProfile:
     ):
         """Test retrieving volunteer profile."""
         # Need to create volunteer profile manually or via service
-        from app.models.volunteer import Volunteer
 
         vol = Volunteer(
             id_user=created_user.id_user,
@@ -478,7 +479,7 @@ class TestGetUserWithProfile:
         session.commit()
         session.refresh(created_user)
 
-        result = user_service.get_user_with_profile(session, created_user)
+        result = profile_service.get_user_with_profile(session, created_user)
         assert result["user_type"] == "volunteer"
         assert result["profile"].id_volunteer == vol.id_volunteer
 
@@ -488,4 +489,4 @@ class TestGetUserWithProfile:
         """Test retrieving profile when it doesn't exist."""
         # created_user has no volunteer profile linked yet
         with pytest.raises(NotFoundError):
-            user_service.get_user_with_profile(session, created_user)
+            profile_service.get_user_with_profile(session, created_user)

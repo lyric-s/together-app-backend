@@ -93,6 +93,8 @@ async def upload_document(
         document_in,
         current_association.id_asso,  # type: ignore
     )
+    session.commit()
+    session.refresh(db_document)
 
     return DocumentPublic.model_validate(db_document)
 
@@ -272,3 +274,4 @@ def delete_document(
 
     # Delete document
     document_service.delete_document(session, document_id)
+    session.commit()

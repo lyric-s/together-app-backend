@@ -26,6 +26,7 @@ from app.models.password_reset import (
 )
 from app.exceptions import InvalidCredentialsError, InvalidTokenError, NotFoundError
 from app.services import user as user_service
+from app.services import profile as profile_service
 from app.services.email import send_password_reset_email
 from app.utils.logger import logger
 from app.utils.validation import mask_email
@@ -394,7 +395,7 @@ async def get_current_profile(
         user = user_service.get_user_by_username(session, username)
         if not user:
             raise credentials_exception
-        return user_service.get_user_with_profile(session, user)
+        return profile_service.get_user_with_profile(session, user)
 
     except PyJWTInvalidTokenError:
         raise credentials_exception

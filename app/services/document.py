@@ -45,7 +45,7 @@ def create_document(
     )
 
     session.add(db_document)
-    session.commit()
+    session.flush()
     session.refresh(db_document)
 
     return db_document
@@ -171,7 +171,7 @@ def update_document(
         setattr(db_document, key, value)
 
     session.add(db_document)
-    session.commit()
+    session.flush()
     session.refresh(db_document)
 
     return db_document
@@ -226,7 +226,7 @@ async def approve_document(
         session.add(association)
 
     session.add(db_document)
-    session.commit()
+    session.flush()
     session.refresh(db_document)
 
     # Send email notification to association
@@ -298,7 +298,7 @@ async def reject_document(
         session.add(association)
 
     session.add(db_document)
-    session.commit()
+    session.flush()
     session.refresh(db_document)
 
     # Send email notification to association
@@ -343,7 +343,7 @@ def delete_document(session: Session, document_id: int) -> None:
         pass
 
     session.delete(db_document)
-    session.commit()
+    session.flush()
 
 
 def verify_document_ownership(document: Document, association_id: int) -> None:

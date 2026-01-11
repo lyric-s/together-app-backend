@@ -12,6 +12,7 @@ from app.models.association import Association
 from app.models.user import UserCreate
 from app.models.enums import UserType, ProcessingStatus
 from app.models.engagement import Engagement
+from app.models.volunteer import Volunteer
 from app.services import mission as mission_service
 from app.services import user as user_service
 from app.exceptions import NotFoundError, InsufficientPermissionsError
@@ -232,7 +233,6 @@ class TestDeleteMission:
                 user_type=UserType.VOLUNTEER,
             ),
         )
-        from app.models.volunteer import Volunteer
 
         assert vol_user.id_user is not None
         vol_profile = Volunteer(
@@ -362,7 +362,6 @@ class TestToMissionPublic:
                 user_type=UserType.VOLUNTEER,
             ),
         )
-        from app.models.volunteer import Volunteer
 
         assert vol_user.id_user is not None
         vol_profile = Volunteer(

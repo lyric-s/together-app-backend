@@ -658,7 +658,9 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         raise NotFoundError("Mission", mission_id)
 
     association = session.exec(
-        select(Association).where(Association.id_asso == mission.id_asso)
+        select(Association)
+        .where(Association.id_asso == mission.id_asso)
+        .options(selectinload(Association.user))  # type: ignore
     ).first()
 
     # Get volunteer for name
