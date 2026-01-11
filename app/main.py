@@ -15,6 +15,7 @@ from app.routers import (
     document,
     mission,
     category,
+    notification,
 )
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
@@ -106,4 +107,5 @@ app.include_router(document.router)
 app.include_router(report.router)
 app.include_router(mission.router)
 app.include_router(category.router)
+app.include_router(notification.router)
 app.include_router(admin.router)

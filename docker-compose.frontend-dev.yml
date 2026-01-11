@@ -100,6 +100,16 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
       - MAX_UPLOAD_SIZE_MB=100
+      # Email configuration (OPTIONAL - for password reset feature)
+      # Leave commented out to disable email features in development
+      # - SMTP_HOST=smtp-relay.brevo.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=your-email@example.com
+      # - SMTP_PASSWORD=your-brevo-smtp-api-key
+      # - SMTP_FROM_EMAIL=noreply@together.dev
+      # - SMTP_FROM_NAME=Together Platform Dev
+      # - FRONTEND_URL=http://localhost:3000
+      # - PASSWORD_RESET_TOKEN_EXPIRE_MINUTES=30
     depends_on:
       postgres:
         condition: service_healthy

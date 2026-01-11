@@ -14,9 +14,12 @@ from app.models.association import (
     AssociationUpdate,
 )
 from app.models.mission import MissionCreate, MissionPublic, MissionUpdate
+from app.models.engagement import Engagement
+from app.models.notification import BulkEmailRequest
 from app.models.enums import ProcessingStatus
 from app.services import association as association_service
 from app.services import mission as mission_service
+from app.services import engagement as engagement_service
 from app.exceptions import NotFoundError, InsufficientPermissionsError, ValidationError
 
 router = APIRouter(prefix="/associations", tags=["associations"])
@@ -205,7 +208,7 @@ def update_association(
 
 
 @router.delete("/{association_id}", status_code=204)
-def delete_association(
+async def delete_association(
     association_id: int,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -243,7 +246,7 @@ def delete_association(
     if association.id_user != current_user.id_user:
         raise InsufficientPermissionsError("delete this association profile")
 
-    association_service.delete_association(session, association_id)
+    await association_service.delete_association(session, association_id)
 
 
 # Mission endpoints
@@ -387,7 +390,7 @@ def update_association_mission(
 
 
 @router.delete("/me/missions/{mission_id}", status_code=204)
-def delete_association_mission(
+async def delete_association_mission(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -397,6 +400,8 @@ def delete_association_mission(
 
     Permanently removes a mission. This action is only permitted for the
     association that created the mission.
+
+    Sends email notifications to all volunteers with approved applications.
 
     ### Authorization:
     - **Authentication required**: Must provide valid authentication token.
@@ -426,6 +431,223 @@ def delete_association_mission(
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
-    mission_service.delete_mission(
+    await mission_service.delete_mission(
         session, mission_id, association_id=association.id_asso
     )
+
+
+# ============================================================================
+# ENGAGEMENT MANAGEMENT ENDPOINTS
+# ============================================================================
+
+
+@router.patch("/me/engagements/{volunteer_id}/{mission_id}/approve")
+async def approve_engagement(
+    volunteer_id: int,
+    mission_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> Engagement:
+    """
+    Approve a volunteer's application to a mission.
+
+    Sends email to volunteer and creates notification for association.
+    If mission reaches minimum capacity, sends additional notification.
+
+    ### Authorization:
+    - Must be authenticated as association
+    - Mission must belong to the authenticated association
+
+    Args:
+        volunteer_id: The volunteer's ID.
+        mission_id: The mission's ID.
+        session: Database session (automatically injected).
+        current_user: Authenticated user (automatically injected from token).
+
+    Returns:
+        Engagement: The approved engagement.
+
+    Raises:
+        401 Unauthorized: If no valid authentication token is provided.
+        404 NotFoundError: If the association profile, mission, volunteer, or engagement doesn't exist.
+    """
+    assert current_user.id_user is not None
+    association = association_service.get_association_by_user_id(
+        session, current_user.id_user
+    )
+    if not association:
+        raise NotFoundError("Association profile", current_user.id_user)
+
+    # Verify mission belongs to association
+    mission = mission_service.get_mission(session, mission_id)
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    if mission.id_asso != association.id_asso:
+        raise InsufficientPermissionsError("approve applications for this mission")
+
+    engagement = await engagement_service.approve_application_by_ids(
+        session, volunteer_id, mission_id
+    )
+    return engagement
+
+
+@router.patch("/me/engagements/{volunteer_id}/{mission_id}/reject")
+async def reject_engagement(
+    volunteer_id: int,
+    mission_id: int,
+    rejection_reason: str,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> Engagement:
+    """
+    Reject a volunteer's application to a mission.
+
+    Sends email notification to volunteer with rejection reason.
+
+    ### Authorization:
+    - Must be authenticated as association
+    - Mission must belong to the authenticated association
+
+    Args:
+        volunteer_id: The volunteer's ID.
+        mission_id: The mission's ID.
+        rejection_reason: Reason for rejection.
+        session: Database session (automatically injected).
+        current_user: Authenticated user (automatically injected from token).
+
+    Returns:
+        Engagement: The rejected engagement.
+
+    Raises:
+        401 Unauthorized: If no valid authentication token is provided.
+        404 NotFoundError: If the association profile, mission, volunteer, or engagement doesn't exist.
+    """
+    assert current_user.id_user is not None
+    association = association_service.get_association_by_user_id(
+        session, current_user.id_user
+    )
+    if not association:
+        raise NotFoundError("Association profile", current_user.id_user)
+
+    # Verify mission belongs to association
+    mission = mission_service.get_mission(session, mission_id)
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    if mission.id_asso != association.id_asso:
+        raise InsufficientPermissionsError("reject applications for this mission")
+
+    engagement = await engagement_service.reject_application(
+        session, volunteer_id, mission_id, rejection_reason
+    )
+    return engagement
+
+
+# ============================================================================
+# BULK EMAIL ENDPOINT
+# ============================================================================
+
+
+@router.post("/me/missions/{mission_id}/send-email")
+async def send_bulk_email_to_volunteers(
+    mission_id: int,
+    email_request: BulkEmailRequest,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> dict:
+    """
+    Send email to all volunteers with approved applications for a mission.
+
+    ### Authorization:
+    - Must be authenticated as association
+    - Mission must belong to the authenticated association
+
+    ### Request Body:
+    - **subject**: Email subject (1-200 chars)
+    - **message**: Email body (1-2000 chars, plain text/simple HTML)
+
+    ### Response:
+    - **sent_count**: Number of emails successfully sent
+    - **failed_count**: Number of failed sends
+
+    Args:
+        mission_id: The mission's ID.
+        email_request: Email request containing subject and message.
+        session: Database session (automatically injected).
+        current_user: Authenticated user (automatically injected from token).
+
+    Returns:
+        dict: Dictionary with sent_count, failed_count, and total_recipients.
+
+    Raises:
+        401 Unauthorized: If no valid authentication token is provided.
+        404 NotFoundError: If the association profile or mission doesn't exist.
+        403 InsufficientPermissionsError: If mission doesn't belong to association.
+    """
+    from app.models.volunteer import Volunteer
+    from app.services.email import send_notification_email
+    from sqlmodel import select
+
+    assert current_user.id_user is not None
+    association = association_service.get_association_by_user_id(
+        session, current_user.id_user
+    )
+    if not association:
+        raise NotFoundError("Association profile", current_user.id_user)
+
+    # Get mission and verify ownership
+    mission = mission_service.get_mission(session, mission_id)
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    if mission.id_asso != association.id_asso:
+        raise InsufficientPermissionsError("send emails for this mission")
+
+    # Get all approved volunteers
+    from app.models.engagement import Engagement
+
+    engagements = session.exec(
+        select(Engagement).where(
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).all()
+
+    sent_count = 0
+    failed_count = 0
+
+    for engagement in engagements:
+        volunteer = session.exec(
+            select(Volunteer).where(Volunteer.id_volunteer == engagement.id_volunteer)
+        ).first()
+
+        if volunteer and volunteer.user:
+            volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
+
+            try:
+                await send_notification_email(
+                    template_name="bulk_message",
+                    recipient_email=volunteer.user.email,
+                    context={
+                        "volunteer_name": volunteer_name,
+                        "association_name": association.name,
+                        "mission_name": mission.name,
+                        "subject": email_request.subject,
+                        "custom_message": email_request.message,
+                    },
+                )
+                sent_count += 1
+            except Exception as e:
+                import logging
+
+                logging.error(
+                    f"Failed to send bulk email to {volunteer.user.email}: {e}"
+                )
+                failed_count += 1
+
+    return {
+        "sent_count": sent_count,
+        "failed_count": failed_count,
+        "total_recipients": len(engagements),
+    }

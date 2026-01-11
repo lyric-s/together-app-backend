@@ -203,27 +203,39 @@ class TestGetPendingDocuments:
 
     def test_get_pending_documents(self, session: Session, document_factory):
         """Test retrieving pending documents."""
+
         # Create documents with different statuses
+
         pending_doc = document_factory(1)
+
         assert pending_doc.verif_state == ProcessingStatus.PENDING
 
         pending_docs = document_service.get_pending_documents(session)
+
         assert len(pending_docs) >= 1
+
         assert any(d.id_doc == pending_doc.id_doc for d in pending_docs)
 
-    def test_get_pending_documents_excludes_non_pending(
+    @pytest.mark.asyncio
+    async def test_get_pending_documents_excludes_non_pending(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test that approved/rejected documents are excluded from pending list."""
+
         # Approve the document
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
-        document_service.approve_document(
+
+        await document_service.approve_document(
             session, created_document.id_doc, sample_admin.id_admin
         )
 
         # Check pending documents
+
         pending_docs = document_service.get_pending_documents(session)
+
         assert not any(d.id_doc == created_document.id_doc for d in pending_docs)
 
 
@@ -232,18 +244,24 @@ class TestUpdateDocument:
 
     def test_update_document_name(self, session: Session, created_document: Document):
         """Test updating document name."""
+
         assert created_document.id_doc is not None
+
         new_name = "Updated Certificate Name"
+
         update_data = DocumentUpdate(doc_name=new_name)
 
         updated = document_service.update_document(
             session, created_document.id_doc, update_data
         )
+
         assert updated.doc_name == new_name
+
         assert updated.url_doc == TEST_DOC_URL  # Unchanged
 
     def test_update_document_not_found(self, session: Session):
         """Test updating non-existent document."""
+
         with pytest.raises(NotFoundError):
             document_service.update_document(
                 session, NONEXISTENT_ID, DocumentUpdate(doc_name="New Name")
@@ -253,22 +271,28 @@ class TestUpdateDocument:
 class TestApproveDocument:
     """Test document approval workflow."""
 
-    def test_approve_document_success(
+    @pytest.mark.asyncio
+    async def test_approve_document_success(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test successful document approval."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
-        approved = document_service.approve_document(
+        approved = await document_service.approve_document(
             session, created_document.id_doc, sample_admin.id_admin
         )
 
         assert approved.verif_state == ProcessingStatus.APPROVED
+
         assert approved.id_admin == sample_admin.id_admin
+
         assert approved.rejection_reason is None
 
-    def test_approve_document_updates_association_status(
+    @pytest.mark.asyncio
+    async def test_approve_document_updates_association_status(
         self,
         session: Session,
         created_document: Document,
@@ -276,49 +300,68 @@ class TestApproveDocument:
         sample_association: Association,
     ):
         """Test that approving document updates association verification status."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
         # Verify association starts as PENDING
+
         assert sample_association.verification_status == ProcessingStatus.PENDING
 
         # Approve document
-        document_service.approve_document(
+
+        await document_service.approve_document(
             session, created_document.id_doc, sample_admin.id_admin
         )
 
         # Check association status updated
+
         assert sample_association.id_asso is not None
+
         updated_asso = association_service.get_association(
             session, sample_association.id_asso
         )
+
         assert updated_asso is not None
+
         assert updated_asso.verification_status == ProcessingStatus.APPROVED
 
-    def test_approve_document_not_pending_fails(
+    @pytest.mark.asyncio
+    async def test_approve_document_not_pending_fails(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test that approving already approved document fails."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
         # Approve once
-        document_service.approve_document(
+
+        await document_service.approve_document(
             session, created_document.id_doc, sample_admin.id_admin
         )
 
         # Try to approve again
+
         with pytest.raises(ValidationError) as exc_info:
-            document_service.approve_document(
+            await document_service.approve_document(
                 session, created_document.id_doc, sample_admin.id_admin
             )
+
         assert "Only PENDING documents can be approved" in str(exc_info.value)
 
-    def test_approve_document_not_found(self, session: Session, sample_admin: Admin):
+    @pytest.mark.asyncio
+    async def test_approve_document_not_found(
+        self, session: Session, sample_admin: Admin
+    ):
         """Test approving non-existent document."""
+
         assert sample_admin.id_admin is not None
+
         with pytest.raises(NotFoundError):
-            document_service.approve_document(
+            await document_service.approve_document(
                 session, NONEXISTENT_ID, sample_admin.id_admin
             )
 
@@ -326,14 +369,17 @@ class TestApproveDocument:
 class TestRejectDocument:
     """Test document rejection workflow."""
 
-    def test_reject_document_success(
+    @pytest.mark.asyncio
+    async def test_reject_document_success(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test successful document rejection."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
-        rejected = document_service.reject_document(
+        rejected = await document_service.reject_document(
             session,
             created_document.id_doc,
             sample_admin.id_admin,
@@ -341,24 +387,31 @@ class TestRejectDocument:
         )
 
         assert rejected.verif_state == ProcessingStatus.REJECTED
+
         assert rejected.id_admin == sample_admin.id_admin
+
         assert rejected.rejection_reason == TEST_REJECTION_REASON
 
-    def test_reject_document_without_reason(
+    @pytest.mark.asyncio
+    async def test_reject_document_without_reason(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test rejecting document without providing reason."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
-        rejected = document_service.reject_document(
+        rejected = await document_service.reject_document(
             session, created_document.id_doc, sample_admin.id_admin, None
         )
 
         assert rejected.verif_state == ProcessingStatus.REJECTED
+
         assert rejected.rejection_reason is None
 
-    def test_reject_document_updates_association_status(
+    @pytest.mark.asyncio
+    async def test_reject_document_updates_association_status(
         self,
         session: Session,
         created_document: Document,
@@ -366,11 +419,14 @@ class TestRejectDocument:
         sample_association: Association,
     ):
         """Test that rejecting document updates association verification status."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
         # Reject document
-        document_service.reject_document(
+
+        await document_service.reject_document(
             session,
             created_document.id_doc,
             sample_admin.id_admin,
@@ -378,22 +434,30 @@ class TestRejectDocument:
         )
 
         # Check association status updated
+
         assert sample_association.id_asso is not None
+
         updated_asso = association_service.get_association(
             session, sample_association.id_asso
         )
+
         assert updated_asso is not None
+
         assert updated_asso.verification_status == ProcessingStatus.REJECTED
 
-    def test_reject_document_not_pending_fails(
+    @pytest.mark.asyncio
+    async def test_reject_document_not_pending_fails(
         self, session: Session, created_document: Document, sample_admin: Admin
     ):
         """Test that rejecting already rejected document fails."""
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
 
         # Reject once
-        document_service.reject_document(
+
+        await document_service.reject_document(
             session,
             created_document.id_doc,
             sample_admin.id_admin,
@@ -401,20 +465,27 @@ class TestRejectDocument:
         )
 
         # Try to reject again
+
         with pytest.raises(ValidationError) as exc_info:
-            document_service.reject_document(
+            await document_service.reject_document(
                 session,
                 created_document.id_doc,
                 sample_admin.id_admin,
                 "Another reason",
             )
+
         assert "Only PENDING documents can be rejected" in str(exc_info.value)
 
-    def test_reject_document_not_found(self, session: Session, sample_admin: Admin):
+    @pytest.mark.asyncio
+    async def test_reject_document_not_found(
+        self, session: Session, sample_admin: Admin
+    ):
         """Test rejecting non-existent document."""
+
         assert sample_admin.id_admin is not None
+
         with pytest.raises(NotFoundError):
-            document_service.reject_document(
+            await document_service.reject_document(
                 session, NONEXISTENT_ID, sample_admin.id_admin, TEST_REJECTION_REASON
             )
 
@@ -427,15 +498,19 @@ class TestDeleteDocument:
         self, mock_storage, session: Session, created_document: Document
     ):
         """Test successful document deletion."""
+
         assert created_document.id_doc is not None
+
         doc_id = created_document.id_doc
 
         document_service.delete_document(session, doc_id)
 
         # Verify document deleted from database
+
         assert document_service.get_document(session, doc_id) is None
 
         # Verify storage deletion was attempted
+
         mock_storage.delete_file.assert_called_once_with(TEST_DOC_URL)
 
     @patch("app.services.document.storage_service")
@@ -443,19 +518,24 @@ class TestDeleteDocument:
         self, mock_storage, session: Session, created_document: Document
     ):
         """Test that deletion continues even if storage fails."""
+
         mock_storage.delete_file.side_effect = Exception("Storage error")
 
         assert created_document.id_doc is not None
+
         doc_id = created_document.id_doc
 
         # Should not raise exception
+
         document_service.delete_document(session, doc_id)
 
         # Document should still be deleted from database
+
         assert document_service.get_document(session, doc_id) is None
 
     def test_delete_document_not_found(self, session: Session):
         """Test deleting non-existent document."""
+
         with pytest.raises(NotFoundError):
             document_service.delete_document(session, NONEXISTENT_ID)
 
@@ -470,17 +550,23 @@ class TestVerifyDocumentOwnership:
         sample_association: Association,
     ):
         """Test successful ownership verification."""
+
         assert sample_association.id_asso is not None
+
         # Should not raise exception
+
         document_service.verify_document_ownership(
             created_document, sample_association.id_asso
         )
 
     def test_verify_ownership_fails(self, session: Session, created_document: Document):
         """Test ownership verification failure."""
+
         wrong_asso_id = 999
+
         with pytest.raises(InsufficientPermissionsError) as exc_info:
             document_service.verify_document_ownership(created_document, wrong_asso_id)
+
         assert "access this document" in str(exc_info.value)
 
 
@@ -491,15 +577,19 @@ class TestCanAssociationCreateMissions:
         self, session: Session, sample_association: Association
     ):
         """Test that pending associations cannot create missions."""
+
         assert sample_association.id_asso is not None
+
         assert sample_association.verification_status == ProcessingStatus.PENDING
 
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is False
 
-    def test_can_create_missions_approved(
+    @pytest.mark.asyncio
+    async def test_can_create_missions_approved(
         self,
         session: Session,
         sample_association: Association,
@@ -507,21 +597,29 @@ class TestCanAssociationCreateMissions:
         sample_admin: Admin,
     ):
         """Test that approved associations can create missions."""
+
         # Approve document
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
-        document_service.approve_document(
+
+        await document_service.approve_document(
             session, created_document.id_doc, sample_admin.id_admin
         )
 
         # Check permission
+
         assert sample_association.id_asso is not None
+
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is True
 
-    def test_can_create_missions_rejected(
+    @pytest.mark.asyncio
+    async def test_can_create_missions_rejected(
         self,
         session: Session,
         sample_association: Association,
@@ -529,10 +627,14 @@ class TestCanAssociationCreateMissions:
         sample_admin: Admin,
     ):
         """Test that rejected associations cannot create missions."""
+
         # Reject document
+
         assert created_document.id_doc is not None
+
         assert sample_admin.id_admin is not None
-        document_service.reject_document(
+
+        await document_service.reject_document(
             session,
             created_document.id_doc,
             sample_admin.id_admin,
@@ -540,129 +642,174 @@ class TestCanAssociationCreateMissions:
         )
 
         # Check permission
+
         assert sample_association.id_asso is not None
+
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is False
 
     def test_can_create_missions_nonexistent_association(self, session: Session):
         """Test permission check for non-existent association."""
+
         can_create = document_service.can_association_create_missions(
             session, NONEXISTENT_ID
         )
+
         assert can_create is False
 
 
 class TestDocumentWorkflowIntegration:
     """Test complete document validation workflow."""
 
-    def test_complete_approval_workflow(
+    @pytest.mark.asyncio
+    async def test_complete_approval_workflow(
         self,
         session: Session,
         sample_association: Association,
         sample_admin: Admin,
     ):
         """Test complete workflow from document creation to approval."""
+
         # 1. Association starts as PENDING
+
         assert sample_association.verification_status == ProcessingStatus.PENDING
+
         assert sample_association.id_asso is not None
 
         # 2. Association uploads document
+
         doc_create = DocumentCreate(
             doc_name="RNA Certificate",
             url_doc="documents/rna.pdf",
             id_asso=sample_association.id_asso,
         )
+
         document = document_service.create_document(
             session, doc_create, sample_association.id_asso
         )
+
         assert document.verif_state == ProcessingStatus.PENDING
 
         # 3. Admin retrieves pending documents
+
         pending_docs = document_service.get_pending_documents(session)
+
         assert any(d.id_doc == document.id_doc for d in pending_docs)
 
         # 4. Admin approves document
+
         assert document.id_doc is not None
+
         assert sample_admin.id_admin is not None
-        approved_doc = document_service.approve_document(
+
+        approved_doc = await document_service.approve_document(
             session, document.id_doc, sample_admin.id_admin
         )
+
         assert approved_doc.verif_state == ProcessingStatus.APPROVED
 
         # 5. Association status is updated
+
         updated_asso = association_service.get_association(
             session, sample_association.id_asso
         )
+
         assert updated_asso is not None
+
         assert updated_asso.verification_status == ProcessingStatus.APPROVED
 
         # 6. Association can now create missions
+
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is True
 
-    def test_complete_rejection_workflow(
+    @pytest.mark.asyncio
+    async def test_complete_rejection_workflow(
         self,
         session: Session,
         sample_association: Association,
         sample_admin: Admin,
     ):
         """Test complete workflow from document creation to rejection."""
+
         # 1. Association uploads document
+
         assert sample_association.id_asso is not None
+
         doc_create = DocumentCreate(
             doc_name="Invalid Document",
             url_doc="documents/invalid.pdf",
             id_asso=sample_association.id_asso,
         )
+
         document = document_service.create_document(
             session, doc_create, sample_association.id_asso
         )
 
         # 2. Admin rejects document with reason
+
         assert document.id_doc is not None
+
         assert sample_admin.id_admin is not None
-        rejected_doc = document_service.reject_document(
+
+        rejected_doc = await document_service.reject_document(
             session, document.id_doc, sample_admin.id_admin, "Document is expired"
         )
+
         assert rejected_doc.verif_state == ProcessingStatus.REJECTED
+
         assert rejected_doc.rejection_reason == "Document is expired"
 
         # 3. Association status is updated
+
         updated_asso = association_service.get_association(
             session, sample_association.id_asso
         )
+
         assert updated_asso is not None
+
         assert updated_asso.verification_status == ProcessingStatus.REJECTED
 
         # 4. Association cannot create missions
+
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is False
 
         # 5. Association can upload new document
+
         new_doc_create = DocumentCreate(
             doc_name="New Valid Document",
             url_doc="documents/valid_new.pdf",
             id_asso=sample_association.id_asso,
         )
+
         new_document = document_service.create_document(
             session, new_doc_create, sample_association.id_asso
         )
+
         assert new_document.verif_state == ProcessingStatus.PENDING
 
         # 6. Admin approves new document
+
         assert new_document.id_doc is not None
-        document_service.approve_document(
+
+        await document_service.approve_document(
             session, new_document.id_doc, sample_admin.id_admin
         )
 
         # 7. Association can now create missions
+
         can_create = document_service.can_association_create_missions(
             session, sample_association.id_asso
         )
+
         assert can_create is True

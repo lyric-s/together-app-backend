@@ -137,23 +137,35 @@ def update_mission(
     return mission
 
 
-def delete_mission(
+async def delete_mission(
     session: Session, mission_id: int, association_id: int | None = None
 ) -> None:
     """
-    Delete a mission.
+    Delete a mission and notify all affected users.
 
     If association_id is provided, verifies that the mission belongs to that association.
+    When deleted by admin (association_id=None), sends email to association and all volunteers.
+    When deleted by association, only sends email to volunteers.
 
     Parameters:
         session: Database session.
         mission_id: Primary key of the mission to delete.
         association_id: Optional ID of the association requesting deletion.
+                       If None, assumes admin deletion.
 
     Raises:
         NotFoundError: If no mission exists with the given mission_id.
         InsufficientPermissionsError: If association_id is provided but does not match the mission's owner.
     """
+    from sqlmodel import select
+    from app.models.engagement import Engagement
+    from app.models.volunteer import Volunteer
+    from app.models.association import Association
+    from app.models.enums import ProcessingStatus
+    from app.services.email import send_notification_email
+    from app.services import notification as notification_service
+    import logging
+
     mission = session.get(Mission, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
@@ -161,6 +173,73 @@ def delete_mission(
     if association_id is not None and mission.id_asso != association_id:
         raise InsufficientPermissionsError("delete this mission")
 
+    # Get association
+    association = session.exec(
+        select(Association).where(Association.id_asso == mission.id_asso)
+    ).first()
+
+    # Get all volunteers with approved applications
+    engagements = session.exec(
+        select(Engagement).where(
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).all()
+
+    volunteer_emails = []
+    for engagement in engagements:
+        volunteer = session.exec(
+            select(Volunteer).where(Volunteer.id_volunteer == engagement.id_volunteer)
+        ).first()
+
+        if volunteer and volunteer.user:
+            volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
+            volunteer_emails.append((volunteer.user.email, volunteer_name))
+
+    # Determine if deleted by admin (association_id is None)
+    deleted_by_admin = association_id is None
+
+    # Create notification and send email to association if deleted by admin
+    if deleted_by_admin and association and association.id_asso is not None:
+        notification_service.create_mission_deleted_notification(
+            session=session,
+            association_id=association.id_asso,
+            mission_name=mission.name,
+        )
+
+        # Send email to association
+        if association.user:
+            try:
+                await send_notification_email(
+                    template_name="mission_deleted_association",
+                    recipient_email=association.user.email,
+                    context={
+                        "association_name": association.name,
+                        "mission_name": mission.name,
+                    },
+                )
+            except Exception as e:
+                logging.error(
+                    f"Failed to send mission deletion email to association: {e}"
+                )
+
+    # Send emails to all approved volunteers
+    for email, volunteer_name in volunteer_emails:
+        try:
+            await send_notification_email(
+                template_name="mission_deleted_volunteer",
+                recipient_email=email,
+                context={
+                    "volunteer_name": volunteer_name,
+                    "mission_name": mission.name,
+                },
+            )
+        except Exception as e:
+            logging.error(
+                f"Failed to send mission deletion email to volunteer {email}: {e}"
+            )
+
+    # Delete mission (cascades to engagements)
     session.delete(mission)
     session.commit()
 
