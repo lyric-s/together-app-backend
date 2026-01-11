@@ -1,4 +1,4 @@
-"""Tests for user service CRUD operations. Generated and validated."""
+"""Tests for user service CRUD operations."""
 
 import pytest
 from unittest.mock import patch, AsyncMock

@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/Docs-OpenAPI-green?style=for-the-badge" alt="Docs">
 </p>
 
-Welcome to the **Together API**, the robust backend connecting volunteers with non-profit organizations worldwide.
+Welcome to the **Together API**, the backend connecting volunteers with non-profit organizations worldwide.
 
 ---
 

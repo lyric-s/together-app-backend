@@ -1,4 +1,4 @@
-"""Tests for report service CRUD operations. Generated and validated."""
+"""Tests for report service CRUD operations."""
 
 import pytest
 from sqlmodel import Session
