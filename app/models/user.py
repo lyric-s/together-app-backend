@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime
 from app.models.enums import UserType
 
 if TYPE_CHECKING:
@@ -24,10 +25,16 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     id_user: int | None = Field(default=None, primary_key=True)
     hashed_password: str = Field(nullable=False)
-    date_creation: datetime = Field(default_factory=datetime.now)
+    date_creation: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
     hashed_refresh_token: str | None = Field(default=None, nullable=True)
     password_reset_token: str | None = Field(default=None, nullable=True, index=True)
-    password_reset_expires: datetime | None = Field(default=None, nullable=True)
+    password_reset_expires: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     volunteer_profile: "Volunteer" = Relationship(
         back_populates="user", sa_relationship_kwargs={"uselist": False}
     )
