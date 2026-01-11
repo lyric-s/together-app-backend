@@ -425,6 +425,8 @@ def create_association_mission(
     mission_in.id_asso = ensure_id(current_association.id_asso, "Association")
 
     mission = mission_service.create_mission(session, mission_in)
+    session.commit()
+    session.refresh(mission)
     return MissionPublic.model_validate(mission)
 
 
@@ -497,6 +499,8 @@ def update_association_mission(
         mission_update,
         association_id=current_association.id_asso,
     )
+    session.commit()
+    session.refresh(updated_mission)
     return MissionPublic.model_validate(updated_mission)
 
 
@@ -538,6 +542,7 @@ async def delete_association_mission(
     await mission_service.delete_mission(
         session, mission_id, association_id=current_association.id_asso
     )
+    session.commit()
 
 
 # ============================================================================

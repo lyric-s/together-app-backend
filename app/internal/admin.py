@@ -62,7 +62,10 @@ def create_new_admin(
         `401 Unauthorized`: If no valid admin authentication token is provided.
         `400 Bad Request`: If the username or email already exists.
     """
-    return admin_service.create_admin(session, admin_in)
+    admin = admin_service.create_admin(session, admin_in)
+    session.commit()
+    session.refresh(admin)
+    return admin
 
 
 # Document validation endpoints
@@ -178,6 +181,8 @@ async def approve_document(
     approved_document = await document_service.approve_document(
         session, document_id, current_admin.id_admin
     )
+    session.commit()
+    session.refresh(approved_document)
     return DocumentPublic.model_validate(approved_document)
 
 
@@ -238,6 +243,8 @@ async def reject_document(
     rejected_document = await document_service.reject_document(
         session, document_id, current_admin.id_admin, rejection_reason
     )
+    session.commit()
+    session.refresh(rejected_document)
     return DocumentPublic.model_validate(rejected_document)
 
 
@@ -275,6 +282,7 @@ def delete_document(
         `404 NotFoundError`: If document doesn't exist.
     """
     document_service.delete_document(session, document_id)
+    session.commit()
 
 
 # Association management endpoints
@@ -349,6 +357,7 @@ async def delete_association(
         `404 NotFoundError`: If association doesn't exist.
     """
     await association_service.delete_association(session, association_id)
+    session.commit()
 
 
 # Volunteer management endpoints
@@ -393,6 +402,7 @@ async def delete_volunteer(
         `404 NotFoundError`: If volunteer doesn't exist.
     """
     await volunteer_service.delete_volunteer(session, volunteer_id)
+    session.commit()
 
 
 # Mission management endpoints
@@ -439,6 +449,7 @@ async def delete_mission(
     """
     # Admin can delete any mission without association_id check
     await mission_service.delete_mission(session, mission_id, association_id=None)
+    session.commit()
 
 
 # Report management endpoints
@@ -523,6 +534,7 @@ def update_report_state(
 
     # Update the report
     report_service.update_report(session, report_id, report_update)
+    session.commit()
 
     # Reload with relationships for name resolution
     report_with_relations = session.exec(
@@ -647,6 +659,8 @@ def create_category(
         400 AlreadyExistsError: If a category with the same label already exists.
     """
     category = category_service.create_category(session, category_in)
+    session.commit()
+    session.refresh(category)
     return CategoryPublic.model_validate(category)
 
 
@@ -683,6 +697,8 @@ def update_category(
         400 AlreadyExistsError: If new label conflicts with existing category.
     """
     category = category_service.update_category(session, category_id, category_update)
+    session.commit()
+    session.refresh(category)
     return CategoryPublic.model_validate(category)
 
 
@@ -718,6 +734,7 @@ def delete_category(
         400 IntegrityError: If missions are still using this category.
     """
     category_service.delete_category(session, category_id)
+    session.commit()
 
 
 # Analytics endpoints
@@ -947,6 +964,8 @@ def create_location(
         422 Validation Error: If location data is invalid.
     """
     location = location_service.create_location(session, location_in)
+    session.commit()
+    session.refresh(location)
     return LocationPublic.model_validate(location)
 
 
@@ -1023,6 +1042,8 @@ def update_location(
         422 Validation Error: If update data is invalid.
     """
     location = location_service.update_location(session, location_id, location_update)
+    session.commit()
+    session.refresh(location)
     return LocationPublic.model_validate(location)
 
 
@@ -1062,3 +1083,4 @@ def delete_location(
         400 ValidationError: If location is still referenced by missions.
     """
     location_service.delete_location(session, location_id)
+    session.commit()
