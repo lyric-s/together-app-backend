@@ -1,13 +1,19 @@
 """Tests for user service CRUD operations. Generated and validated."""
 
 import pytest
+from unittest.mock import patch, AsyncMock
+from datetime import datetime, timezone, date
 from sqlmodel import Session
 
 from app.models.user import User, UserCreate, UserUpdate
 from app.models.enums import UserType
 from app.services import user as user_service
-from app.core.password import verify_password
-from app.exceptions import NotFoundError, AlreadyExistsError
+from app.core.password import verify_password, get_token_hash
+from app.exceptions import (
+    NotFoundError,
+    AlreadyExistsError,
+    InvalidTokenError,
+)
 
 # Test data constants
 TEST_USER_USERNAME = "testuser"
@@ -63,16 +69,6 @@ def user_factory_fixture(session: Session):
 
     Returns:
         Callable[[int, **dict], User]: A factory function that creates and returns a User instance.
-    """
-    """
-    Create a test User, allowing optional field overrides.
-
-    Parameters:
-        index (int): Numeric suffix used to generate a unique default username and email (e.g., "user0", "user0@example.com").
-        **overrides: Field values to override the defaults accepted by UserCreate (e.g., email="x@example.com", password="...").
-
-    Returns:
-        User: The created User instance; `id_user` is guaranteed to be non-None by an assertion.
     """
 
     def _create_user(index: int = 0, **overrides) -> User:
@@ -352,7 +348,13 @@ class TestDeleteUser:
         assert created_user.id_user is not None
         user_id = created_user.id_user
 
-        await user_service.delete_user(session, user_id)
+        with patch(
+            "app.services.email.send_notification_email", new_callable=AsyncMock
+        ) as mock_email:
+            await user_service.delete_user(session, user_id)
+
+            mock_email.assert_called_once()
+            assert mock_email.call_args.kwargs["template_name"] == "account_deleted"
 
         deleted_user = user_service.get_user(session, user_id)
         assert deleted_user is None
@@ -365,3 +367,125 @@ class TestDeleteUser:
 
         assert exc_info.value.resource == "User"
         assert exc_info.value.identifier == NONEXISTENT_ID
+
+
+class TestPasswordReset:
+    """Test password reset operations."""
+
+    def test_create_password_reset_token(self, session: Session, created_user: User):
+        """Test creating a password reset token."""
+        user, token = user_service.create_password_reset_token(
+            session, created_user.email
+        )
+
+        assert user.password_reset_token is not None
+        assert user.password_reset_expires is not None
+        assert user.password_reset_token == get_token_hash(token)
+
+        # Ensure timezone awareness for comparison
+        expires = user.password_reset_expires
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+
+        # Should be in future
+        assert expires > datetime.now(timezone.utc)
+
+    def test_create_password_reset_token_not_found(self, session: Session):
+        """Test requesting token for non-existent user."""
+        with pytest.raises(NotFoundError):
+            user_service.create_password_reset_token(session, NONEXISTENT_EMAIL)
+
+    def test_reset_password_with_token_success(
+        self, session: Session, created_user: User
+    ):
+        """Test successful password reset."""
+        user, token = user_service.create_password_reset_token(
+            session, created_user.email
+        )
+
+        # Fix for SQLite removing timezone
+        assert user.password_reset_expires is not None
+        if user.password_reset_expires.tzinfo is None:
+            user.password_reset_expires = user.password_reset_expires.replace(
+                tzinfo=timezone.utc
+            )
+
+        new_password = "NewPassword123"
+
+        # Mock session.exec to return our user object with timezone info
+        with patch.object(session, "exec") as mock_exec:
+            mock_exec.return_value.first.return_value = user
+
+            updated_user = user_service.reset_password_with_token(
+                session, token, new_password
+            )
+
+        assert updated_user.password_reset_token is None
+        assert updated_user.password_reset_expires is None
+        assert verify_password(new_password, updated_user.hashed_password)
+
+    def test_reset_password_invalid_token(self, session: Session):
+        """Test reset with invalid token."""
+        with pytest.raises(InvalidTokenError):
+            user_service.reset_password_with_token(session, "invalid_token", "pwd")
+
+    def test_reset_password_expired_token(self, session: Session, created_user: User):
+        """Test reset with expired token."""
+        with patch("app.services.user.get_settings") as mock_settings:
+            mock_settings.return_value.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = (
+                -10
+            )  # Expired
+
+            user, token = user_service.create_password_reset_token(
+                session, created_user.email
+            )
+
+            # Fix for SQLite removing timezone
+            assert user.password_reset_expires is not None
+            if user.password_reset_expires.tzinfo is None:
+                user.password_reset_expires = user.password_reset_expires.replace(
+                    tzinfo=timezone.utc
+                )
+
+            # Mock session.exec to return our user object with timezone info
+            with patch.object(session, "exec") as mock_exec:
+                mock_exec.return_value.first.return_value = user
+
+                with pytest.raises(InvalidTokenError) as exc:
+                    user_service.reset_password_with_token(session, token, "NewPass")
+
+                assert "expired" in str(exc.value)
+
+
+class TestGetUserWithProfile:
+    """Test get_user_with_profile."""
+
+    def test_get_user_with_profile_volunteer(
+        self, session: Session, created_user: User
+    ):
+        """Test retrieving volunteer profile."""
+        # Need to create volunteer profile manually or via service
+        from app.models.volunteer import Volunteer
+
+        vol = Volunteer(
+            id_user=created_user.id_user,
+            first_name="First",
+            last_name="Last",
+            phone_number="123",
+            birthdate=date(1990, 1, 1),
+        )
+        session.add(vol)
+        session.commit()
+        session.refresh(created_user)
+
+        result = user_service.get_user_with_profile(session, created_user)
+        assert result["user_type"] == "volunteer"
+        assert result["profile"].id_volunteer == vol.id_volunteer
+
+    def test_get_user_with_profile_not_found(
+        self, session: Session, created_user: User
+    ):
+        """Test retrieving profile when it doesn't exist."""
+        # created_user has no volunteer profile linked yet
+        with pytest.raises(NotFoundError):
+            user_service.get_user_with_profile(session, created_user)
