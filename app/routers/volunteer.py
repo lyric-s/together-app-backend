@@ -480,5 +480,7 @@ async def withdraw_application(
             application exists for this mission.
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
-    await volunteer_service.withdraw_application(session, volunteer_id, mission_id)
+    await to_thread.run_sync(
+        volunteer_service.withdraw_application, session, volunteer_id, mission_id
+    )
     await to_thread.run_sync(session.commit)

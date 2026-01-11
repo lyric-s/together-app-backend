@@ -555,9 +555,7 @@ def apply_to_mission(
     return engagement
 
 
-async def withdraw_application(
-    session: Session, volunteer_id: int, mission_id: int
-) -> None:
+def withdraw_application(session: Session, volunteer_id: int, mission_id: int) -> None:
     """
     Withdraw a volunteer's PENDING application for a mission.
 

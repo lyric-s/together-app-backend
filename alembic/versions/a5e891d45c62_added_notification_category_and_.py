@@ -34,19 +34,19 @@ def upgrade() -> None:
     op.alter_column('notification', 'created_at',
                existing_type=postgresql.TIMESTAMP(timezone=True),
                server_default=None,
-               type_=sa.DateTime(),
+               type_=sa.DateTime(timezone=True),
                existing_nullable=False)
     op.drop_index(op.f('ix_notification_association'), table_name='notification')
     op.drop_index(op.f('ix_notification_created_at'), table_name='notification')
     op.drop_constraint(op.f('notification_related_user_id_fkey'), 'notification', type_='foreignkey')
     op.drop_constraint(op.f('notification_id_asso_fkey'), 'notification', type_='foreignkey')
     op.drop_constraint(op.f('notification_related_mission_id_fkey'), 'notification', type_='foreignkey')
-    op.create_foreign_key(None, 'notification', 'mission', ['related_mission_id'], ['id_mission'])
-    op.create_foreign_key(None, 'notification', 'user', ['related_user_id'], ['id_user'])
-    op.create_foreign_key(None, 'notification', 'association', ['id_asso'], ['id_asso'])
+    op.create_foreign_key('notification_related_mission_id_fkey', 'notification', 'mission', ['related_mission_id'], ['id_mission'], ondelete='CASCADE')
+    op.create_foreign_key('notification_related_user_id_fkey', 'notification', 'user', ['related_user_id'], ['id_user'], ondelete='SET NULL')
+    op.create_foreign_key('notification_id_asso_fkey', 'notification', 'association', ['id_asso'], ['id_asso'], ondelete='CASCADE')
     op.alter_column('user', 'password_reset_expires',
                existing_type=postgresql.TIMESTAMP(timezone=True),
-               type_=sa.DateTime(),
+               type_=sa.DateTime(timezone=True),
                existing_nullable=True)
     # ### end Alembic commands ###
 
@@ -58,9 +58,9 @@ def downgrade() -> None:
                existing_type=sa.DateTime(),
                type_=postgresql.TIMESTAMP(timezone=True),
                existing_nullable=True)
-    op.drop_constraint(None, 'notification', type_='foreignkey')
-    op.drop_constraint(None, 'notification', type_='foreignkey')
-    op.drop_constraint(None, 'notification', type_='foreignkey')
+    op.drop_constraint('notification_related_mission_id_fkey', 'notification', type_='foreignkey')
+    op.drop_constraint('notification_related_user_id_fkey', 'notification', type_='foreignkey')
+    op.drop_constraint('notification_id_asso_fkey', 'notification', type_='foreignkey')
     op.create_foreign_key(op.f('notification_related_mission_id_fkey'), 'notification', 'mission', ['related_mission_id'], ['id_mission'], ondelete='CASCADE')
     op.create_foreign_key(op.f('notification_id_asso_fkey'), 'notification', 'association', ['id_asso'], ['id_asso'], ondelete='CASCADE')
     op.create_foreign_key(op.f('notification_related_user_id_fkey'), 'notification', 'user', ['related_user_id'], ['id_user'], ondelete='SET NULL')
