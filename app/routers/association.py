@@ -1,8 +1,8 @@
 """Association router module for CRUD endpoints."""
 
 from typing import Annotated, cast
-import logging
 from anyio import to_thread
+from loguru import logger
 
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
@@ -35,7 +35,6 @@ from app.exceptions import NotFoundError, InsufficientPermissionsError, Validati
 from app.utils.validation import ensure_id
 
 router = APIRouter(prefix="/associations", tags=["associations"])
-logger = logging.getLogger(__name__)
 
 
 @router.post("/", response_model=AssociationPublic)
@@ -755,7 +754,7 @@ async def send_bulk_email_to_volunteers(
             except Exception:
                 # Avoid logging full recipient emails (PII)
                 logger.exception(
-                    "Failed to send bulk email (mission_id=%s)", mission_id
+                    "Failed to send bulk email (mission_id={})", mission_id
                 )
                 failed_count += 1
 
