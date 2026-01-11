@@ -25,7 +25,7 @@ from app.services import mission as mission_service
 from app.services import report as report_service
 from app.services import category as category_service
 from app.services import location as location_service
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, AuthenticationError
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
 
@@ -168,11 +168,13 @@ async def approve_document(
         `DocumentPublic`: The approved document with updated status.
 
     Raises:
-        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `401 Unauthorized`: If no valid admin authentication token is provided or admin ID is missing.
         `404 NotFoundError`: If document doesn't exist.
         `422 ValidationError`: If document is not in PENDING status.
     """
-    assert current_admin.id_admin is not None
+    if current_admin.id_admin is None:
+        raise AuthenticationError("Admin ID is unexpectedly missing")
+
     approved_document = await document_service.approve_document(
         session, document_id, current_admin.id_admin
     )
@@ -226,11 +228,13 @@ async def reject_document(
         `DocumentPublic`: The rejected document with updated status and reason.
 
     Raises:
-        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `401 Unauthorized`: If no valid admin authentication token is provided or admin ID is missing.
         `404 NotFoundError`: If document doesn't exist.
         `422 ValidationError`: If document is not in PENDING status.
     """
-    assert current_admin.id_admin is not None
+    if current_admin.id_admin is None:
+        raise AuthenticationError("Admin ID is unexpectedly missing")
+
     rejected_document = await document_service.reject_document(
         session, document_id, current_admin.id_admin, rejection_reason
     )

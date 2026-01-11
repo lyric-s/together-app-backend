@@ -27,6 +27,7 @@ from app.models.password_reset import (
 from app.exceptions import InvalidCredentialsError, InvalidTokenError, NotFoundError
 from app.services import user as user_service
 from app.services.email import send_password_reset_email
+from app.utils.logger import logger
 from sqlmodel import select
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -250,10 +251,14 @@ async def request_password_reset(
         )
     except NotFoundError:
         # Don't reveal if email exists - timing-safe response
-        pass
+        logger.debug(
+            f"Password reset requested for non-existent email: {reset_request.email}"
+        )
     except Exception:
-        # Log but don't expose errors to prevent information leakage
-        pass
+        # Log error but don't expose to prevent information leakage
+        logger.exception(
+            f"Failed to send password reset email to {reset_request.email}"
+        )
 
     return PasswordResetResponse(
         message="If that email exists, a password reset link has been sent."

@@ -19,6 +19,7 @@ from app.models.mission import Mission, MissionPublic
 from app.models.enums import UserType, ProcessingStatus
 from app.exceptions import NotFoundError, AlreadyExistsError
 from app.services import user as user_service
+from app.utils.validation import ensure_id
 
 
 def _compute_mission_counts(session: Session, volunteer_id: int) -> tuple[int, int]:
@@ -116,10 +117,8 @@ def to_volunteer_public(session: Session, volunteer: Volunteer) -> VolunteerPubl
     Returns:
         VolunteerPublic: Public representation containing volunteer fields (excluding internal relations), `active_missions_count`, `finished_missions_count`, and `user` when available.
     """
-    assert volunteer.id_volunteer is not None
-    active_count, finished_count = _compute_mission_counts(
-        session, volunteer.id_volunteer
-    )
+    id_volunteer = ensure_id(volunteer.id_volunteer, "Volunteer")
+    active_count, finished_count = _compute_mission_counts(session, id_volunteer)
 
     user_public = None
     if volunteer.user:
@@ -148,8 +147,8 @@ def to_volunteer_public_from_batch(
     """
     results = []
     for volunteer in volunteers:
-        assert volunteer.id_volunteer is not None
-        active_count, finished_count = counts_map.get(volunteer.id_volunteer, (0, 0))
+        id_volunteer = ensure_id(volunteer.id_volunteer, "Volunteer")
+        active_count, finished_count = counts_map.get(id_volunteer, (0, 0))
 
         user_public = None
         if volunteer.user:
@@ -612,7 +611,7 @@ async def withdraw_application(
                 session=session,
                 association_id=association.id_asso,
                 mission_id=mission.id_mission,
-                volunteer_id=volunteer.user.id_user,
+                user_id=volunteer.user.id_user,
                 volunteer_name=volunteer_name,
                 mission_name=mission.name,
             )
@@ -703,7 +702,7 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
             session=session,
             association_id=association.id_asso,
             mission_id=mission.id_mission,
-            volunteer_id=volunteer.user.id_user,
+            user_id=volunteer.user.id_user,
             volunteer_name=volunteer_name,
             mission_name=mission.name,
         )

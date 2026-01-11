@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
 
 from app.database.database import get_session
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_association
 from app.models.user import User, UserCreate
 from app.models.association import (
+    Association,
     AssociationCreate,
     AssociationPublic,
     AssociationUpdate,
@@ -26,6 +27,7 @@ from app.services import mission as mission_service
 from app.services import engagement as engagement_service
 from app.services import notification as notification_service
 from app.exceptions import NotFoundError, InsufficientPermissionsError, ValidationError
+from app.utils.validation import ensure_id
 
 router = APIRouter(prefix="/associations", tags=["associations"])
 
@@ -99,8 +101,8 @@ def read_associations(
 
 @router.get("/me", response_model=AssociationPublic)
 def read_current_association(
+    association: Annotated[Association, Depends(get_current_association)],
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
 ) -> AssociationPublic:
     """
     Retrieve the authenticated user's association profile.
@@ -113,22 +115,16 @@ def read_current_association(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `association`: Authenticated association profile (automatically injected).
 
     Returns:
         `AssociationPublic`: The authenticated user's association profile including
             organization details, mission statistics, and linked user account details.
 
-    Raises:
+    ### Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If no association profile exists for the authenticated user.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
     return association_service.to_association_public(session, association)
 
 
@@ -136,7 +132,7 @@ def read_current_association(
 def get_notifications(
     *,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
     unread_only: bool = Query(
         False, description="If true, only return unread notifications"
     ),
@@ -159,7 +155,7 @@ def get_notifications(
 
     Args:
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
         unread_only: Filter to only unread notifications.
         offset: Pagination offset.
         limit: Maximum number of results to return.
@@ -171,17 +167,10 @@ def get_notifications(
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile doesn't exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association", current_user.id_user)
-
-    assert association.id_asso is not None
+    # current_association.id_asso is guaranteed to be int by dependency
     notifications = notification_service.get_association_notifications(
         session=session,
-        association_id=association.id_asso,
+        association_id=current_association.id_asso,  # type: ignore
         unread_only=unread_only,
         offset=offset,
         limit=limit,
@@ -194,7 +183,7 @@ def get_notifications(
 def get_unread_count(
     *,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> dict:
     """
     Get count of unread notifications.
@@ -206,7 +195,7 @@ def get_unread_count(
 
     Args:
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
 
     Returns:
         dict: Dictionary containing unread_count.
@@ -215,15 +204,10 @@ def get_unread_count(
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile doesn't exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
+    count = notification_service.get_unread_count(
+        session,
+        current_association.id_asso,  # type: ignore
     )
-    if not association:
-        raise NotFoundError("Association", current_user.id_user)
-
-    assert association.id_asso is not None
-    count = notification_service.get_unread_count(session, association.id_asso)
 
     return {"unread_count": count}
 
@@ -232,7 +216,7 @@ def get_unread_count(
 def mark_notifications_as_read(
     *,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
     mark_read: NotificationMarkRead,
 ) -> dict:
     """
@@ -247,7 +231,7 @@ def mark_notifications_as_read(
 
     Args:
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
         mark_read: Request body containing notification IDs to mark as read.
 
     Returns:
@@ -257,18 +241,10 @@ def mark_notifications_as_read(
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile doesn't exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association", current_user.id_user)
-
-    assert association.id_asso is not None
     marked_count = notification_service.mark_notifications_as_read(
         session=session,
         notification_ids=mark_read.notification_ids,
-        association_id=association.id_asso,
+        association_id=current_association.id_asso,  # type: ignore
     )
 
     return {"marked_count": marked_count}
@@ -404,7 +380,7 @@ def create_association_mission(
     *,
     session: Annotated[Session, Depends(get_session)],
     mission_in: MissionCreate,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> MissionPublic:
     """
     Create a new mission for the authenticated association.
@@ -420,7 +396,7 @@ def create_association_mission(
         `mission_in`: Mission details including name, dates, description,
             location ID, and category ID.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `MissionPublic`: The newly created mission with its unique ID.
@@ -430,26 +406,17 @@ def create_association_mission(
         `404 NotFoundError`: If the current user is not an association or if
             referenced location/category does not exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
-    assert association.id_asso is not None
-
     # Check if association is verified/approved
-    if association.verification_status != ProcessingStatus.APPROVED:
+    if current_association.verification_status != ProcessingStatus.APPROVED:
         raise ValidationError(
             f"Your association must be verified before creating missions. "
-            f"Current status: {association.verification_status.value}. "
+            f"Current status: {current_association.verification_status.value}. "
             f"Please upload a validation document and wait for admin approval.",
             field="verification_status",
         )
 
     # Enforce the association ID to be the current authenticated one
-    mission_in.id_asso = association.id_asso
+    mission_in.id_asso = ensure_id(current_association.id_asso, "Association")
 
     mission = mission_service.create_mission(session, mission_in)
     return MissionPublic.model_validate(mission)
@@ -458,7 +425,7 @@ def create_association_mission(
 @router.get("/me/missions", response_model=list[MissionPublic])
 def read_association_missions(
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> list[MissionPublic]:
     """
     Retrieve all missions created by the authenticated association.
@@ -471,7 +438,7 @@ def read_association_missions(
 
     Args:
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `list[MissionPublic]`: A list of missions created by the association.
@@ -480,15 +447,10 @@ def read_association_missions(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the current user has no association profile.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
+    missions = mission_service.get_missions_by_association(
+        session,
+        current_association.id_asso,  # type: ignore
     )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
-    assert association.id_asso is not None
-    missions = mission_service.get_missions_by_association(session, association.id_asso)
     return [MissionPublic.model_validate(m) for m in missions]
 
 
@@ -497,7 +459,7 @@ def update_association_mission(
     mission_id: int,
     mission_update: MissionUpdate,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> MissionPublic:
     """
     Update a mission owned by the authenticated association.
@@ -513,7 +475,7 @@ def update_association_mission(
         `mission_id`: The unique identifier of the mission to update.
         `mission_update`: Object containing the fields to update.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `MissionPublic`: The updated mission.
@@ -523,15 +485,11 @@ def update_association_mission(
         `404 NotFoundError`: If the mission or association profile does not exist.
         `403 InsufficientPermissionsError`: If the mission belongs to another association.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     updated_mission = mission_service.update_mission(
-        session, mission_id, mission_update, association_id=association.id_asso
+        session,
+        mission_id,
+        mission_update,
+        association_id=current_association.id_asso,
     )
     return MissionPublic.model_validate(updated_mission)
 
@@ -540,7 +498,7 @@ def update_association_mission(
 async def delete_association_mission(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> None:
     """
     Delete a mission owned by the authenticated association.
@@ -557,7 +515,7 @@ async def delete_association_mission(
     Args:
         `mission_id`: The unique identifier of the mission to delete.
         `session`: Database session (automatically injected).
-        `current_user`: Authenticated user (automatically injected from token).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
         `None`: Returns 204 No Content on successful deletion.
@@ -567,19 +525,12 @@ async def delete_association_mission(
         `404 NotFoundError`: If the mission does not exist or user has no profile.
         `403 InsufficientPermissionsError`: If the mission belongs to a different association.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
     await mission_service.delete_mission(
-        session, mission_id, association_id=association.id_asso
+        session, mission_id, association_id=current_association.id_asso
     )
 
 
@@ -593,7 +544,7 @@ async def approve_engagement(
     volunteer_id: int,
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> Engagement:
     """
     Approve a volunteer's application to a mission.
@@ -609,7 +560,7 @@ async def approve_engagement(
         volunteer_id: The volunteer's ID.
         mission_id: The mission's ID.
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
 
     Returns:
         Engagement: The approved engagement.
@@ -618,19 +569,12 @@ async def approve_engagement(
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile, mission, volunteer, or engagement doesn't exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Verify mission belongs to association
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
-    if mission.id_asso != association.id_asso:
+    if mission.id_asso != current_association.id_asso:
         raise InsufficientPermissionsError("approve applications for this mission")
 
     engagement = await engagement_service.approve_application_by_ids(
@@ -645,7 +589,7 @@ async def reject_engagement(
     mission_id: int,
     rejection_reason: str,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> Engagement:
     """
     Reject a volunteer's application to a mission.
@@ -661,7 +605,7 @@ async def reject_engagement(
         mission_id: The mission's ID.
         rejection_reason: Reason for rejection.
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
 
     Returns:
         Engagement: The rejected engagement.
@@ -670,19 +614,12 @@ async def reject_engagement(
         401 Unauthorized: If no valid authentication token is provided.
         404 NotFoundError: If the association profile, mission, volunteer, or engagement doesn't exist.
     """
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Verify mission belongs to association
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
-    if mission.id_asso != association.id_asso:
+    if mission.id_asso != current_association.id_asso:
         raise InsufficientPermissionsError("reject applications for this mission")
 
     engagement = await engagement_service.reject_application(
@@ -701,7 +638,7 @@ async def send_bulk_email_to_volunteers(
     mission_id: int,
     email_request: BulkEmailRequest,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_association: Annotated[Association, Depends(get_current_association)],
 ) -> dict:
     """
     Send email to all volunteers with approved applications for a mission.
@@ -722,7 +659,7 @@ async def send_bulk_email_to_volunteers(
         mission_id: The mission's ID.
         email_request: Email request containing subject and message.
         session: Database session (automatically injected).
-        current_user: Authenticated user (automatically injected from token).
+        current_association: Authenticated association profile (automatically injected).
 
     Returns:
         dict: Dictionary with sent_count, failed_count, and total_recipients.
@@ -736,19 +673,12 @@ async def send_bulk_email_to_volunteers(
     from app.services.email import send_notification_email
     from sqlmodel import select
 
-    assert current_user.id_user is not None
-    association = association_service.get_association_by_user_id(
-        session, current_user.id_user
-    )
-    if not association:
-        raise NotFoundError("Association profile", current_user.id_user)
-
     # Get mission and verify ownership
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
         raise NotFoundError("Mission", mission_id)
 
-    if mission.id_asso != association.id_asso:
+    if mission.id_asso != current_association.id_asso:
         raise InsufficientPermissionsError("send emails for this mission")
 
     # Get all approved volunteers
@@ -778,7 +708,7 @@ async def send_bulk_email_to_volunteers(
                     recipient_email=volunteer.user.email,
                     context={
                         "volunteer_name": volunteer_name,
-                        "association_name": association.name,
+                        "association_name": current_association.name,
                         "mission_name": mission.name,
                         "subject": email_request.subject,
                         "custom_message": email_request.message,

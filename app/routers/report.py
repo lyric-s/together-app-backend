@@ -55,7 +55,7 @@ def create_report(
     if current_user.id_user is None:
         raise InvalidTokenError("User ID not found in token")
     report = report_service.create_report(session, current_user.id_user, report_in)
-    return ReportPublic.model_validate(report)
+    return ReportPublic.model_validate(report_service.to_report_public(report))
 
 
 @router.get("/me", response_model=list[ReportPublic])
@@ -86,4 +86,6 @@ def get_my_reports(
     if current_user.id_user is None:
         raise InvalidTokenError("User ID not found in token")
     reports = report_service.get_reports_by_reporter(session, current_user.id_user)
-    return [ReportPublic.model_validate(r) for r in reports]
+    return [
+        ReportPublic.model_validate(report_service.to_report_public(r)) for r in reports
+    ]

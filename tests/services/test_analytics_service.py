@@ -1,7 +1,7 @@
 """Tests for analytics service."""
 
 from datetime import date, datetime
-from unittest.mock import patch
+from dateutil.relativedelta import relativedelta
 import pytest
 from sqlmodel import Session
 
@@ -181,44 +181,121 @@ class TestAnalytics:
         assert stats["accepted"] == 1
         assert stats["rejected"] == 1
 
-    def test_get_volunteers_by_month_mocked(self, session: Session):
-        # Mocking the query result because sqlite doesn't support date_trunc
-        mock_results = [(datetime(2023, 1, 1), 5), (datetime(2023, 2, 1), 10)]
+    def test_get_volunteers_by_month(self, session: Session):
+        # Create some volunteers in different months
+        today = date.today()
 
-        with patch.object(session, "exec") as mock_exec:
-            mock_exec.return_value.all.return_value = mock_results
+        # This month
+        u1 = user_service.create_user(
+            session,
+            UserCreate(
+                username="v1",
+                email="v1@e.com",
+                password="Password123",
+                user_type=UserType.VOLUNTEER,
+            ),
+        )
+        u1.date_creation = datetime(today.year, today.month, 1)
+        session.add(u1)
 
-            # Let's mock 'date' to have a fixed 'today' so we can assert exact output.
-            with patch("app.services.analytics.date") as mock_date:
-                mock_date.today.return_value = date(2023, 3, 15)
-                # months=3 means: Mar, Feb, Jan.
-                # Start date = 2023-01-01.
+        # Last month
+        last_month_date = today - relativedelta(months=1)
+        assert isinstance(last_month_date, date)
+        u2 = user_service.create_user(
+            session,
+            UserCreate(
+                username="v2",
+                email="v2@e.com",
+                password="Password123",
+                user_type=UserType.VOLUNTEER,
+            ),
+        )
+        u2.date_creation = datetime(last_month_date.year, last_month_date.month, 1)
+        session.add(u2)
 
-                stats = analytics_service.get_volunteers_by_month(session, months=3)
+        session.commit()
 
-                assert stats[0]["month"] == "2023-01"
-                assert stats[0]["value"] == 5
-                assert stats[1]["month"] == "2023-02"
-                assert stats[1]["value"] == 10
-                assert stats[2]["month"] == "2023-03"
-                assert stats[2]["value"] == 0
+        stats = analytics_service.get_volunteers_by_month(session, months=2)
 
-    def test_get_missions_by_month_mocked(self, session: Session):
-        mock_results = [
-            (datetime(2023, 1, 1), 2),
-        ]
+        # Sort just in case although the service should return them in order
+        assert len(stats) == 2
+        assert stats[0]["month"] == last_month_date.strftime("%Y-%m")
+        assert stats[0]["value"] == 1
+        assert stats[1]["month"] == today.strftime("%Y-%m")
+        assert stats[1]["value"] == 1
 
-        with patch.object(session, "exec") as mock_exec:
-            mock_exec.return_value.all.return_value = mock_results
+    def test_get_missions_by_month(self, session: Session):
+        # Setup for mission creation
+        u1 = user_service.create_user(
+            session,
+            UserCreate(
+                username="asso_m",
+                email="asso_m@e.com",
+                password="Password123",
+                user_type=UserType.ASSOCIATION,
+            ),
+        )
+        a1 = Association(
+            id_user=u1.id_user,
+            name="A1",
+            rna_code="W1",
+            company_name="C1",
+            phone_number="P1",
+            address="A1",
+            zip_code="Z1",
+            country="C1",
+        )
+        session.add(a1)
+        loc = location_service.create_location(
+            session, LocationCreate(address="L", country="C", zip_code="Z")
+        )
+        session.commit()
+        session.refresh(a1)
 
-            with patch("app.services.analytics.date") as mock_date:
-                mock_date.today.return_value = date(2023, 2, 15)
-                # months=2: Feb, Jan.
+        from app.models.mission import Mission
 
-                stats = analytics_service.get_missions_by_month(session, months=2)
+        today = date.today()
+        last_month_date = today - relativedelta(months=1)
+        assert isinstance(last_month_date, date)
 
-                assert len(stats) == 2
-                assert stats[0]["month"] == "2023-01"
-                assert stats[0]["value"] == 2
-                assert stats[1]["month"] == "2023-02"
-                assert stats[1]["value"] == 0
+        # Mission ending last month
+        m1 = Mission(
+            name="M1",
+            id_location=loc.id_location,
+            id_asso=a1.id_asso,
+            date_start=last_month_date - relativedelta(days=5),
+            date_end=date(last_month_date.year, last_month_date.month, 1),
+            skills="S",
+            description="D",
+            capacity_min=1,
+            capacity_max=5,
+        )
+        session.add(m1)
+
+        # Mission ending this month (but before today)
+        if today.day > 1:
+            m2 = Mission(
+                name="M2",
+                id_location=loc.id_location,
+                id_asso=a1.id_asso,
+                date_start=today - relativedelta(days=5),
+                date_end=date(today.year, today.month, 1),
+                skills="S",
+                description="D",
+                capacity_min=1,
+                capacity_max=5,
+            )
+            session.add(m2)
+            expected_this_month = 1
+        else:
+            expected_this_month = 0
+
+        session.commit()
+
+        stats = analytics_service.get_missions_by_month(session, months=2)
+
+        assert len(stats) == 2
+        assert stats[0]["month"] == last_month_date.strftime("%Y-%m")
+        assert stats[0]["value"] == 1
+        assert stats[1]["month"] == today.strftime("%Y-%m")
+        assert stats[1]["value"] == expected_this_month

@@ -17,6 +17,7 @@ from app.models.mission import Mission
 from app.models.enums import UserType
 from app.exceptions import NotFoundError, ValidationError
 from app.services import user as user_service
+from app.utils.validation import ensure_id
 
 
 def validate_rna_code(rna_code: str) -> None:
@@ -112,8 +113,8 @@ def to_association_public(
     Returns:
         AssociationPublic: Public representation containing association fields, mission counts, and user.
     """
-    assert association.id_asso is not None
-    active_count, finished_count = _compute_mission_counts(session, association.id_asso)
+    id_asso = ensure_id(association.id_asso, "Association")
+    active_count, finished_count = _compute_mission_counts(session, id_asso)
 
     user_public = None
     if association.user:
@@ -142,8 +143,8 @@ def to_association_public_from_batch(
     """
     results = []
     for association in associations:
-        assert association.id_asso is not None
-        active_count, finished_count = counts_map.get(association.id_asso, (0, 0))
+        id_asso = ensure_id(association.id_asso, "Association")
+        active_count, finished_count = counts_map.get(id_asso, (0, 0))
 
         user_public = None
         if association.user:

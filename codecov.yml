@@ -17,7 +17,7 @@ coverage:
     # Docs: https://docs.codecov.com/docs/commit-status
     project:
       default:
-        target: 55%        # Realistic goal (current 53% + 2%)
+        target: 75%        # Realistic goal (current 53% + 2%)
         threshold: 2%      # Allow 2% drop without failing (down to 53%)
         if_ci_failed: error
 

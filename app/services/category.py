@@ -1,6 +1,7 @@
 """Category service module for CRUD operations."""
 
 from sqlmodel import Session, select
+from sqlalchemy.exc import IntegrityError
 
 from app.models.category import Category, CategoryCreate, CategoryUpdate
 from app.exceptions import NotFoundError, AlreadyExistsError
@@ -48,7 +49,7 @@ def create_category(session: Session, category_in: CategoryCreate) -> Category:
     Raises:
         AlreadyExistsError: If a category with the same label already exists.
     """
-    # Check if category with same label exists
+    # Check if category with same label exists (pre-check)
     existing = session.exec(
         select(Category).where(Category.label == category_in.label)
     ).first()
@@ -57,8 +58,12 @@ def create_category(session: Session, category_in: CategoryCreate) -> Category:
 
     category = Category.model_validate(category_in)
     session.add(category)
-    session.commit()
-    session.refresh(category)
+    try:
+        session.commit()
+        session.refresh(category)
+    except IntegrityError:
+        session.rollback()
+        raise AlreadyExistsError("Category", "label", category_in.label)
     return category
 
 
@@ -84,18 +89,19 @@ def update_category(
     if not category:
         raise NotFoundError("Category", category_id)
 
+    update_data = category_update.model_dump(exclude_unset=True)
+
     # Check if new label conflicts with existing category
-    if category_update.label:
+    if "label" in update_data and update_data["label"] is not None:
         existing = session.exec(
             select(Category).where(
-                Category.label == category_update.label,
+                Category.label == update_data["label"],
                 Category.id_categ != category_id,
             )
         ).first()
         if existing:
-            raise AlreadyExistsError("Category", "label", category_update.label)
+            raise AlreadyExistsError("Category", "label", update_data["label"])
 
-    update_data = category_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(category, key, value)
 

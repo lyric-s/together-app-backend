@@ -1,6 +1,7 @@
 """Password hashing utilities."""
 
 import hashlib
+import secrets
 from pwdlib import PasswordHash
 
 # pwdlib is the modern, recommended way (Argon2 by default)
@@ -57,4 +58,4 @@ def verify_token(token: str, hashed_token: str) -> bool:
     Returns:
         bool: True if the token matches the hash, False otherwise.
     """
-    return get_token_hash(token) == hashed_token
+    return secrets.compare_digest(get_token_hash(token), hashed_token)

@@ -5,6 +5,7 @@ from typing import Literal
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import re
 from sqlmodel import Session, select
 
 from app.core.config import get_settings
@@ -35,7 +36,7 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
     user = user_service.get_user_by_username(session, username)
 
     # If not found and looks like RNA code (W + 9 digits), try RNA lookup
-    if not user and username.startswith("W") and len(username) == 10:
+    if not user and re.fullmatch(r"W\d{9}", username):
         from app.models.association import Association
 
         statement = select(Association).where(Association.rna_code == username)
@@ -43,11 +44,12 @@ def authenticate_user(session: Session, username: str, password: str) -> User | 
         if association:
             user = user_service.get_user(session, association.id_user)
 
-    # Timing-safe password verification (always verify to prevent timing attacks)
+    # Timing-safe password verification (always verify to reduce timing attacks)
     hash_to_verify = (
         user.hashed_password if user else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
     )
-    if user and verify_password(password, hash_to_verify):
+    password_ok = verify_password(password, hash_to_verify)
+    if user and password_ok:
         return user
     return None
 
@@ -64,7 +66,8 @@ def authenticate_admin(session: Session, username: str, password: str) -> Admin 
     hash_to_verify = (
         admin.hashed_password if admin else "$argon2id$v=19$m=65536,t=3,p=4$dummy"
     )
-    if admin and verify_password(password, hash_to_verify):
+    password_ok = verify_password(password, hash_to_verify)
+    if admin and password_ok:
         return admin
     return None
 
