@@ -331,9 +331,11 @@ def update_association(
     return db_association
 
 
-def delete_association(session: Session, association_id: int) -> None:
+async def delete_association(session: Session, association_id: int) -> None:
     """
     Delete an association and their associated user account.
+
+    Sends email notification to the user before deletion.
 
     Parameters:
         session: Database session.
@@ -351,7 +353,7 @@ def delete_association(session: Session, association_id: int) -> None:
     # Delete association first (child), then user (parent)
     session.delete(db_association)
 
-    # Delete associated user
-    user_service.delete_user(session, user_id)
+    # Delete associated user (sends email notification)
+    await user_service.delete_user(session, user_id)
 
     session.commit()

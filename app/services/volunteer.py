@@ -324,9 +324,11 @@ def update_volunteer(
     return db_volunteer
 
 
-def delete_volunteer(session: Session, volunteer_id: int) -> None:
+async def delete_volunteer(session: Session, volunteer_id: int) -> None:
     """
     Delete a volunteer and their associated user account.
+
+    Sends email notification to the user before deletion.
 
     Parameters:
         session: Database session.
@@ -344,8 +346,8 @@ def delete_volunteer(session: Session, volunteer_id: int) -> None:
     # Delete volunteer first (child), then user (parent)
     session.delete(db_volunteer)
 
-    # Delete associated user
-    user_service.delete_user(session, user_id)
+    # Delete associated user (sends email notification)
+    await user_service.delete_user(session, user_id)
 
     session.commit()
 
@@ -550,12 +552,14 @@ def apply_to_mission(
     return engagement
 
 
-def withdraw_application(session: Session, volunteer_id: int, mission_id: int) -> None:
+async def withdraw_application(
+    session: Session, volunteer_id: int, mission_id: int
+) -> None:
     """
     Withdraw a volunteer's PENDING application for a mission.
 
     Only PENDING engagements can be withdrawn. APPROVED or REJECTED engagements
-    cannot be withdrawn by the volunteer.
+    cannot be withdrawn by the volunteer. Sends notification to association.
 
     Parameters:
         session: Database session.
@@ -575,5 +579,151 @@ def withdraw_application(session: Session, volunteer_id: int, mission_id: int) -
     if not engagement:
         raise NotFoundError("Pending application", mission_id)
 
+    # Get mission and association for notification
+    from app.models.mission import Mission
+    from app.models.association import Association
+
+    mission = session.exec(
+        select(Mission).where(Mission.id_mission == mission_id)
+    ).first()
+
+    if mission:
+        association = session.exec(
+            select(Association).where(Association.id_asso == mission.id_asso)
+        ).first()
+
+        # Get volunteer for name
+        volunteer = get_volunteer(session, volunteer_id)
+
+        if (
+            association
+            and association.id_asso is not None
+            and volunteer
+            and volunteer.user
+            and volunteer.user.id_user is not None
+            and mission.id_mission is not None
+        ):
+            volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
+
+            # Create notification for association
+            from app.services import notification as notification_service
+
+            notification_service.create_volunteer_withdrew_notification(
+                session=session,
+                association_id=association.id_asso,
+                mission_id=mission.id_mission,
+                volunteer_id=volunteer.user.id_user,
+                volunteer_name=volunteer_name,
+                mission_name=mission.name,
+            )
+
+    # Delete engagement
     session.delete(engagement)
     session.commit()
+
+
+async def leave_mission(session: Session, volunteer_id: int, mission_id: int) -> None:
+    """
+    Remove volunteer from approved mission and notify association.
+
+    This function allows volunteers to leave missions they've been approved for.
+    Sends notification to association.
+
+    Parameters:
+        session: Database session.
+        volunteer_id: The volunteer's primary key.
+        mission_id: The mission's primary key.
+
+    Raises:
+        NotFoundError: If no APPROVED engagement exists for this volunteer-mission pair.
+    """
+    from app.models.mission import Mission
+    from app.models.association import Association
+
+    # Get engagement
+    engagement = session.exec(
+        select(Engagement).where(
+            Engagement.id_volunteer == volunteer_id,
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).first()
+
+    if not engagement:
+        raise NotFoundError(
+            "Engagement", f"volunteer_{volunteer_id}_mission_{mission_id}"
+        )
+
+    # Get mission
+    mission = session.exec(
+        select(Mission).where(Mission.id_mission == mission_id)
+    ).first()
+
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    association = session.exec(
+        select(Association).where(Association.id_asso == mission.id_asso)
+    ).first()
+
+    # Get volunteer for name
+    volunteer = get_volunteer(session, volunteer_id)
+
+    if not volunteer or not volunteer.user:
+        raise NotFoundError("Volunteer", volunteer_id)
+
+    volunteer_name = f"{volunteer.first_name} {volunteer.last_name}"
+
+    # Count current approved volunteers
+    from sqlmodel import func
+
+    current_count = session.exec(
+        select(func.count())
+        .select_from(Engagement)
+        .where(
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).one()
+
+    # Delete engagement
+    session.delete(engagement)
+    session.commit()
+
+    # Create notification for association
+    if (
+        association
+        and association.id_asso is not None
+        and mission.id_mission is not None
+        and volunteer.user.id_user is not None
+    ):
+        from app.services import notification as notification_service
+
+        notification_service.create_volunteer_left_notification(
+            session=session,
+            association_id=association.id_asso,
+            mission_id=mission.id_mission,
+            volunteer_id=volunteer.user.id_user,
+            volunteer_name=volunteer_name,
+            mission_name=mission.name,
+        )
+
+        # Send email to association
+        if association.user:
+            from app.services.email import send_notification_email
+            import logging
+
+            try:
+                await send_notification_email(
+                    template_name="volunteer_left",
+                    recipient_email=association.user.email,
+                    context={
+                        "association_name": association.name,
+                        "volunteer_name": volunteer_name,
+                        "mission_name": mission.name,
+                        "current_count": current_count - 1,
+                        "max_capacity": mission.capacity_max,
+                    },
+                )
+            except Exception as e:
+                logging.error(f"Failed to send volunteer left email: {e}")

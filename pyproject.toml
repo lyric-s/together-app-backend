@@ -64,6 +64,7 @@ dev = [
     "prek>=0.2.19",
     "pyrefly>=0.45.1",
     "pytest>=9.0.1",
+    "pytest-asyncio>=1.3.0",
     "pytest-codspeed>=4.2.0",
     "pytest-cov>=7.0.0",
     "requests>=2.32.5",

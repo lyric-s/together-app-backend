@@ -346,20 +346,22 @@ class TestUpdateUser:
 class TestDeleteUser:
     """Test user deletion."""
 
-    def test_delete_user_success(self, session: Session, created_user: User):
+    @pytest.mark.asyncio
+    async def test_delete_user_success(self, session: Session, created_user: User):
         """Test successful user deletion."""
         assert created_user.id_user is not None
         user_id = created_user.id_user
 
-        user_service.delete_user(session, user_id)
+        await user_service.delete_user(session, user_id)
 
         deleted_user = user_service.get_user(session, user_id)
         assert deleted_user is None
 
-    def test_delete_user_not_found(self, session: Session):
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(self, session: Session):
         """Test deleting non-existent user raises NotFoundError."""
         with pytest.raises(NotFoundError) as exc_info:
-            user_service.delete_user(session, NONEXISTENT_ID)
+            await user_service.delete_user(session, NONEXISTENT_ID)
 
         assert exc_info.value.resource == "User"
         assert exc_info.value.identifier == NONEXISTENT_ID

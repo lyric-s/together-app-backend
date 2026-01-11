@@ -265,7 +265,7 @@ def update_volunteer(
 
 
 @router.delete("/{volunteer_id}", status_code=204)
-def delete_volunteer(
+async def delete_volunteer(
     volunteer_id: int,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -304,7 +304,7 @@ def delete_volunteer(
     if volunteer.id_user != current_user.id_user:
         raise InsufficientPermissionsError("delete this volunteer profile")
 
-    volunteer_service.delete_volunteer(session, volunteer_id)
+    await volunteer_service.delete_volunteer(session, volunteer_id)
 
 
 # Favorite endpoints
@@ -481,7 +481,7 @@ def apply_to_mission(
 
 
 @router.delete("/me/missions/{mission_id}/application", status_code=204)
-def withdraw_application(
+async def withdraw_application(
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -490,7 +490,7 @@ def withdraw_application(
     Withdraw a pending mission application for the authenticated volunteer.
 
     Cancel an application that is still awaiting review. Only applications
-    in PENDING status can be withdrawn.
+    in PENDING status can be withdrawn. Sends notification to association.
 
     ### Important Notes:
     - **Only PENDING applications** can be withdrawn
@@ -522,4 +522,6 @@ def withdraw_application(
         raise NotFoundError("Volunteer profile", current_user.id_user)
 
     assert volunteer.id_volunteer is not None
-    volunteer_service.withdraw_application(session, volunteer.id_volunteer, mission_id)
+    await volunteer_service.withdraw_application(
+        session, volunteer.id_volunteer, mission_id
+    )
