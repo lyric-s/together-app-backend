@@ -46,6 +46,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 - ✅ **Database Management** using [SQLModel](https://sqlmodel.tiangolo.com/) ORM with [PostgreSQL](https://www.postgresql.org/)
 - ✅ **Database Migrations** with [Alembic](https://alembic.sqlalchemy.org/)
 - ✅ **File Storage** integration with [MinIO](https://min.io/)/S3-compatible services
+- ✅ **Email Integration** with [FastMail](https://www.fastmail.com/) and [Brevo](https://www.brevo.com/) for notifications
 - ✅ **CORS Configuration** for secure cross-origin requests
 - ✅ **Rate Limiting** with [slowapi](https://github.com/laurentS/slowapi) to prevent abuse
 
@@ -99,6 +100,7 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
 | ORM | [SQLModel](https://sqlmodel.tiangolo.com/) |
 | Migrations | [Alembic](https://alembic.sqlalchemy.org/) |
 | File Storage | [MinIO](https://min.io/) (S3-compatible) |
+| Email Service | [FastMail](https://www.fastmail.com/) & [Brevo](https://www.brevo.com/) |
 | Security | [OAuth2](https://oauth.net/2/) ([JWT](https://jwt.io/)) & CORS |
 | Rate Limiting | [slowapi](https://github.com/laurentS/slowapi) |
 
@@ -894,5 +896,10 @@ This project was developed as part of an academic curriculum at **IUT Paris - Ri
 ---
 
 Built with ❤️ at IUT Paris - Rives de Seine
+
+---
+
+> [!NOTE]
+> **Agentic AI Tools** such as [Claude CLI](https://github.com/anthropics/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [CodeRabbit](https://coderabbit.ai/) came as great help on tests, docstrings, and reviews making when we came short on time before the end of this project.
 
 [Report an Issue](https://github.com/lyric-s/together-app-backend/issues) · [Request a Feature](https://github.com/lyric-s/together-app-backend/issues)

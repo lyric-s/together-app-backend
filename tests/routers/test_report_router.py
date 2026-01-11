@@ -65,7 +65,7 @@ class TestCreateReportEndpoint:
         data = response.json()
         assert data["type"] == ReportType.HARASSMENT.value
         assert data["id_user_reported"] == auth_user2.id_user
-        assert data["state"] == "pending"
+        assert data["state"] == "PENDING"
         assert "id_report" in data
 
     def test_create_report_unauthorized(self, client: TestClient, auth_user2):
@@ -253,7 +253,7 @@ class TestGetMyReportsEndpoint:
         assert len(data) == 2
         # Reports should have correct state and target information
         assert all("id_report" in r for r in data)
-        assert all(r["state"] == "pending" for r in data)
+        assert all(r["state"] == "PENDING" for r in data)
 
     def test_get_my_reports_empty(self, client: TestClient, auth_token):
         """User with no reports returns empty list."""
