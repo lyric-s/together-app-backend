@@ -135,7 +135,7 @@ def get_document(
 
 
 @router.post("/documents/{document_id}/approve", response_model=DocumentPublic)
-def approve_document(
+async def approve_document(
     *,
     document_id: int,
     session: Annotated[Session, Depends(get_session)],
@@ -149,6 +149,7 @@ def approve_document(
     2. Admin ID is recorded on the document
     3. Association's verification_status is set to APPROVED
     4. Association can now create missions
+    5. Email notification is sent to the association
 
     ### Authorization Required:
     - **Admin authentication**: Requires valid admin access token
@@ -172,14 +173,14 @@ def approve_document(
         `422 ValidationError`: If document is not in PENDING status.
     """
     assert current_admin.id_admin is not None
-    approved_document = document_service.approve_document(
+    approved_document = await document_service.approve_document(
         session, document_id, current_admin.id_admin
     )
     return DocumentPublic.model_validate(approved_document)
 
 
 @router.post("/documents/{document_id}/reject", response_model=DocumentPublic)
-def reject_document(
+async def reject_document(
     *,
     document_id: int,
     session: Annotated[Session, Depends(get_session)],
@@ -201,6 +202,7 @@ def reject_document(
     3. Rejection reason is stored (if provided)
     4. Association's verification_status is set to REJECTED
     5. Association cannot create missions until a new document is approved
+    6. Email notification is sent to the association
 
     ### Authorization Required:
     - **Admin authentication**: Requires valid admin access token
@@ -229,7 +231,7 @@ def reject_document(
         `422 ValidationError`: If document is not in PENDING status.
     """
     assert current_admin.id_admin is not None
-    rejected_document = document_service.reject_document(
+    rejected_document = await document_service.reject_document(
         session, document_id, current_admin.id_admin, rejection_reason
     )
     return DocumentPublic.model_validate(rejected_document)
@@ -305,7 +307,7 @@ def get_all_associations(
 
 
 @router.delete("/associations/{association_id}", status_code=204)
-def delete_association(
+async def delete_association(
     *,
     association_id: int,
     session: Annotated[Session, Depends(get_session)],
@@ -320,6 +322,8 @@ def delete_association(
     - All missions created by the association
     - All documents uploaded by the association
     - Related engagement and other data
+
+    Sends email notification to the user before deletion.
 
     ### Authorization Required:
     - **Admin authentication**: Requires valid admin access token
@@ -340,14 +344,14 @@ def delete_association(
         `401 Unauthorized`: If no valid admin authentication token is provided.
         `404 NotFoundError`: If association doesn't exist.
     """
-    association_service.delete_association(session, association_id)
+    await association_service.delete_association(session, association_id)
 
 
 # Volunteer management endpoints
 
 
 @router.delete("/volunteers/{volunteer_id}", status_code=204)
-def delete_volunteer(
+async def delete_volunteer(
     *,
     volunteer_id: int,
     session: Annotated[Session, Depends(get_session)],
@@ -362,6 +366,8 @@ def delete_volunteer(
     - All engagements (mission applications)
     - All favorites
     - Related data
+
+    Sends email notification to the user before deletion.
 
     ### Authorization Required:
     - **Admin authentication**: Requires valid admin access token
@@ -382,14 +388,14 @@ def delete_volunteer(
         `401 Unauthorized`: If no valid admin authentication token is provided.
         `404 NotFoundError`: If volunteer doesn't exist.
     """
-    volunteer_service.delete_volunteer(session, volunteer_id)
+    await volunteer_service.delete_volunteer(session, volunteer_id)
 
 
 # Mission management endpoints
 
 
 @router.delete("/missions/{mission_id}", status_code=204)
-def delete_mission(
+async def delete_mission(
     *,
     mission_id: int,
     session: Annotated[Session, Depends(get_session)],
@@ -403,6 +409,10 @@ def delete_mission(
     - All engagements (volunteer applications)
     - All favorites referencing this mission
     - Related data
+
+    Sends email notifications to:
+    - The association that created the mission
+    - All volunteers with approved applications
 
     ### Authorization Required:
     - **Admin authentication**: Requires valid admin access token
@@ -424,7 +434,7 @@ def delete_mission(
         `404 NotFoundError`: If mission doesn't exist.
     """
     # Admin can delete any mission without association_id check
-    mission_service.delete_mission(session, mission_id, association_id=None)
+    await mission_service.delete_mission(session, mission_id, association_id=None)
 
 
 # Report management endpoints

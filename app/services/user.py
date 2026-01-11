@@ -135,9 +135,12 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
     return db_user
 
 
-def delete_user(session: Session, user_id: int) -> None:
+async def delete_user(session: Session, user_id: int) -> None:
     """
-    Delete the user identified by `user_id`.
+    Delete the user identified by `user_id` and send notification email.
+
+    Sends email notification to the user before deletion informing them
+    that their account has been deleted by an administrator.
 
     Parameters:
         user_id (int): Primary key of the user to delete.
@@ -148,6 +151,20 @@ def delete_user(session: Session, user_id: int) -> None:
     db_user = get_user(session, user_id)
     if not db_user:
         raise NotFoundError("User", user_id)
+
+    # Send email notification before deletion
+    from app.services.email import send_notification_email
+    import logging
+
+    try:
+        await send_notification_email(
+            template_name="account_deleted",
+            recipient_email=db_user.email,
+            context={"username": db_user.username},
+        )
+    except Exception as e:
+        # Log error but don't fail the deletion
+        logging.error(f"Failed to send account deletion email: {e}")
 
     session.delete(db_user)
     session.flush()

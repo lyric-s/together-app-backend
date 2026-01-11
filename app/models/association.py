@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.mission import Mission
     from app.models.document import Document
+    from app.models.notification import Notification
 
 # Field constraints
 ASSOCIATION_NAME_MAX_LENGTH = 50
@@ -44,6 +45,9 @@ class Association(AssociationBase, table=True):
     user: "User" = Relationship(back_populates="association_profile")
     missions: list["Mission"] = Relationship(back_populates="association")
     documents: list["Document"] = Relationship(back_populates="association")
+    notifications: list["Notification"] = Relationship(
+        back_populates="association", cascade_delete=True
+    )
 
 
 class AssociationCreate(AssociationBase):

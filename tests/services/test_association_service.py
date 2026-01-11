@@ -185,20 +185,24 @@ class TestUpdateAssociation:
 
 
 class TestDeleteAssociation:
-    def test_delete_association_success(
+    @pytest.mark.asyncio
+    async def test_delete_association_success(
         self, session: Session, created_association: Association
     ):
         assert created_association.id_asso is not None
-        association_service.delete_association(session, created_association.id_asso)
+        await association_service.delete_association(
+            session, created_association.id_asso
+        )
         assert (
             association_service.get_association(session, created_association.id_asso)
             is None
         )
         assert user_service.get_user(session, created_association.id_user) is None
 
-    def test_delete_association_not_found(self, session: Session):
+    @pytest.mark.asyncio
+    async def test_delete_association_not_found(self, session: Session):
         with pytest.raises(NotFoundError):
-            association_service.delete_association(session, NONEXISTENT_ID)
+            await association_service.delete_association(session, NONEXISTENT_ID)
 
 
 class TestAssociationMissionCounts:

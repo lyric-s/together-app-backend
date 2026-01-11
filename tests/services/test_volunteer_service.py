@@ -239,20 +239,24 @@ class TestUpdateVolunteer:
 
 
 class TestDeleteVolunteer:
-    def test_delete_volunteer_success(
+    @pytest.mark.asyncio
+    async def test_delete_volunteer_success(
         self, session: Session, created_volunteer: Volunteer
     ):
         assert created_volunteer.id_volunteer is not None
-        volunteer_service.delete_volunteer(session, created_volunteer.id_volunteer)
+        await volunteer_service.delete_volunteer(
+            session, created_volunteer.id_volunteer
+        )
         assert (
             volunteer_service.get_volunteer(session, created_volunteer.id_volunteer)
             is None
         )
         assert user_service.get_user(session, created_volunteer.id_user) is None
 
-    def test_delete_volunteer_not_found(self, session: Session):
+    @pytest.mark.asyncio
+    async def test_delete_volunteer_not_found(self, session: Session):
         with pytest.raises(NotFoundError):
-            volunteer_service.delete_volunteer(session, NONEXISTENT_ID)
+            await volunteer_service.delete_volunteer(session, NONEXISTENT_ID)
 
 
 class TestFavoriteMissions:
@@ -551,7 +555,8 @@ class TestApplyToMission:
 
 
 class TestWithdrawApplication:
-    def test_withdraw_application_success(
+    @pytest.mark.asyncio
+    async def test_withdraw_application_success(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Successfully withdraw a PENDING application."""
@@ -565,7 +570,7 @@ class TestWithdrawApplication:
         )
 
         # Withdraw it
-        volunteer_service.withdraw_application(
+        await volunteer_service.withdraw_application(
             session, created_volunteer.id_volunteer, mission.id_mission
         )
 
@@ -578,7 +583,8 @@ class TestWithdrawApplication:
         ).first()
         assert engagement is None
 
-    def test_withdraw_application_not_found(
+    @pytest.mark.asyncio
+    async def test_withdraw_application_not_found(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Withdrawing non-existent application raises NotFoundError."""
@@ -587,11 +593,12 @@ class TestWithdrawApplication:
         assert mission.id_mission is not None
 
         with pytest.raises(NotFoundError):
-            volunteer_service.withdraw_application(
+            await volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
 
-    def test_withdraw_application_approved_engagement(
+    @pytest.mark.asyncio
+    async def test_withdraw_application_approved_engagement(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Cannot withdraw APPROVED engagement."""
@@ -610,11 +617,12 @@ class TestWithdrawApplication:
 
         # Try to withdraw
         with pytest.raises(NotFoundError):
-            volunteer_service.withdraw_application(
+            await volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )
 
-    def test_withdraw_application_rejected_engagement(
+    @pytest.mark.asyncio
+    async def test_withdraw_application_rejected_engagement(
         self, session: Session, created_volunteer: Volunteer, mission_factory
     ):
         """Cannot withdraw REJECTED engagement."""
@@ -633,6 +641,6 @@ class TestWithdrawApplication:
 
         # Try to withdraw
         with pytest.raises(NotFoundError):
-            volunteer_service.withdraw_application(
+            await volunteer_service.withdraw_application(
                 session, created_volunteer.id_volunteer, mission.id_mission
             )

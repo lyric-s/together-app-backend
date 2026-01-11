@@ -175,7 +175,9 @@ def update_document(
     return db_document
 
 
-def approve_document(session: Session, document_id: int, admin_id: int) -> Document:
+async def approve_document(
+    session: Session, document_id: int, admin_id: int
+) -> Document:
     """
     Approve a document and update the associated association's verification status.
 
@@ -184,6 +186,7 @@ def approve_document(session: Session, document_id: int, admin_id: int) -> Docum
     2. Admin ID is recorded
     3. Association's verification_status is set to APPROVED
     4. Association can now create missions
+    5. Email notification is sent to the association
 
     Parameters:
         session: Database session.
@@ -224,10 +227,25 @@ def approve_document(session: Session, document_id: int, admin_id: int) -> Docum
     session.commit()
     session.refresh(db_document)
 
+    # Send email notification to association
+    if association and association.user:
+        from app.services.email import send_notification_email
+        import logging
+
+        try:
+            await send_notification_email(
+                template_name="document_approved",
+                recipient_email=association.user.email,
+                context={"association_name": association.name},
+            )
+        except Exception as e:
+            # Log error but don't fail the operation
+            logging.error(f"Failed to send document approval email: {e}")
+
     return db_document
 
 
-def reject_document(
+async def reject_document(
     session: Session,
     document_id: int,
     admin_id: int,
@@ -242,6 +260,7 @@ def reject_document(
     3. Rejection reason is stored (if provided)
     4. Association's verification_status is set to REJECTED
     5. Association cannot create missions until a new document is approved
+    6. Email notification is sent to the association
 
     Parameters:
         session: Database session.
@@ -282,6 +301,24 @@ def reject_document(
     session.add(db_document)
     session.commit()
     session.refresh(db_document)
+
+    # Send email notification to association
+    if association and association.user:
+        from app.services.email import send_notification_email
+        import logging
+
+        try:
+            await send_notification_email(
+                template_name="document_rejected",
+                recipient_email=association.user.email,
+                context={
+                    "association_name": association.name,
+                    "rejection_reason": rejection_reason or "Aucune raison fournie",
+                },
+            )
+        except Exception as e:
+            # Log error but don't fail the operation
+            logging.error(f"Failed to send document rejection email: {e}")
 
     return db_document
 

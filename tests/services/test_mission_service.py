@@ -71,10 +71,11 @@ def sample_mission_create_fixture(
     created_location: Location,
     created_category: Category,
 ) -> MissionCreate:
+    assert created_category.id_categ is not None
     return MissionCreate(
         name=TEST_MISSION_NAME,
         id_location=created_location.id_location,
-        category_ids=[created_category.id_categ],  # type: ignore
+        category_ids=[created_category.id_categ],
         id_asso=created_association.id_asso,
         date_start=date.today(),
         date_end=date.today() + timedelta(days=1),
@@ -158,21 +159,24 @@ class TestUpdateMission:
 
 
 class TestDeleteMission:
-    def test_delete_mission_success(
+    @pytest.mark.asyncio
+    async def test_delete_mission_success(
         self, session: Session, sample_mission_create: MissionCreate
     ):
         mission = mission_service.create_mission(session, sample_mission_create)
         assert mission.id_mission is not None
 
-        mission_service.delete_mission(session, mission.id_mission)
+        await mission_service.delete_mission(session, mission.id_mission)
 
         assert mission_service.get_mission(session, mission.id_mission) is None
 
-    def test_delete_mission_not_found(self, session: Session):
+    @pytest.mark.asyncio
+    async def test_delete_mission_not_found(self, session: Session):
         with pytest.raises(NotFoundError):
-            mission_service.delete_mission(session, 99999)
+            await mission_service.delete_mission(session, 99999)
 
-    def test_delete_mission_insufficient_permissions(
+    @pytest.mark.asyncio
+    async def test_delete_mission_insufficient_permissions(
         self, session: Session, sample_mission_create: MissionCreate
     ):
         """Test that providing a mismatched association_id raises InsufficientPermissionsError."""
@@ -183,7 +187,7 @@ class TestDeleteMission:
         wrong_association_id = mission.id_asso + 1
 
         with pytest.raises(InsufficientPermissionsError):
-            mission_service.delete_mission(
+            await mission_service.delete_mission(
                 session, mission.id_mission, association_id=wrong_association_id
             )
 
@@ -191,7 +195,7 @@ class TestDeleteMission:
         assert mission_service.get_mission(session, mission.id_mission) is not None
 
         # Now delete correctly to clean up (optional in test but good practice)
-        mission_service.delete_mission(
+        await mission_service.delete_mission(
             session, mission.id_mission, association_id=mission.id_asso
         )
         assert mission_service.get_mission(session, mission.id_mission) is None
