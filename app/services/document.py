@@ -13,6 +13,25 @@ from app.services.email import send_notification_email
 from app.utils.validation import ensure_id
 
 
+def _validate_document_pending(document: Document, action: str) -> None:
+    """
+    Validate that document is in PENDING state before approval/rejection.
+
+    Parameters:
+        document: Document instance to validate.
+        action: Action name for error message ("approved" or "rejected" - past tense).
+
+    Raises:
+        ValidationError: If document is not in PENDING state.
+    """
+    if document.verif_state != ProcessingStatus.PENDING:
+        raise ValidationError(
+            f"Cannot {action.rstrip('ed')} document with status {document.verif_state.value}. "
+            f"Only PENDING documents can be {action}.",
+            field="verif_state",
+        )
+
+
 def create_document(
     session: Session, association_id: int, document_in: DocumentCreate
 ) -> Document:
@@ -230,12 +249,7 @@ async def approve_document(
         raise NotFoundError("Document", document_id)
 
     # Validate document is pending
-    if db_document.verif_state != ProcessingStatus.PENDING:
-        raise ValidationError(
-            f"Cannot approve document with status {db_document.verif_state}. "
-            "Only PENDING documents can be approved.",
-            field="verif_state",
-        )
+    _validate_document_pending(db_document, "approved")
 
     # Update document status
     db_document.verif_state = ProcessingStatus.APPROVED
@@ -303,12 +317,7 @@ async def reject_document(
         raise NotFoundError("Document", document_id)
 
     # Validate document is pending
-    if db_document.verif_state != ProcessingStatus.PENDING:
-        raise ValidationError(
-            f"Cannot reject document with status {db_document.verif_state}. "
-            "Only PENDING documents can be rejected.",
-            field="verif_state",
-        )
+    _validate_document_pending(db_document, "rejected")
 
     # Update document status
     db_document.verif_state = ProcessingStatus.REJECTED
