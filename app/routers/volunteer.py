@@ -35,25 +35,89 @@ def create_volunteer(
     Register a new volunteer with user account.
 
     Creates both a User account (with user_type=VOLUNTEER) and the associated
-    Volunteer profile in a single atomic operation.
+    Volunteer profile in a single atomic operation. This is the signup endpoint
+    for new volunteers joining the platform.
 
-    ### What Gets Created:
-    - User account with authentication credentials
-    - Volunteer profile with personal information
-    - Automatic linking between user and volunteer records
+    ## Request Body
 
-    Args:
-        `user_in`: User account data including username, email, and password.
-        `volunteer_in`: Volunteer profile data including name, phone number, birthdate,
-            address (optional), and skills.
-        `session`: Database session (automatically injected).
+    The request must include two nested objects:
+
+    **user_in**:
+    - `username` (string, required): Unique username for login (3-50 characters)
+    - `email` (string, required): Valid email address for account verification
+    - `password` (string, required): Strong password (8-100 characters)
+
+    **volunteer_in**:
+    - `first_name` (string, required): Volunteer's first name
+    - `last_name` (string, required): Volunteer's last name
+    - `phone_number` (string, required): Contact phone number
+    - `birthdate` (date, required): Date of birth (ISO 8601 format)
+    - `address` (string, optional): Home address
+    - `zip_code` (string, optional): Postal code
+    - `skills` (string, optional): Special skills or qualifications
+
+    ## Example Request
+
+    ```json
+    {
+      "user_in": {
+        "username": "sarah_volunteer",
+        "email": "sarah@example.com",
+        "password": "SecurePassword123!"
+      },
+      "volunteer_in": {
+        "first_name": "Sarah",
+        "last_name": "Johnson",
+        "phone_number": "+33612345678",
+        "birthdate": "1995-03-15",
+        "address": "123 Rue de la Paix",
+        "zip_code": "75001",
+        "skills": "First aid certified, Fluent in English and French"
+      }
+    }
+    ```
+
+    ## Example Response
+
+    ```json
+    {
+      "id_volunteer": 42,
+      "id_user": 128,
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "phone_number": "+33612345678",
+      "birthdate": "1995-03-15",
+      "address": "123 Rue de la Paix",
+      "zip_code": "75001",
+      "skills": "First aid certified, Fluent in English and French",
+      "user": {
+        "id_user": 128,
+        "username": "sarah_volunteer",
+        "email": "sarah@example.com",
+        "user_type": "VOLUNTEER"
+      },
+      "total_missions": 0,
+      "completed_missions": 0
+    }
+    ```
+
+    ## What Gets Created
+
+    - **User account**: Authentication credentials with `user_type=VOLUNTEER`
+    - **Volunteer profile**: Personal information and contact details
+    - **Automatic linking**: User and volunteer records are connected
+
+    Parameters:
+        user_in: User account data including username, email, and password.
+        volunteer_in: Volunteer profile data including name, phone number, birthdate, and optional address/skills.
+        session: Database session (automatically injected via `Depends(get_session)`).
 
     Returns:
-        `VolunteerPublic`: The newly created volunteer profile with user information,
-            including id_volunteer and id_user.
+        `VolunteerPublic`: The newly created volunteer profile with user information, mission counts, and generated IDs.
 
     Raises:
         `409 AlreadyExistsError`: If the username or email already exists in the system.
+        `422 ValidationError`: If request body fails validation (missing required fields, invalid email format, weak password, etc.).
     """
     volunteer = volunteer_service.create_volunteer(session, user_in, volunteer_in)
     session.commit()
@@ -414,23 +478,51 @@ def apply_to_mission(
     Submit a mission application for the authenticated volunteer.
 
     Submit an application to participate in a mission. The application will be
-    reviewed by the mission's association.
+    reviewed by the mission's association and then approved or rejected.
 
-    ### Application Process:
-    1. **Submit**: Application submitted with optional message
-    2. **Pending**: Application status is PENDING awaiting association review
-    3. **Decision**: Association either approves or rejects the application
-    4. **Active**: If approved, volunteer becomes active for the mission
+    ## Application Lifecycle
 
-    ### Authentication Required:
-    This endpoint requires a valid authentication token.
+    1. **Submit** (this endpoint) → Status: `PENDING`
+    2. **Association Review** → Association sees application in their dashboard
+    3. **Decision** → Association approves or rejects via admin endpoints
+    4. **Active/Rejected** → If approved, volunteer is enrolled; if rejected, volunteer is notified
 
-    Args:
-        `mission_id`: The unique identifier of the mission to apply for.
-        `message`: Optional message to the association explaining the motivation to volunteer
-            (maximum 1000 characters).
-        `session`: Database session (automatically injected).
-        `current_volunteer`: Authenticated volunteer profile (automatically injected).
+    ## Example Request
+
+    ```http
+    POST /volunteers/me/missions/42/apply HTTP/1.1
+    Authorization: Bearer your_jwt_token
+    Content-Type: application/json
+
+    {
+      "message": "I have experience with food bank volunteering and would love to help with this mission. I'm available for the full duration."
+    }
+    ```
+
+    ## Response
+
+    Returns `201 Created` with no body on successful application submission. The association
+    will receive a notification about the new application.
+
+    ## Optional Message
+
+    Include an optional `message` parameter (max 1000 characters) to:
+    - Explain your motivation
+    - Highlight relevant experience
+    - Mention specific availability
+    - Ask clarifying questions
+
+    ## Restrictions
+
+    - Cannot apply if already applied (status: `PENDING`, `APPROVED`, or `REJECTED`)
+    - Cannot apply to missions that have reached full capacity
+    - Cannot apply to past missions
+
+    Parameters:
+        mission_id: The unique identifier of the mission to apply for.
+        message: Optional message to the association explaining motivation (max 1000 characters).
+        session: Database session (automatically injected via `Depends(get_session)`).
+        current_volunteer: Authenticated volunteer profile (automatically injected via `Depends(get_current_volunteer)`).
 
     Returns:
         `None`: Returns 201 Created on successful application submission.
@@ -439,6 +531,7 @@ def apply_to_mission(
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the volunteer profile or the mission doesn't exist.
         `409 AlreadyExistsError`: If an application for this mission already exists.
+        `422 ValidationError`: If message exceeds maximum length or mission is full/past.
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.apply_to_mission(session, volunteer_id, mission_id, message)
