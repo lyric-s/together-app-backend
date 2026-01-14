@@ -8,7 +8,7 @@ from sqlmodel import Session
 from app.database.database import get_session
 from app.models.mission import MissionPublic
 from app.services import mission as mission_service
-from app.exceptions import NotFoundError
+from app.exceptions import NotFoundError, ValidationError
 
 router = APIRouter(prefix="/missions", tags=["missions"])
 
@@ -152,7 +152,13 @@ def search_missions(
     # Parse category_ids from comma-separated string
     parsed_category_ids = None
     if category_ids:
-        parsed_category_ids = [int(id.strip()) for id in category_ids.split(",")]
+        try:
+            parsed_category_ids = [int(id.strip()) for id in category_ids.split(",")]
+        except ValueError as e:
+            raise ValidationError(
+                f"Invalid category_ids format: {e}. Expected comma-separated integers (e.g., '1,3,5')",
+                field="category_ids",
+            )
 
     missions = mission_service.search_missions(
         session,
