@@ -88,8 +88,8 @@ async def upload_document(
 
     db_document = document_service.create_document(
         session,
-        document_in,
         association_id,
+        document_in,
     )
     session.commit()
     session.refresh(db_document)

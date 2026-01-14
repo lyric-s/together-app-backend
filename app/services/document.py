@@ -14,15 +14,15 @@ from app.utils.validation import ensure_id
 
 
 def create_document(
-    session: Session, document_in: DocumentCreate, association_id: int
+    session: Session, association_id: int, document_in: DocumentCreate
 ) -> Document:
     """
     Create a new document for an association.
 
     Parameters:
         session: Database session.
-        document_in: Document creation data including file URL and name.
         association_id: The association submitting the document.
+        document_in: Document creation data including file URL and name.
 
     Returns:
         Document: The created document record.

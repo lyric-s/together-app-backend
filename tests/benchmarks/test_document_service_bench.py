@@ -39,8 +39,8 @@ def test_document_creation_performance(
         )
         document = document_service.create_document(
             session=session,
-            document_in=document_in,
             association_id=document_setup_data["id_asso"],
+            document_in=document_in,
         )
         tracker.append(document)
         return document.id_doc
