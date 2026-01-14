@@ -21,6 +21,13 @@ A production-ready, fully observable REST API built with **FastAPI**, demonstrat
   - [Local Development](#local-development)
   - [Docker Setup](#docker-setup)
 - [Frontend Development Setup](#-frontend-development-setup)
+  - [Prerequisites for Frontend](#prerequisites-for-frontend)
+  - [Quick Start for Frontend Team](#quick-start-for-frontend-team)
+  - [What Gets Started](#what-gets-started)
+  - [Default Credentials](#default-credentials)
+  - [Customizing Environment Variables](#customizing-environment-variables)
+  - [Common Commands](#common-commands)
+  - [Troubleshooting](#troubleshooting)
 - [API Documentation](#-api-documentation)
 - [Quality Assurance](#-quality-assurance)
 - [Observability](#-observability)
@@ -254,7 +261,22 @@ Frontend developers can run the complete backend stack locally using pre-built D
 > [!NOTE]
 > This setup is designed for frontend teams working on a separate repository. The Docker image is automatically built and published on every push to the `dev` branch.
 
-### Prerequisites for frontend
+**What you get:**
+
+- ✅ Fully functional REST API at `http://localhost:8000`
+- ✅ Interactive API documentation at `http://localhost:8000/docs`
+- ✅ Pre-configured test accounts (see [Default Credentials](#default-credentials))
+- ✅ PostgreSQL database with sample data
+- ✅ MinIO object storage for file uploads
+- ✅ Auto-updated on every backend push to `dev`
+
+**Requirements:**
+
+- Docker (Desktop or Engine)
+- GitHub account for image access
+- 5 minutes of setup time
+
+### Prerequisites for Frontend
 
 If you don't have Docker installed yet, choose one of these options:
 
@@ -423,6 +445,72 @@ Re-download the compose file to get updates, or pull the latest image:
 ```bash
 docker compose -f docker-compose.backend.yml up --pull always
 ```
+
+### Troubleshooting
+
+#### Problem: "Cannot connect to Docker daemon"
+
+**Solution**: Make sure Docker is running
+
+- **Docker Desktop**: Open the Docker Desktop application
+- **Linux/WSL2**: Run `sudo service docker start`
+
+#### Problem: "Port already in use" (8000, 5432, 9000, 9001)
+
+**Solution**: Another service is using these ports
+
+- Check what's using the port: `lsof -i :8000` (Linux/macOS) or `netstat -ano | findstr :8000` (Windows)
+- Stop the conflicting service or change ports in the compose file
+
+#### Problem: "Cannot pull image: unauthorized"
+
+**Solution**: You need to authenticate with GitHub Container Registry
+
+- Run: `docker login ghcr.io -u YOUR_GITHUB_USERNAME`
+- Use a [Personal Access Token](https://github.com/settings/tokens) with `read:packages` scope as password
+
+#### Problem: API returns 500 errors or won't start
+
+**Solution**: Check the logs for detailed errors
+
+```bash
+docker compose -f docker-compose.backend.yml logs -f fastapi
+```
+
+Common causes:
+
+- Database not ready (wait ~10 seconds after starting)
+- Migration failures (check PostgreSQL logs)
+- Environment variable issues (verify `.env` configuration)
+
+#### Problem: CORS errors in browser
+
+**Solution**: Add your frontend URL to `BACKEND_CORS_ORIGINS`
+
+- Edit `docker-compose.backend.yml`
+- Add your origin: `BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://your-port`
+- Restart: `docker compose -f docker-compose.backend.yml restart`
+
+#### Problem: MinIO "Access Denied" errors
+
+**Solution**: Bucket permissions may not be set correctly
+
+- Open MinIO Console: `http://localhost:9001`
+- Login with `minioadmin` / `minioadmin`
+- Check bucket policies and access keys
+
+#### Problem: Database connection refused
+
+**Solution**: PostgreSQL container may not be ready
+
+- Wait 10-15 seconds after running `docker compose up`
+- Check PostgreSQL logs: `docker compose -f docker-compose.backend.yml logs postgres`
+- Verify connection settings in compose file
+
+#### Need more help?
+
+- Check detailed logs: `docker compose -f docker-compose.backend.yml logs`
+- [Open an issue](https://github.com/lyric-s/together-app-backend/issues) with logs and error messages
 
 ---
 
