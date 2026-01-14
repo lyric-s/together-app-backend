@@ -42,17 +42,20 @@ async def already_exists_handler(
     request: Request, exc: AlreadyExistsError
 ) -> JSONResponse:
     """
-    Convert an AlreadyExistsError into an HTTP 400 Bad Request JSON response.
+    Convert an AlreadyExistsError into an HTTP 409 Conflict JSON response.
+
+    HTTP 409 semantics: The request conflicts with the current state of the server
+    (e.g., attempting to create a duplicate resource).
 
     Parameters:
         request (Request): The incoming HTTP request.
         exc (AlreadyExistsError): The exception indicating that a resource already exists.
 
     Returns:
-        JSONResponse: Response with status code 400 and content containing a `detail` key with the exception message.
+        JSONResponse: Response with status code 409 (Conflict) and content containing a `detail` key with the exception message.
     """
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+        status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)}
     )
 
 
@@ -138,7 +141,7 @@ def register_exception_handlers(app) -> None:
 
     Registers handlers in order from most specific to most general so that subclassed
     exceptions are matched before their parent types. The following mappings are added:
-    NotFoundError -> 404, AlreadyExistsError -> 400, ValidationError -> 422
+    NotFoundError -> 404, AlreadyExistsError -> 409 (Conflict), ValidationError -> 422
     (includes optional `field`), InsufficientPermissionsError -> 403,
     AuthenticationError -> 401 (adds `WWW-Authenticate: Bearer`), and AppException -> 500.
 

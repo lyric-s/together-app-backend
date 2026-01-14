@@ -53,7 +53,7 @@ def create_volunteer(
             including id_volunteer and id_user.
 
     Raises:
-        `400 AlreadyExistsError`: If the username or email already exists in the system.
+        `409 AlreadyExistsError`: If the username or email already exists in the system.
     """
     volunteer = volunteer_service.create_volunteer(session, user_in, volunteer_in)
     session.commit()
@@ -360,7 +360,7 @@ def add_favorite_mission(
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the user has no volunteer profile or the mission doesn't exist.
-        `400 AlreadyExistsError`: If the mission is already in the user's favorites list.
+        `409 AlreadyExistsError`: If the mission is already in the user's favorites list.
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.add_favorite_mission(session, volunteer_id, mission_id)
@@ -438,7 +438,7 @@ def apply_to_mission(
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the volunteer profile or the mission doesn't exist.
-        `400 AlreadyExistsError`: If an application for this mission already exists.
+        `409 AlreadyExistsError`: If an application for this mission already exists.
     """
     volunteer_id = ensure_id(current_volunteer.id_volunteer, "Volunteer")
     volunteer_service.apply_to_mission(session, volunteer_id, mission_id, message)
