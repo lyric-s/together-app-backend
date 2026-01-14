@@ -14,22 +14,26 @@ from app.core.config import get_settings
 from app.utils.logger import logger
 
 
-async def approve_application_by_ids(
-    session: Session, volunteer_id: int, mission_id: int
-) -> Engagement:
+def _get_and_validate_pending_engagement(
+    session: Session, volunteer_id: int, mission_id: int, action: str
+) -> tuple[Engagement, Mission, Volunteer]:
     """
-    Approve a volunteer's mission application and send notifications.
+    Retrieve and validate engagement, mission, and volunteer for approval/rejection.
 
-    Sends email to volunteer and creates notification for association.
-    Checks if mission reached minimum capacity.
+    Ensures engagement exists and is in PENDING state.
 
     Args:
         session: Database session
         volunteer_id: Volunteer ID
         mission_id: Mission ID
+        action: Action being performed (e.g. "approve", "reject") for error messages
 
     Returns:
-        Engagement: Updated engagement
+        tuple[Engagement, Mission, Volunteer]: The validated objects
+
+    Raises:
+        NotFoundError: If any entity is not found
+        ValidationError: If engagement is not PENDING
     """
     # Get engagement
     engagement = session.exec(
@@ -46,7 +50,7 @@ async def approve_application_by_ids(
 
     if engagement.state != ProcessingStatus.PENDING:
         raise ValidationError(
-            f"Cannot approve engagement in state {engagement.state.value}",
+            f"Cannot {action} engagement in state {engagement.state.value}",
             field="state",
         )
 
@@ -66,6 +70,30 @@ async def approve_application_by_ids(
     if not volunteer or not volunteer.user:
         raise NotFoundError("Volunteer", volunteer_id)
 
+    return engagement, mission, volunteer
+
+
+async def approve_application_by_ids(
+    session: Session, volunteer_id: int, mission_id: int
+) -> Engagement:
+    """
+    Approve a volunteer's mission application and send notifications.
+
+    Sends email to volunteer and creates notification for association.
+    Checks if mission reached minimum capacity.
+
+    Args:
+        session: Database session
+        volunteer_id: Volunteer ID
+        mission_id: Mission ID
+
+    Returns:
+        Engagement: Updated engagement
+    """
+    engagement, mission, volunteer = _get_and_validate_pending_engagement(
+        session, volunteer_id, mission_id, "approve"
+    )
+
     # Get association
     association = session.exec(
         select(Association).where(Association.id_asso == mission.id_asso)
@@ -83,6 +111,13 @@ async def approve_application_by_ids(
             Engagement.state == ProcessingStatus.APPROVED,
         )
     ).one()
+
+    # Check capacity
+    if previous_count >= mission.capacity_max:
+        raise ValidationError(
+            "Cannot approve application: Mission has reached maximum capacity",
+            field="mission_id",
+        )
 
     was_below_min = previous_count < mission.capacity_min
 
@@ -198,40 +233,9 @@ async def reject_application(
     Returns:
         Engagement: Updated engagement
     """
-    # Get engagement
-    engagement = session.exec(
-        select(Engagement).where(
-            Engagement.id_volunteer == volunteer_id,
-            Engagement.id_mission == mission_id,
-        )
-    ).first()
-
-    if not engagement:
-        raise NotFoundError(
-            "Engagement", f"volunteer_{volunteer_id}_mission_{mission_id}"
-        )
-
-    if engagement.state != ProcessingStatus.PENDING:
-        raise ValidationError(
-            f"Cannot reject engagement in state {engagement.state.value}",
-            field="state",
-        )
-
-    # Get mission
-    mission = session.exec(
-        select(Mission).where(Mission.id_mission == mission_id)
-    ).first()
-
-    if not mission:
-        raise NotFoundError("Mission", mission_id)
-
-    # Get volunteer
-    volunteer = session.exec(
-        select(Volunteer).where(Volunteer.id_volunteer == volunteer_id)
-    ).first()
-
-    if not volunteer or not volunteer.user:
-        raise NotFoundError("Volunteer", volunteer_id)
+    engagement, mission, volunteer = _get_and_validate_pending_engagement(
+        session, volunteer_id, mission_id, "reject"
+    )
 
     # Update engagement status
     engagement.state = ProcessingStatus.REJECTED
