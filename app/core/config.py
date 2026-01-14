@@ -5,20 +5,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import HttpUrl
 
 
-def parse_comma_separated_origins(comma_list: str) -> list[HttpUrl]:
+def parse_comma_separated_origins(comma_list: str) -> list[str]:
     """
-    Parse a comma-separated string into a list of validated HttpUrl origins.
+    Parse a comma-separated string into a list of validated CORS origins.
 
-    Empty or falsy input returns an empty list. Each non-empty, comma-separated item is validated and converted to an HttpUrl.
+    CORS origins follow the format `scheme://host[:port]` with NO path component,
+    unlike full URLs. This function validates each origin using Pydantic's HttpUrl
+    for format checking, then returns clean strings without trailing slashes.
+
+    Empty or falsy input returns an empty list. Each non-empty, comma-separated
+    item is validated and converted to a properly formatted origin string.
 
     Parameters:
         comma_list (str): Comma-separated origins (may be empty or falsy).
 
     Returns:
-        list[HttpUrl]: A list of parsed and validated HttpUrl objects.
+        list[str]: A list of validated origin strings without trailing slashes.
 
     Raises:
-        ValueError: If any origin cannot be parsed as an HttpUrl; the error message includes the invalid origin and the underlying reason.
+        ValueError: If any origin cannot be parsed as a valid HTTP/HTTPS URL;
+                   the error message includes the invalid origin and the underlying reason.
+
+    Example:
+        >>> parse_comma_separated_origins("http://localhost:3000, https://example.com")
+        ['http://localhost:3000', 'https://example.com']
     """
     if not comma_list:
         return []
@@ -28,7 +38,9 @@ def parse_comma_separated_origins(comma_list: str) -> list[HttpUrl]:
         origin = origin.strip()
         if origin:
             try:
-                origins.append(HttpUrl(origin))
+                # Validate using HttpUrl, then convert to string without trailing slash
+                validated = HttpUrl(origin)
+                origins.append(str(validated).rstrip("/"))
             except Exception as e:
                 raise ValueError(f"Invalid CORS origin '{origin}': {e}") from e
     return origins
