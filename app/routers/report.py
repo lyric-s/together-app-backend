@@ -115,6 +115,7 @@ def get_my_reports(
     - `state` (string): Current status (`PENDING`, `RESOLVED`, `DISMISSED`)
     - `reporter_name` (string): Name of the person who reported
     - `reported_name` (string): Name of the reported user
+    - `id_user_reported` (integer): ID of the reported user
     - `date_reporting` (string): Timestamp in ISO 8601 format
 
     ## Example Response
