@@ -50,26 +50,104 @@ def search_missions(
     Public endpoint to discover and search missions.
 
     No authentication required - allows public browsing of available missions.
+    This endpoint supports advanced filtering and full-text search to help volunteers
+    find relevant opportunities.
 
-    ### Filters:
-    - **category_ids**: Missions matching ANY of the provided categories (OR logic)
-    - **country**: Filter by exact location country match
-    - **zip_code**: Filter by zip code prefix (e.g., "75" matches "75001", "75002", etc.)
-    - **date_available**: Show missions active on/after this date (defaults to today)
-    - **search**: Case-insensitive text search in mission name and description
-    - **show_full**: Include missions at full capacity (default: true)
+    ## Query Parameters
 
-    ### Response includes:
-    - Location details (address, country, zip_code, coordinates)
-    - All assigned categories (multi-category support)
-    - Association info (public profile)
-    - Capacity tracking (enrolled volunteers, available slots, is_full status)
+    All parameters are optional and can be combined:
 
-    ### Example queries:
-    - `/missions` - All future missions
-    - `/missions?category_ids=1,5` - Missions in categories 1 OR 5
-    - `/missions?country=France&zip_code=75` - Missions in Paris
-    - `/missions?search=food&show_full=false` - Available food-related missions
+    - `category_ids` (string): Comma-separated category IDs with OR logic (e.g., "1,3,5")
+    - `country` (string): Filter by exact country name match (e.g., "France")
+    - `zip_code` (string): Filter by zip code prefix (e.g., "75" matches all Paris codes)
+    - `date_available` (date): Show missions active on/after this date (ISO 8601 format)
+    - `search` (string): Case-insensitive text search in mission name and description
+    - `show_full` (boolean): Include missions at capacity (default: `true`)
+    - `offset` (integer): Pagination offset, starts at 0 (default: `0`)
+    - `limit` (integer): Results per page, max 100 (default: `100`)
+    - `sort_by` (string): Sort field - `date_start`, `name`, or `created_at` (default: `date_start`)
+
+    ## Example Requests
+
+    **Basic search - all missions:**
+    ```
+    GET /missions
+    ```
+
+    **Category filtering (OR logic):**
+    ```
+    GET /missions?category_ids=1,5&limit=10
+    ```
+
+    **Location and date filtering:**
+    ```
+    GET /missions?country=France&zip_code=75&date_available=2026-02-01
+    ```
+
+    **Text search for available missions:**
+    ```
+    GET /missions?search=food%20bank&show_full=false&sort_by=name
+    ```
+
+    ## Example Response
+
+    ```json
+    [
+      {
+        "id_mission": 42,
+        "name": "Community Food Bank Volunteer",
+        "description": "Help sort and distribute food to families in need",
+        "date_start": "2026-02-15",
+        "date_end": "2026-02-15",
+        "duration_hours": 4.0,
+        "skills_required": "Organization, Physical stamina",
+        "max_volunteers": 10,
+        "enrolled_count": 7,
+        "available_slots": 3,
+        "is_full": false,
+        "location": {
+          "address": "123 Main St",
+          "country": "France",
+          "zip_code": "75001"
+        },
+        "categories": [
+          {"id_categ": 1, "name": "Social Services"}
+        ],
+        "association": {
+          "id_asso": 5,
+          "name": "Paris Food Bank",
+          "rna": "W751234567"
+        }
+      }
+    ]
+    ```
+
+    ## Response Details
+
+    Each mission includes:
+    - **Mission info**: Name, description, dates, required skills
+    - **Capacity tracking**: Max volunteers, enrolled count, available slots, `is_full` status
+    - **Location**: Full address with country and zip code
+    - **Categories**: All assigned categories (multi-category support)
+    - **Association**: Public profile of the organizing non-profit
+
+    Parameters:
+        session: Database session (automatically injected via `Depends(get_session)`).
+        category_ids: Comma-separated category IDs for filtering (OR logic).
+        country: Filter by exact country name.
+        zip_code: Filter by zip code prefix.
+        date_available: Show missions active on/after this date.
+        search: Text search in name and description.
+        show_full: Include full missions (default: `true`).
+        offset: Pagination offset (default: `0`).
+        limit: Results per page, max 100 (default: `100`).
+        sort_by: Sort field (default: `date_start`).
+
+    Returns:
+        `list[MissionPublic]`: List of missions matching the search criteria.
+
+    Raises:
+        `422 ValidationError`: If query parameters fail validation (invalid category_ids format, etc.).
     """
     # Parse category_ids from comma-separated string
     parsed_category_ids = None
@@ -102,23 +180,70 @@ def get_mission_details(
     Get detailed information about a specific mission.
 
     No authentication required - public endpoint for viewing mission details.
+    Use this endpoint to display a mission detail page with all information
+    volunteers need to make an informed decision.
+
+    ## Example Request
+
+    ```
+    GET /missions/42
+    ```
+
+    ## Example Response
+
+    ```json
+    {
+      "id_mission": 42,
+      "name": "Community Food Bank Volunteer",
+      "description": "Help sort and distribute food to families in need. Tasks include organizing donations, packing boxes, and helping with distribution.",
+      "date_start": "2026-02-15",
+      "date_end": "2026-02-15",
+      "duration_hours": 4.0,
+      "skills_required": "Organization, Physical stamina, Teamwork",
+      "max_volunteers": 10,
+      "enrolled_count": 7,
+      "available_slots": 3,
+      "is_full": false,
+      "location": {
+        "id_location": 8,
+        "address": "123 Main Street",
+        "zip_code": "75001",
+        "city": "Paris",
+        "country": "France",
+        "latitude": 48.8566,
+        "longitude": 2.3522
+      },
+      "categories": [
+        {"id_categ": 1, "name": "Social Services"},
+        {"id_categ": 5, "name": "Community"}
+      ],
+      "association": {
+        "id_asso": 5,
+        "name": "Paris Food Bank",
+        "rna": "W751234567",
+        "description": "Fighting food insecurity in Paris since 1995"
+      }
+    }
+    ```
+
+    ## Response Details
 
     Returns complete mission information including:
-    - Mission details (name, dates, description, skills, capacity)
-    - Location (address, country, zip code, coordinates)
-    - Categories (all assigned categories)
-    - Association profile (public information)
-    - Capacity tracking (enrolled count, available slots, is_full status)
+    - **Mission details**: Name, dates, description, skills required, duration
+    - **Capacity tracking**: Max volunteers, enrolled count, available slots, `is_full` status
+    - **Location**: Full address with coordinates for mapping
+    - **Categories**: All assigned categories (multi-category support)
+    - **Association profile**: Public information about the organizing non-profit
 
-    Args:
-        `mission_id`: The unique identifier of the mission.
-        `session`: Database session (automatically injected).
+    Parameters:
+        mission_id: The unique identifier of the mission to retrieve.
+        session: Database session (automatically injected via `Depends(get_session)`).
 
     Returns:
-        `MissionPublic`: Complete mission details with capacity tracking.
+        `MissionPublic`: Complete mission details with capacity tracking and related entities.
 
     Raises:
-        `404 NotFoundError`: If mission doesn't exist.
+        `404 NotFoundError`: If mission with the specified ID doesn't exist.
     """
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
