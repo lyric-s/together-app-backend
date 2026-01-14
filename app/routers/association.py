@@ -161,18 +161,18 @@ def get_notifications(
     - Must be authenticated as association
 
     Args:
-        session: Database session (automatically injected).
-        current_association: Authenticated association profile (automatically injected).
-        unread_only: Filter to only unread notifications.
-        offset: Pagination offset.
-        limit: Maximum number of results to return.
+        `session`: Database session (automatically injected).
+        `current_association`: Authenticated association profile (automatically injected).
+        `unread_only`: Filter to only unread notifications.
+        `offset`: Pagination offset.
+        `limit`: Maximum number of results to return.
 
     Returns:
-        list[NotificationPublic]: List of notifications ordered by date (newest first).
+        `list[NotificationPublic]`: List of notifications ordered by date (newest first).
 
     Raises:
-        401 Unauthorized: If no valid authentication token is provided.
-        404 NotFoundError: If the association profile doesn't exist.
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `404 NotFoundError`: If the association profile doesn't exist.
     """
     # current_association.id_asso is guaranteed to be int by dependency
     notifications = notification_service.get_association_notifications(
@@ -201,15 +201,15 @@ def get_unread_count(
     - Must be authenticated as association
 
     Args:
-        session: Database session (automatically injected).
-        current_association: Authenticated association profile (automatically injected).
+        `session`: Database session (automatically injected).
+        `current_association`: Authenticated association profile (automatically injected).
 
     Returns:
-        dict: Dictionary containing unread_count.
+        `dict`: Dictionary containing `unread_count`.
 
     Raises:
-        401 Unauthorized: If no valid authentication token is provided.
-        404 NotFoundError: If the association profile doesn't exist.
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `404 NotFoundError`: If the association profile doesn't exist.
     """
     count = notification_service.get_unread_count(
         session,
@@ -237,16 +237,16 @@ def mark_notifications_as_read(
     - Can only mark own notifications as read
 
     Args:
-        session: Database session (automatically injected).
-        current_association: Authenticated association profile (automatically injected).
-        mark_read: Request body containing notification IDs to mark as read.
+        `session`: Database session (automatically injected).
+        `current_association`: Authenticated association profile (automatically injected).
+        `mark_read`: Request body containing notification IDs to mark as read.
 
     Returns:
-        dict: Dictionary containing marked_count.
+        `dict`: Dictionary containing `marked_count`.
 
     Raises:
-        401 Unauthorized: If no valid authentication token is provided.
-        404 NotFoundError: If the association profile doesn't exist.
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `404 NotFoundError`: If the association profile doesn't exist.
     """
     marked_count = notification_service.mark_notifications_as_read(
         session=session,

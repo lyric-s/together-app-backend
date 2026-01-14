@@ -111,14 +111,14 @@ def get_mission_details(
     - Capacity tracking (enrolled count, available slots, is_full status)
 
     Args:
-        mission_id: The unique identifier of the mission.
-        session: Database session (automatically injected).
+        `mission_id`: The unique identifier of the mission.
+        `session`: Database session (automatically injected).
 
     Returns:
-        MissionPublic: Complete mission details with capacity tracking.
+        `MissionPublic`: Complete mission details with capacity tracking.
 
     Raises:
-        404 NotFoundError: If mission doesn't exist.
+        `404 NotFoundError`: If mission doesn't exist.
     """
     mission = mission_service.get_mission(session, mission_id)
     if not mission:
