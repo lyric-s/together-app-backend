@@ -48,9 +48,9 @@ def create_report(
 
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
-        `400 ValidationError`: If attempting to report oneself.
+        `422 ValidationError`: If attempting to report oneself.
         `404 NotFoundError`: If the reported user doesn't exist.
-        `400 AlreadyExistsError`: If a PENDING report against this user already exists.
+        `409 AlreadyExistsError`: If a PENDING report against this user already exists.
     """
     if current_user.id_user is None:
         raise InvalidTokenError("User ID not found in token")

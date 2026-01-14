@@ -66,7 +66,7 @@ def create_association(
             including id_asso and id_user.
 
     Raises:
-        `400 AlreadyExistsError`: If the username or email already exists.
+        `409 AlreadyExistsError`: If the username or email already exists.
         `422 ValidationError`: If the RNA code format is invalid.
     """
     association = association_service.create_association(

@@ -50,6 +50,7 @@ Welcome to the **Together API**, the backend connecting volunteers with non-prof
 | `401` | **Unauthorized** - Invalid/Missing token |
 | `403` | **Forbidden** - Insufficient permissions |
 | `404` | **Not Found** - Resource missing |
+| `409` | **Conflict** - Resource already exists |
 | `422` | **Unprocessable** - Data schema error |
 | `429` | **Too Many Requests** - Slow down! |
 

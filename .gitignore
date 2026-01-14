@@ -217,3 +217,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Claude development documentation (not for version control)
+CLAUDE.md
+INCONSISTENCIES.md
