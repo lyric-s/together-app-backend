@@ -19,7 +19,7 @@ from app.models.mission import Mission, MissionPublic
 from app.models.association import Association
 from app.models.enums import UserType, ProcessingStatus
 from app.services.utils import get_or_404
-from app.exceptions import NotFoundError, AlreadyExistsError
+from app.exceptions import NotFoundError, AlreadyExistsError, ValidationError
 from app.services import user as user_service
 from app.services import notification as notification_service
 from app.services.email import send_notification_email
@@ -513,12 +513,38 @@ def apply_to_mission(
     Raises:
         NotFoundError: If the volunteer or mission doesn't exist.
         AlreadyExistsError: If the volunteer already has an engagement for this mission.
+        ValidationError: If mission is full or mission is in the past.
     """
     # Check volunteer exists
     _ = get_or_404(session, Volunteer, volunteer_id, "Volunteer")
 
     # Check mission exists
-    _ = get_or_404(session, Mission, mission_id, "Mission")
+    mission = get_or_404(session, Mission, mission_id, "Mission")
+
+    # Validate mission is not in the past
+    today = date.today()
+    if mission.date_end < today:
+        raise ValidationError(
+            f"Cannot apply to past missions. Mission ended on {mission.date_end}",
+            field="mission_id",
+        )
+
+    # Validate mission capacity
+    # Count approved engagements for this mission
+    approved_count = session.exec(
+        select(func.count())
+        .select_from(Engagement)
+        .where(
+            Engagement.id_mission == mission_id,
+            Engagement.state == ProcessingStatus.APPROVED,
+        )
+    ).one()
+
+    if approved_count >= mission.capacity_max:
+        raise ValidationError(
+            "Mission has reached maximum capacity",
+            field="mission_id",
+        )
 
     # Check if engagement already exists (any state)
     existing = session.exec(

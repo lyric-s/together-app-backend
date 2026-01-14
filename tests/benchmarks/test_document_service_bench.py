@@ -57,8 +57,8 @@ def test_get_document_performance(
     )
     document = document_service.create_document(
         session=session,
-        document_in=document_in,
         association_id=document_setup_data["id_asso"],
+        document_in=document_in,
     )
     session.flush()
     document_id = document.id_doc
@@ -83,8 +83,8 @@ def test_get_pending_documents_performance(
         )
         document_service.create_document(
             session=session,
-            document_in=document_in,
             association_id=document_setup_data["id_asso"],
+            document_in=document_in,
         )
     session.flush()
 

@@ -56,7 +56,7 @@ def create_report(
     - All input fields
     - `state` field set to `PENDING`
     - Reporter and reported user names
-    - `created_at` timestamp (ISO 8601 format)
+    - `date_reporting` timestamp (ISO 8601 format)
 
     ## Example Response
 
@@ -70,7 +70,7 @@ def create_report(
       "reporter_name": "John Doe",
       "reported_name": "Jane Smith",
       "state": "PENDING",
-      "created_at": "2026-01-14T10:30:00Z"
+      "date_reporting": "2026-01-14T10:30:00Z"
     }
     ```
 
@@ -115,7 +115,7 @@ def get_my_reports(
     - `state` (string): Current status (`PENDING`, `RESOLVED`, `DISMISSED`)
     - `reporter_name` (string): Name of the person who reported
     - `reported_name` (string): Name of the reported user
-    - `created_at` (string): Timestamp in ISO 8601 format
+    - `date_reporting` (string): Timestamp in ISO 8601 format
 
     ## Example Response
 
@@ -130,7 +130,7 @@ def get_my_reports(
         "reporter_name": "John Doe",
         "reported_name": "Jane Smith",
         "state": "PENDING",
-        "created_at": "2026-01-14T10:30:00Z"
+        "date_reporting": "2026-01-14T10:30:00Z"
       },
       {
         "id_report": 654,
@@ -141,7 +141,7 @@ def get_my_reports(
         "reporter_name": "John Doe",
         "reported_name": "Bob Johnson",
         "state": "RESOLVED",
-        "created_at": "2026-01-10T14:20:00Z"
+        "date_reporting": "2026-01-10T14:20:00Z"
       }
     ]
     ```
