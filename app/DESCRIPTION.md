@@ -70,4 +70,60 @@ Example: `GET /volunteers?offset=10&limit=5`
 
 ---
 
+## 📖 API Usage Example
+
+### Creating a Report
+
+This example demonstrates the complete flow of creating a report against another user.
+
+**Request:**
+
+```http
+POST /reports/ HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "type": "HARASSMENT",
+  "target": "PROFILE",
+  "reason": "This user has been sending inappropriate messages repeatedly.",
+  "id_user_reported": 456
+}
+```
+
+**Success Response (201 Created):**
+
+```json
+{
+  "id_report": 789,
+  "type": "HARASSMENT",
+  "target": "PROFILE",
+  "reason": "This user has been sending inappropriate messages repeatedly.",
+  "id_user_reported": 456,
+  "reporter_name": "John Doe",
+  "reported_name": "Jane Smith",
+  "state": "PENDING",
+  "date_reporting": "2026-01-14T10:30:00Z"
+}
+```
+
+**Error Response (409 Conflict):**
+
+```json
+{
+  "detail": "Pending report already exists against user 456"
+}
+```
+
+**Error Response (422 Validation Error):**
+
+```json
+{
+  "detail": "You cannot report yourself"
+}
+```
+
+---
+
 *Built with ❤️ at IUT Paris - Rives de Seine*
