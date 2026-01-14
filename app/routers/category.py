@@ -24,7 +24,7 @@ def get_all_categories(
     Categories are returned alphabetically by label for consistent display.
 
     Returns:
-        list[CategoryPublic]: All available categories sorted alphabetically.
+        `list[CategoryPublic]`: All available categories sorted alphabetically.
 
     Example response:
         [
