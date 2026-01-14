@@ -75,7 +75,7 @@ def created_document_fixture(
     """Create a document for testing."""
     assert sample_association.id_asso is not None
     return document_service.create_document(
-        session, sample_document_create, sample_association.id_asso
+        session, sample_association.id_asso, sample_document_create
     )
 
 
@@ -103,7 +103,7 @@ def document_factory_fixture(session: Session, sample_association: Association):
         data.update(overrides)
         doc_create = DocumentCreate(**data)
         return document_service.create_document(
-            session, doc_create, sample_association.id_asso
+            session, sample_association.id_asso, doc_create
         )
 
     return _create_document
@@ -123,7 +123,7 @@ class TestCreateDocument:
         )
         assert sample_association.id_asso is not None
         document = document_service.create_document(
-            session, doc_create, sample_association.id_asso
+            session, sample_association.id_asso, doc_create
         )
 
         assert document.id_doc is not None
@@ -140,7 +140,7 @@ class TestCreateDocument:
         """Test document creation with non-existent association."""
         with pytest.raises(NotFoundError) as exc_info:
             document_service.create_document(
-                session, sample_document_create, NONEXISTENT_ID
+                session, NONEXISTENT_ID, sample_document_create
             )
         assert "Association" in str(exc_info.value)
 
@@ -688,7 +688,7 @@ class TestDocumentWorkflowIntegration:
         )
 
         document = document_service.create_document(
-            session, doc_create, sample_association.id_asso
+            session, sample_association.id_asso, doc_create
         )
 
         assert document.verif_state == ProcessingStatus.PENDING
@@ -749,7 +749,7 @@ class TestDocumentWorkflowIntegration:
         )
 
         document = document_service.create_document(
-            session, doc_create, sample_association.id_asso
+            session, sample_association.id_asso, doc_create
         )
 
         # 2. Admin rejects document with reason
@@ -793,7 +793,7 @@ class TestDocumentWorkflowIntegration:
         )
 
         new_document = document_service.create_document(
-            session, new_doc_create, sample_association.id_asso
+            session, sample_association.id_asso, new_doc_create
         )
 
         assert new_document.verif_state == ProcessingStatus.PENDING
