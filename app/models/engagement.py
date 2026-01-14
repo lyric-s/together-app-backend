@@ -23,3 +23,40 @@ class EngagementPublic(SQLModel):
     message: str | None
     application_date: date
     rejection_reason: str | None
+
+
+class EngagementWithVolunteer(SQLModel):
+    """Engagement with volunteer details for association dashboard."""
+
+    id_volunteer: int
+    id_mission: int
+    state: ProcessingStatus
+    message: str | None
+    application_date: date
+    rejection_reason: str | None
+    # Volunteer details
+    volunteer_first_name: str
+    volunteer_last_name: str
+    volunteer_email: str
+    volunteer_phone: str
+    volunteer_skills: str | None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "id_volunteer": 42,
+                    "id_mission": 15,
+                    "state": "PENDING",
+                    "message": "I have experience with food bank volunteering and would love to help.",
+                    "application_date": "2026-01-14",
+                    "rejection_reason": None,
+                    "volunteer_first_name": "Sarah",
+                    "volunteer_last_name": "Johnson",
+                    "volunteer_email": "sarah@example.com",
+                    "volunteer_phone": "+33612345678",
+                    "volunteer_skills": "First aid certified, Fluent in English and French",
+                }
+            ]
+        }
+    }
