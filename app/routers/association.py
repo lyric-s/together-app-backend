@@ -18,7 +18,12 @@ from app.models.association import (
     AssociationUpdate,
 )
 from app.models.mission import Mission, MissionCreate, MissionPublic, MissionUpdate
-from app.models.engagement import Engagement, RejectEngagementRequest, EngagementPublic
+from app.models.engagement import (
+    Engagement,
+    RejectEngagementRequest,
+    EngagementPublic,
+    EngagementWithVolunteer,
+)
 from app.models.volunteer import Volunteer
 from app.models.notification import (
     BulkEmailRequest,
@@ -620,6 +625,123 @@ async def delete_association_mission(
 # ============================================================================
 # ENGAGEMENT MANAGEMENT ENDPOINTS
 # ============================================================================
+
+
+@router.get(
+    "/me/missions/{mission_id}/engagements",
+    response_model=list[EngagementWithVolunteer],
+)
+def get_mission_engagements(
+    mission_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_association: Annotated[Association, Depends(get_current_association)],
+    status: Annotated[
+        ProcessingStatus | None,
+        Query(description="Filter by engagement status (PENDING, APPROVED, REJECTED)"),
+    ] = None,
+) -> list[EngagementWithVolunteer]:
+    """
+    Retrieve all volunteer engagements (applications) for a specific mission.
+
+    Returns a list of all volunteers who have applied to the mission, including
+    their application details and contact information. Useful for displaying an
+    application management dashboard where associations can review and process
+    volunteer applications.
+
+    ## Query Parameters
+
+    - `status` (optional): Filter engagements by status
+      - `PENDING`: Show only pending applications awaiting review
+      - `APPROVED`: Show only approved volunteers
+      - `REJECTED`: Show only rejected applications
+      - Omit to show all engagements regardless of status
+
+    ## Example Requests
+
+    **All engagements for a mission:**
+    ```
+    GET /associations/me/missions/42/engagements
+    Authorization: Bearer your_jwt_token
+    ```
+
+    **Only pending applications:**
+    ```
+    GET /associations/me/missions/42/engagements?status=PENDING
+    Authorization: Bearer your_jwt_token
+    ```
+
+    ## Example Response
+
+    ```json
+    [
+      {
+        "id_volunteer": 15,
+        "id_mission": 42,
+        "state": "PENDING",
+        "message": "I have 5 years of experience with food bank volunteering and would love to contribute to this mission.",
+        "application_date": "2026-01-14",
+        "rejection_reason": null,
+        "volunteer_first_name": "Sarah",
+        "volunteer_last_name": "Johnson",
+        "volunteer_email": "sarah@example.com",
+        "volunteer_phone": "+33612345678",
+        "volunteer_skills": "First aid certified, Fluent in English and French"
+      },
+      {
+        "id_volunteer": 23,
+        "id_mission": 42,
+        "state": "APPROVED",
+        "message": "Looking forward to helping out!",
+        "application_date": "2026-01-13",
+        "rejection_reason": null,
+        "volunteer_first_name": "Michael",
+        "volunteer_last_name": "Chen",
+        "volunteer_email": "mchen@example.com",
+        "volunteer_phone": "+33698765432",
+        "volunteer_skills": "Experience with logistics and inventory management"
+      }
+    ]
+    ```
+
+    ## Response Details
+
+    Each engagement includes:
+    - **Application info**: Status, optional message from volunteer, application date
+    - **Volunteer details**: Name, email, phone, skills
+    - **Rejection reason**: Present if status is `REJECTED`, otherwise `null`
+
+    Results are ordered by application date (most recent first).
+
+    ## Use Cases
+
+    - **Application dashboard**: Display all pending applications for review
+    - **Volunteer roster**: See approved volunteers for mission coordination
+    - **Application history**: Review all applications including rejected ones
+
+    Parameters:
+        mission_id: The unique identifier of the mission to get engagements for.
+        session: Database session (automatically injected via `Depends(get_session)`).
+        current_association: Authenticated association profile (automatically injected via `Depends(get_current_association)`).
+        status: Optional filter by engagement status (PENDING, APPROVED, REJECTED).
+
+    Returns:
+        `list[EngagementWithVolunteer]`: List of engagements with volunteer details, ordered by application date (most recent first).
+
+    Raises:
+        `401 Unauthorized`: If no valid authentication token is provided.
+        `403 InsufficientPermissionsError`: If the mission doesn't belong to the authenticated association.
+        `404 NotFoundError`: If the mission doesn't exist.
+    """
+    # Verify mission belongs to the authenticated association
+    mission = mission_service.get_mission(session, mission_id)
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    if mission.id_asso != current_association.id_asso:
+        raise InsufficientPermissionsError("access engagements for this mission")
+
+    # Get engagements with optional status filter
+    return engagement_service.get_mission_engagements(session, mission_id, status)
 
 
 @router.patch(
