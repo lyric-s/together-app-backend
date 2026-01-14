@@ -35,31 +35,74 @@ async def upload_document(
 
     This endpoint allows associations to upload documents (RNA certificates, registration
     papers, etc.) for admin validation. The document will be stored in MinIO and a database
-    record created with PENDING status.
+    record created with `PENDING` status awaiting admin approval.
 
-    ### Authentication Required:
-    - Must be an authenticated association user
-    - File is uploaded to MinIO object storage
-    - Document status is initially set to PENDING
+    ## Request Format
 
-    ### File Requirements:
-    - Maximum file size enforced by storage service
-    - Recommended formats: PDF, JPG, PNG
-    - File is stored with a unique name to prevent conflicts
+    This endpoint uses `multipart/form-data` encoding:
 
-    Args:
-        `session`: Database session (automatically injected).
-        `current_association`: Authenticated association profile (automatically injected).
-        `file`: The document file to upload (multipart/form-data).
-        `doc_name`: Human-readable name for the document.
+    - `file` (file, required): Document file to upload (PDF, JPG, PNG)
+    - `doc_name` (string, required): Display name for the document
+
+    ## Example Request
+
+    ```http
+    POST /documents/upload HTTP/1.1
+    Authorization: Bearer your_jwt_token
+    Content-Type: multipart/form-data; boundary=----FormBoundary
+
+    ------FormBoundary
+    Content-Disposition: form-data; name="file"; filename="rna_certificate.pdf"
+    Content-Type: application/pdf
+
+    [Binary PDF data]
+    ------FormBoundary
+    Content-Disposition: form-data; name="doc_name"
+
+    RNA Registration Certificate 2025
+    ------FormBoundary--
+    ```
+
+    ## Example Response (201 Created)
+
+    ```json
+    {
+      "id_doc": 123,
+      "doc_name": "RNA Registration Certificate 2025",
+      "url_doc": "documents/user_42/rna_certificate_1704531600.pdf",
+      "id_asso": 5,
+      "verif_state": "PENDING",
+      "rejection_reason": null,
+      "date_uploaded": "2026-01-14T10:30:00Z"
+    }
+    ```
+
+    ## File Requirements
+
+    - **Maximum file size**: Enforced by storage service (typically 10MB)
+    - **Recommended formats**: PDF, JPG, PNG
+    - **Storage**: Files are stored in MinIO object storage with unique names
+    - **Initial status**: All uploaded documents start with `PENDING` verification status
+
+    ## Document Lifecycle
+
+    1. **Upload** (this endpoint) → Status: `PENDING`
+    2. **Admin Review** → Status changed to `APPROVED` or `REJECTED`
+    3. **If Rejected** → Association can upload a new document
+
+    Parameters:
+        session: Database session (automatically injected via `Depends(get_session)`).
+        current_association: Authenticated association profile (automatically injected via `Depends(get_current_association)`).
+        file: The document file to upload (multipart/form-data).
+        doc_name: Human-readable name for the document.
 
     Returns:
-        `DocumentPublic`: The created document record with PENDING verification status.
+        `DocumentPublic`: The created document record with `PENDING` verification status.
 
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
         `404 NotFoundError`: If the authenticated user has no association profile.
-        `400 Bad Request`: If file upload fails or file is too large.
+        `400 ValidationError`: If file upload fails, file is too large, or filename is missing.
     """
     # Read file content
     if not file.filename:
@@ -106,18 +149,63 @@ def read_my_documents(
     Retrieve all documents uploaded by the authenticated association.
 
     Returns a list of all documents (pending, approved, rejected) for the current
-    association, ordered by upload date (most recent first).
+    association, ordered by upload date (most recent first). Use this endpoint to
+    display a document management dashboard.
 
-    ### Authentication Required:
-    This endpoint requires a valid authentication token for an association user.
+    ## Example Request
 
-    Args:
-        `session`: Database session (automatically injected).
-        `current_association`: Authenticated association profile (automatically injected).
+    ```
+    GET /documents/me
+    Authorization: Bearer your_jwt_token
+    ```
+
+    ## Example Response
+
+    ```json
+    [
+      {
+        "id_doc": 123,
+        "doc_name": "RNA Registration Certificate 2025",
+        "url_doc": "documents/user_42/rna_certificate_1704531600.pdf",
+        "id_asso": 5,
+        "verif_state": "APPROVED",
+        "rejection_reason": null,
+        "date_uploaded": "2026-01-14T10:30:00Z"
+      },
+      {
+        "id_doc": 122,
+        "doc_name": "Tax Exemption Certificate",
+        "url_doc": "documents/user_42/tax_cert_1704445200.pdf",
+        "id_asso": 5,
+        "verif_state": "REJECTED",
+        "rejection_reason": "Document is expired. Please upload a current certificate dated within the last 12 months.",
+        "date_uploaded": "2026-01-13T08:15:00Z"
+      },
+      {
+        "id_doc": 121,
+        "doc_name": "Insurance Certificate 2026",
+        "url_doc": "documents/user_42/insurance_1704358800.pdf",
+        "id_asso": 5,
+        "verif_state": "PENDING",
+        "rejection_reason": null,
+        "date_uploaded": "2026-01-12T14:45:00Z"
+      }
+    ]
+    ```
+
+    ## Document Statuses
+
+    - `PENDING`: Awaiting admin review
+    - `APPROVED`: Document verified and accepted
+    - `REJECTED`: Document rejected (see `rejection_reason` for details)
+
+    Parameters:
+        session: Database session (automatically injected via `Depends(get_session)`).
+        current_association: Authenticated association profile (automatically injected via `Depends(get_current_association)`).
 
     Returns:
-        `list[DocumentPublic]`: List of all documents for the association, including
-            verification status and rejection reasons (if any).
+        `list[DocumentPublic]`: List of all documents for the association, ordered by upload date (most recent first).
+            Each document includes verification status and rejection reason (if rejected).
 
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
