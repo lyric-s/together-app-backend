@@ -179,3 +179,77 @@ class TestRejectApplication:
     async def test_reject_application_not_found(self, session: Session):
         with pytest.raises(NotFoundError):
             await engagement_service.reject_application(session, 99999, 99999, "reason")
+
+
+class TestGetMissionEngagements:
+    """Test get_mission_engagements service function."""
+
+    def test_get_mission_engagements_success(
+        self, session: Session, pending_engagement: Engagement, volunteer_user
+    ):
+        """Test successful retrieval of engagements for a mission."""
+        result = engagement_service.get_mission_engagements(
+            session, pending_engagement.id_mission
+        )
+
+        assert len(result) == 1
+        assert result[0].id_volunteer == volunteer_user.volunteer_profile.id_volunteer
+        assert result[0].id_mission == pending_engagement.id_mission
+        assert result[0].state == ProcessingStatus.PENDING
+        assert (
+            result[0].volunteer_first_name
+            == volunteer_user.volunteer_profile.first_name
+        )
+        assert (
+            result[0].volunteer_last_name == volunteer_user.volunteer_profile.last_name
+        )
+        assert result[0].volunteer_email == volunteer_user.email
+        assert (
+            result[0].volunteer_phone == volunteer_user.volunteer_profile.phone_number
+        )
+        assert result[0].volunteer_skills == volunteer_user.volunteer_profile.skills
+
+    def test_get_mission_engagements_filter_by_status(
+        self, session: Session, created_mission, volunteer_user
+    ):
+        """Test filtering engagements by status."""
+        # Create engagements with different statuses
+        pending = Engagement(
+            id_volunteer=volunteer_user.volunteer_profile.id_volunteer,
+            id_mission=created_mission.id_mission,
+            state=ProcessingStatus.PENDING,
+        )
+        session.add(pending)
+        session.commit()
+
+        # Approve the engagement
+        pending.state = ProcessingStatus.APPROVED
+        session.add(pending)
+        session.commit()
+
+        # Filter by APPROVED
+        result = engagement_service.get_mission_engagements(
+            session, created_mission.id_mission, ProcessingStatus.APPROVED
+        )
+        assert len(result) == 1
+        assert result[0].state == ProcessingStatus.APPROVED
+
+        # Filter by PENDING (should be empty)
+        result = engagement_service.get_mission_engagements(
+            session, created_mission.id_mission, ProcessingStatus.PENDING
+        )
+        assert len(result) == 0
+
+    def test_get_mission_engagements_empty(self, session: Session, created_mission):
+        """Test retrieving engagements for mission with no applications."""
+        result = engagement_service.get_mission_engagements(
+            session, created_mission.id_mission
+        )
+        assert len(result) == 0
+
+    def test_get_mission_engagements_mission_not_found(self, session: Session):
+        """Test NotFoundError when mission doesn't exist."""
+        with pytest.raises(NotFoundError) as exc_info:
+            engagement_service.get_mission_engagements(session, 99999)
+        assert "Mission" in str(exc_info.value)
+        assert "99999" in str(exc_info.value)

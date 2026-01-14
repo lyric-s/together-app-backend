@@ -1,10 +1,11 @@
 """Engagement service for handling mission applications with notifications."""
 
 from sqlmodel import Session, select, func
-from app.models.engagement import Engagement
+from app.models.engagement import Engagement, EngagementWithVolunteer
 from app.models.mission import Mission
 from app.models.volunteer import Volunteer
 from app.models.association import Association
+from app.models.user import User
 from app.models.enums import ProcessingStatus
 from app.services.email import send_notification_email
 from app.services import notification as notification_service
@@ -256,3 +257,70 @@ async def reject_application(
         logger.exception("Failed to send application rejection email")
 
     return engagement
+
+
+def get_mission_engagements(
+    session: Session, mission_id: int, status_filter: ProcessingStatus | None = None
+) -> list[EngagementWithVolunteer]:
+    """
+    Get all volunteer engagements (applications) for a specific mission.
+
+    Returns engagements with volunteer information for the association dashboard.
+    Optionally filter by engagement status (PENDING, APPROVED, REJECTED).
+
+    Args:
+        session: Database session
+        mission_id: Mission ID to get engagements for
+        status_filter: Optional status filter (PENDING, APPROVED, REJECTED)
+
+    Returns:
+        list[EngagementWithVolunteer]: List of engagements with volunteer details,
+            ordered by application date (most recent first)
+
+    Raises:
+        NotFoundError: If mission doesn't exist
+    """
+    # Verify mission exists
+    mission = session.exec(
+        select(Mission).where(Mission.id_mission == mission_id)
+    ).first()
+    if not mission:
+        raise NotFoundError("Mission", mission_id)
+
+    # Build query with joins to get volunteer and user details
+    query = (
+        select(Engagement, Volunteer, User)
+        .join(Volunteer, Engagement.id_volunteer == Volunteer.id_volunteer)  # type: ignore
+        .join(User, Volunteer.id_user == User.id_user)  # type: ignore
+        .where(Engagement.id_mission == mission_id)
+    )
+
+    # Apply status filter if provided
+    if status_filter:
+        query = query.where(Engagement.state == status_filter)
+
+    # Order by application date (most recent first)
+    query = query.order_by(Engagement.application_date.desc())  # type: ignore
+
+    results = session.exec(query).all()
+
+    # Transform to EngagementWithVolunteer
+    engagements = []
+    for engagement, volunteer, user in results:
+        engagements.append(
+            EngagementWithVolunteer(
+                id_volunteer=engagement.id_volunteer,
+                id_mission=engagement.id_mission,
+                state=engagement.state,
+                message=engagement.message,
+                application_date=engagement.application_date,
+                rejection_reason=engagement.rejection_reason,
+                volunteer_first_name=volunteer.first_name,
+                volunteer_last_name=volunteer.last_name,
+                volunteer_email=user.email,
+                volunteer_phone=volunteer.phone_number,
+                volunteer_skills=volunteer.skills,
+            )
+        )
+
+    return engagements

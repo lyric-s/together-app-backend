@@ -7,15 +7,18 @@ import pytest
 from pytest_codspeed import BenchmarkFixture
 from sqlmodel import Session
 
-from app.models.enums import ProcessingStatus
+from app.models.enums import ProcessingStatus, UserType
 from app.models.engagement import Engagement
 from app.models.location import Location
 from app.models.category import Category
 from app.models.mission import MissionCreate
+from app.models.user import UserCreate
+from app.models.volunteer import Volunteer
 from app.services import engagement as engagement_service
 from app.services import association as association_service
 from app.services import mission as mission_service
 from app.services import volunteer as volunteer_service
+from app.services import user as user_service
 
 
 @pytest.fixture(name="engagement_setup_data")
@@ -110,3 +113,58 @@ def test_approve_application_performance(
             # Cleanup
             session.delete(engagement)
             session.commit()
+
+
+def test_get_mission_engagements_performance(
+    benchmark: BenchmarkFixture, session: Session, engagement_setup_data
+):
+    """Benchmark retrieving all engagements for a mission."""
+    mid = engagement_setup_data["mission_id"]
+
+    # Setup: Create 5 engagements for the mission
+    engagements = []
+    for i in range(5):
+        # Create additional volunteers for variety
+        user_in = UserCreate(
+            username=f"bench_vol_{i}",
+            email=f"bench_vol_{i}@test.com",
+            password="Password123",
+            user_type=UserType.VOLUNTEER,
+        )
+        user = user_service.create_user(session, user_in)
+        volunteer = Volunteer(
+            id_user=user.id_user,
+            first_name=f"Vol{i}",
+            last_name="Bench",
+            phone_number="0601020304",
+            birthdate=date(1995, 1, 1),
+            skills="Testing",
+        )
+        session.add(volunteer)
+        session.flush()
+
+        engagement = Engagement(
+            id_volunteer=volunteer.id_volunteer,
+            id_mission=mid,
+            state=ProcessingStatus.PENDING,
+        )
+        session.add(engagement)
+        engagements.append((engagement, volunteer, user))
+
+    session.commit()
+
+    # Benchmark the retrieval
+    @benchmark
+    def get_engagements():
+        result = engagement_service.get_mission_engagements(session, mid)
+        return result
+
+    # Cleanup (delete in correct order to avoid cascade warnings)
+    for engagement, volunteer, user in engagements:
+        session.delete(engagement)
+    session.commit()
+
+    for _, volunteer, user in engagements:
+        session.delete(volunteer)
+        session.delete(user)
+    session.commit()
