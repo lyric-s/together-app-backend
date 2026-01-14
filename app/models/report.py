@@ -57,6 +57,24 @@ class ReportPublic(ReportBase):
     reporter_name: str = ""
     reported_name: str = ""
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "id_report": 789,
+                    "type": "HARASSMENT",
+                    "target": "PROFILE",
+                    "reason": "This user has been sending inappropriate messages repeatedly.",
+                    "id_user_reported": 456,
+                    "reporter_name": "John Doe",
+                    "reported_name": "Jane Smith",
+                    "state": "PENDING",
+                    "date_reporting": "2026-01-14T10:30:00Z",
+                }
+            ]
+        }
+    }
+
 
 class ReportUpdate(SQLModel):
     state: ProcessingStatus | None = Field(

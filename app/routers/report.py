@@ -28,15 +28,51 @@ def create_report(
 
     Any authenticated user can report another user (volunteer or association).
     The report will be created with PENDING state and reviewed by administrators.
+    Only one PENDING report per user against the same target is allowed.
 
-    ### Reporting Process:
-    - User submits report with type, target, reason, and reported user ID
-    - Report is created with PENDING status
-    - Administrators review and take appropriate action
-    - Only one PENDING report per user against the same target is allowed
+    ## Request Body
 
-    ### Authentication Required:
-    This endpoint requires a valid authentication token.
+    The request must include:
+    - `type` (string, required): Report type - `HARASSMENT`, `SPAM`, `FRAUD`, `INAPPROPRIATE_BEHAVIOR`, or `OTHER`
+    - `target` (string, required): What is being reported - `PROFILE`, `MESSAGE`, `MISSION`, or `OTHER`
+    - `reason` (string, required): Detailed explanation (minimum 10 characters)
+    - `id_user_reported` (integer, required): ID of the user being reported
+
+    ## Example Request
+
+    ```json
+    {
+      "type": "HARASSMENT",
+      "target": "PROFILE",
+      "reason": "This user has been sending inappropriate messages repeatedly.",
+      "id_user_reported": 456
+    }
+    ```
+
+    ## Response
+
+    Returns the created report with:
+    - Generated `id_report` (integer)
+    - All input fields
+    - `state` field set to `PENDING`
+    - Reporter and reported user names
+    - `created_at` timestamp (ISO 8601 format)
+
+    ## Example Response
+
+    ```json
+    {
+      "id_report": 789,
+      "type": "HARASSMENT",
+      "target": "PROFILE",
+      "reason": "This user has been sending inappropriate messages repeatedly.",
+      "id_user_reported": 456,
+      "reporter_name": "John Doe",
+      "reported_name": "Jane Smith",
+      "state": "PENDING",
+      "created_at": "2026-01-14T10:30:00Z"
+    }
+    ```
 
     Args:
         `session`: Database session (automatically injected).
@@ -69,8 +105,46 @@ def get_my_reports(
     Returns all reports submitted by the authenticated user, ordered by most recent first.
     Users can view their own report history to track the status of their submissions.
 
-    ### Authentication Required:
-    This endpoint requires a valid authentication token.
+    ## Response
+
+    Returns an array of reports, each containing:
+    - `id_report` (integer): Unique report identifier
+    - `type` (string): Report type (`HARASSMENT`, `SPAM`, etc.)
+    - `target` (string): What was reported (`PROFILE`, `MESSAGE`, etc.)
+    - `reason` (string): The submitted reason
+    - `state` (string): Current status (`PENDING`, `RESOLVED`, `DISMISSED`)
+    - `reporter_name` (string): Name of the person who reported
+    - `reported_name` (string): Name of the reported user
+    - `created_at` (string): Timestamp in ISO 8601 format
+
+    ## Example Response
+
+    ```json
+    [
+      {
+        "id_report": 789,
+        "type": "HARASSMENT",
+        "target": "PROFILE",
+        "reason": "This user has been sending inappropriate messages repeatedly.",
+        "id_user_reported": 456,
+        "reporter_name": "John Doe",
+        "reported_name": "Jane Smith",
+        "state": "PENDING",
+        "created_at": "2026-01-14T10:30:00Z"
+      },
+      {
+        "id_report": 654,
+        "type": "SPAM",
+        "target": "MESSAGE",
+        "reason": "Received unsolicited promotional messages.",
+        "id_user_reported": 123,
+        "reporter_name": "John Doe",
+        "reported_name": "Bob Johnson",
+        "state": "RESOLVED",
+        "created_at": "2026-01-10T14:20:00Z"
+      }
+    ]
+    ```
 
     Args:
         `session`: Database session (automatically injected).
@@ -78,7 +152,7 @@ def get_my_reports(
 
     Returns:
         `list[ReportPublic]`: Reports submitted by the authenticated user, ordered by
-            most recent first. Each report includes type, target, reason, state, and timestamp.
+            most recent first.
 
     Raises:
         `401 Unauthorized`: If no valid authentication token is provided.
