@@ -81,10 +81,7 @@ register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        str(origin)
-        for origin in parse_comma_separated_origins(get_settings().BACKEND_CORS_ORIGINS)
-    ],
+    allow_origins=parse_comma_separated_origins(get_settings().BACKEND_CORS_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
