@@ -133,7 +133,7 @@ class TestCreateReportEndpoint:
         response2 = client.post(
             "/reports/", json=payload, headers={"Authorization": f"Bearer {auth_token}"}
         )
-        assert response2.status_code == 400  # AlreadyExistsError returns 400
+        assert response2.status_code == 409  # AlreadyExistsError returns 409 (Conflict)
 
     def test_create_report_nonexistent_user(self, client: TestClient, auth_token):
         """Cannot report non-existent user."""
