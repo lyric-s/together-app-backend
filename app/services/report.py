@@ -8,6 +8,7 @@ from app.models.report import Report, ReportCreate, ReportUpdate
 from app.models.user import User
 from app.models.enums import ProcessingStatus, UserType
 from app.exceptions import NotFoundError, AlreadyExistsError, ValidationError
+from app.services.utils import get_or_404
 
 
 def create_report(
@@ -34,11 +35,7 @@ def create_report(
         raise ValidationError("You cannot report yourself")
 
     # Check reported user exists
-    reported_user = session.exec(
-        select(User).where(User.id_user == report_in.id_user_reported)
-    ).first()
-    if not reported_user:
-        raise NotFoundError("User", report_in.id_user_reported)
+    _ = get_or_404(session, User, report_in.id_user_reported, "User")
 
     # Check for existing PENDING report
     existing = session.exec(

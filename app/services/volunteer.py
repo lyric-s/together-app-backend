@@ -18,6 +18,7 @@ from app.models.favorite import Favorite
 from app.models.mission import Mission, MissionPublic
 from app.models.association import Association
 from app.models.enums import UserType, ProcessingStatus
+from app.services.utils import get_or_404
 from app.exceptions import NotFoundError, AlreadyExistsError
 from app.services import user as user_service
 from app.services import notification as notification_service
@@ -514,18 +515,10 @@ def apply_to_mission(
         AlreadyExistsError: If the volunteer already has an engagement for this mission.
     """
     # Check volunteer exists
-    volunteer = session.exec(
-        select(Volunteer).where(Volunteer.id_volunteer == volunteer_id)
-    ).first()
-    if not volunteer:
-        raise NotFoundError("Volunteer", volunteer_id)
+    _ = get_or_404(session, Volunteer, volunteer_id, "Volunteer")
 
     # Check mission exists
-    mission = session.exec(
-        select(Mission).where(Mission.id_mission == mission_id)
-    ).first()
-    if not mission:
-        raise NotFoundError("Mission", mission_id)
+    _ = get_or_404(session, Mission, mission_id, "Mission")
 
     # Check if engagement already exists (any state)
     existing = session.exec(
@@ -652,12 +645,7 @@ async def leave_mission(session: Session, volunteer_id: int, mission_id: int) ->
         )
 
     # Get mission
-    mission = session.exec(
-        select(Mission).where(Mission.id_mission == mission_id)
-    ).first()
-
-    if not mission:
-        raise NotFoundError("Mission", mission_id)
+    mission = get_or_404(session, Mission, mission_id, "Mission")
 
     association = session.exec(
         select(Association)
