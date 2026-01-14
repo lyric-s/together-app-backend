@@ -45,29 +45,96 @@ def create_association(
     association_in: AssociationCreate,
 ) -> AssociationPublic:
     """
-    Register a new association with user account.
+    Register a new association (non-profit organization) with user account.
 
     Creates both a User account (with user_type=ASSOCIATION) and the associated
-    Association profile in a single atomic operation.
+    Association profile in a single atomic operation. This is the signup endpoint
+    for non-profit organizations joining the platform.
 
-    ### What Gets Created:
-    - User account with authentication credentials
-    - Association profile with organization details
-    - Automatic linking between user and association records
+    ## Request Body
 
-    Args:
-        `user_in`: User account data including username, email, and password.
-        `association_in`: Association profile data including name, address, phone,
-            RNA code, etc.
-        `session`: Database session (automatically injected).
+    The request must include two nested objects:
+
+    **user_in**:
+    - `username` (string, required): Unique username for login (3-50 characters)
+    - `email` (string, required): Organization's contact email
+    - `password` (string, required): Strong password (8-100 characters)
+
+    **association_in**:
+    - `name` (string, required): Organization's legal name
+    - `rna` (string, required): French RNA registration number (format: W + 9 digits)
+    - `address` (string, required): Organization's physical address
+    - `zip_code` (string, required): Postal code
+    - `phone_number` (string, required): Contact phone number
+    - `description` (string, optional): Brief description of the organization's mission
+
+    ## Example Request
+
+    ```json
+    {
+      "user_in": {
+        "username": "paris_food_bank",
+        "email": "contact@parisfoodbank.org",
+        "password": "SecureOrgPass123!"
+      },
+      "association_in": {
+        "name": "Paris Food Bank",
+        "rna": "W751234567",
+        "address": "123 Avenue de la République",
+        "zip_code": "75011",
+        "phone_number": "+33143556677",
+        "description": "Fighting food insecurity in Paris since 1995"
+      }
+    }
+    ```
+
+    ## Example Response
+
+    ```json
+    {
+      "id_asso": 5,
+      "id_user": 129,
+      "name": "Paris Food Bank",
+      "rna": "W751234567",
+      "address": "123 Avenue de la République",
+      "zip_code": "75011",
+      "phone_number": "+33143556677",
+      "description": "Fighting food insecurity in Paris since 1995",
+      "verif_state": "PENDING",
+      "user": {
+        "id_user": 129,
+        "username": "paris_food_bank",
+        "email": "contact@parisfoodbank.org",
+        "user_type": "ASSOCIATION"
+      }
+    }
+    ```
+
+    ## Verification Process
+
+    After registration:
+    1. **Status**: Account created with `PENDING` verification status
+    2. **Document Upload**: Association must upload verification documents (RNA certificate, etc.)
+    3. **Admin Review**: Platform admin verifies documents and organization legitimacy
+    4. **Activation**: Status changes to `APPROVED` and organization can create missions
+
+    ## What Gets Created
+
+    - **User account**: Authentication credentials with `user_type=ASSOCIATION`
+    - **Association profile**: Organization details with `PENDING` verification status
+    - **Automatic linking**: User and association records are connected
+
+    Parameters:
+        user_in: User account data including username, email, and password.
+        association_in: Association profile data including name, RNA code, address, phone, and optional description.
+        session: Database session (automatically injected via `Depends(get_session)`).
 
     Returns:
-        `AssociationPublic`: The newly created association profile with user information,
-            including id_asso and id_user.
+        `AssociationPublic`: The newly created association profile with user information and verification status.
 
     Raises:
-        `409 AlreadyExistsError`: If the username or email already exists.
-        `422 ValidationError`: If the RNA code format is invalid.
+        `409 AlreadyExistsError`: If the username, email, or RNA code already exists.
+        `422 ValidationError`: If RNA code format is invalid (must be W followed by 9 digits), or other validation failures.
     """
     association = association_service.create_association(
         session, user_in, association_in
