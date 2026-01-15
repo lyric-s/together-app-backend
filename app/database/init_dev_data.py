@@ -749,12 +749,12 @@ def init_sample_data(session: Session) -> None:
             related_user_id=(
                 volunteers[n_conf["user"]].id_user if n_conf["user"] else None
             ),
-            is_read=n_conf["read"],
         )
         notification = notification_service.create_notification(
             session, notification_in
         )
-        # Update the timestamp to match our test data
+        # Update ORM fields after creation (not part of NotificationCreate schema)
+        notification.is_read = n_conf["read"]
         notification.created_at = n_conf["date"]
         session.add(notification)
 
