@@ -408,7 +408,7 @@ The development and staging environments automatically load comprehensive sample
 
 #### Test Accounts
 
-**Volunteers** (Password: `testpass123` for all):
+**Volunteers** (Password: `password` for all):
 
 - **Alice Johnson** (`alice@example.com`) - Active volunteer with completed missions, includes address for location testing
 - **Bob Smith** (`bob@example.com`) - New volunteer with pending applications
@@ -484,14 +484,14 @@ docker compose -f docker-compose.backend.yml logs -f fastapi
 
 When a new version of the API is built and published, update your local environment:
 
-**Option 1: Update and keep existing data**
+#### Option 1: Update and keep existing data
 
 ```bash
 docker compose -f docker-compose.backend.yml pull
 docker compose -f docker-compose.backend.yml up -d
 ```
 
-**Option 2: Fresh start with latest version (⚠️ deletes all data)**
+#### Option 2: Fresh start with latest version (⚠️ deletes all data)
 
 ```bash
 docker compose -f docker-compose.backend.yml down -v
@@ -869,7 +869,7 @@ This triggers a **major version bump**.
 
 This project is designed to be reusable as a starting point for your own FastAPI applications. We acknowledge that our choices may not have been the best as we were still learning when making this project. Improve it to your heart's content.
 
-### What's Included
+### What you get
 
 - ✅ **Production-ready architecture** with separation of concerns
 - ✅ **Complete authentication system** with [JWT](https://jwt.io/) tokens
