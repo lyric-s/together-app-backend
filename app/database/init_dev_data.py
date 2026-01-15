@@ -28,14 +28,14 @@ from app.models.user import UserCreate, User
 from app.models.volunteer import VolunteerCreate
 from app.models.association import AssociationCreate
 from app.models.mission import MissionCreate
-from app.models.location import Location, LocationCreate
+from app.models.location import LocationCreate
 from app.models.category import Category
 from app.models.enums import UserType, ProcessingStatus, ReportType, ReportTarget
 from app.models.engagement import Engagement
-from app.models.report import Report, ReportCreate
+from app.models.report import ReportCreate
 from app.models.document import Document
 from app.models.favorite import Favorite
-from app.models.notification import Notification, NotificationType, NotificationCreate
+from app.models.notification import NotificationType, NotificationCreate
 from app.models.badge import Badge
 from app.models.assign import Assign
 from app.services import volunteer as volunteer_service
@@ -749,7 +749,9 @@ def init_sample_data(session: Session) -> None:
             ),
             is_read=n_conf["read"],
         )
-        notification = notification_service.create_notification(session, notification_in)
+        notification = notification_service.create_notification(
+            session, notification_in
+        )
         # Update the timestamp to match our test data
         notification.created_at = n_conf["date"]
         session.add(notification)
