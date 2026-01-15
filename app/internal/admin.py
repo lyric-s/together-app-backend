@@ -25,7 +25,7 @@ from app.services import mission as mission_service
 from app.services import report as report_service
 from app.services import category as category_service
 from app.services import location as location_service
-from app.exceptions import NotFoundError, AuthenticationError
+from app.exceptions import NotFoundError, AuthenticationError, ValidationError
 
 router = APIRouter(prefix="/internal/admin", tags=["admin"])
 
@@ -369,9 +369,15 @@ def get_document_download_url(
     from app.services.storage import storage_service
 
     download_url = storage_service.get_presigned_url(document.url_doc, inline=False)
+    if not download_url:
+        raise ValidationError(
+            f"Failed to generate download URL for document {document_id}. "
+            "The storage service may be unavailable or the document file may not exist.",
+            field="url_doc",
+        )
 
     return {
-        "download_url": download_url or "",
+        "download_url": download_url,
         "expires_in": 3600,  # 1 hour expiry
     }
 
@@ -494,9 +500,15 @@ def get_document_preview_url(
     from app.services.storage import storage_service
 
     preview_url = storage_service.get_presigned_url(document.url_doc, inline=True)
+    if not preview_url:
+        raise ValidationError(
+            f"Failed to generate preview URL for document {document_id}. "
+            "The storage service may be unavailable or the document file may not exist.",
+            field="url_doc",
+        )
 
     return {
-        "preview_url": preview_url or "",
+        "preview_url": preview_url,
         "expires_in": 3600,  # 1 hour expiry
     }
 
