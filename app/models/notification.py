@@ -15,11 +15,11 @@ if TYPE_CHECKING:
 class NotificationType(str, Enum):
     """Types of notifications for associations."""
 
-    VOLUNTEER_JOINED = "volunteer_joined"
-    VOLUNTEER_LEFT = "volunteer_left"
-    VOLUNTEER_WITHDREW = "volunteer_withdrew"
-    CAPACITY_REACHED = "capacity_reached"
-    MISSION_DELETED = "mission_deleted"
+    VOLUNTEER_JOINED = "VOLUNTEER_JOINED"
+    VOLUNTEER_LEFT = "VOLUNTEER_LEFT"
+    VOLUNTEER_WITHDREW = "VOLUNTEER_WITHDREW"
+    CAPACITY_REACHED = "CAPACITY_REACHED"
+    MISSION_DELETED = "MISSION_DELETED"
 
 
 class NotificationBase(SQLModel):
