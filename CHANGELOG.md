@@ -1,3 +1,61 @@
+## v0.3.0 (2026-01-15)
+
+### BREAKING CHANGE
+
+- NotificationType enum values changed from lowercase to uppercase
+- AlreadyExistsError now returns HTTP 409 Conflict instead of 400 Bad Request
+
+### Feat
+
+- **documents**: Add preview URL endpoint and enhance download documentation
+- **database**: Add comprehensive sample data with MinIO integration
+- **engagement**: Add mission engagement listing endpoint with volunteer details
+- **notifications**: TA-93 Implement in-app and email notification system
+- **auth**: TA-93 Add password reset, admin tools, and auth profile
+- **mission**: TA-93 Implement multi-category missions & category management
+- **admin**: TA-93 Add endpoints for volunteer, mission, report, and document mgmt
+- **verification**: TA-93 Implement document verification for associations
+- **auth**: TA-93 Add hashed refresh token storage and rotation
+- **association**: TA-93 Implement full CRUD & rate limit auth endpoints
+
+### Fix
+
+- **init_dev_data**: Remove is_read from NotificationCreate call
+- **notification**: Change NotificationType enum to uppercase values
+- **database**: Use service layer for sample data creation
+- Improve input validation and refactor engagement service
+- **docs,validation**: Fix field names and add mission validation
+- **cors**: Refactor CORS origin parsing for cleaner architecture
+- Change AlreadyExistsError status code from 400 to 409
+- **db**: TA-93 Makes user dates timezone-aware; fixes notification index
+- **migration**: TA-93 Corrects timezone for DateTime in downgrade
+- **api**: Add latest association document endpoint & engagement public model
+- **db**: TA-93 Finalize transactions and extract profile service
+- TA-93 Clamp volunteer count after mission leave
+- TA-93 Reorder mission leave operations for atomicity
+
+### Refactor
+
+- Rename  key to  and update sample emails
+- **init**: Remove automatic sample data initialization
+- Make sample data initialization conditional and rename file
+- **document**: Extract _validate_document_pending helper
+- **service**: Extract get_or_404 helper to reduce DRY violations
+- **service**: Standardize create_document signature to Pattern B
+- **docs**: Standardize backtick formatting and enum comparisons
+- **notification**: Use min_length for Field validation
+- TA-93 Convert volunteer application withdrawal to sync, update DB schema
+- **volunteer**: Move association email send out of notification try and ran alembic rev
+- **services**: Consolidate imports at module level
+- TA-93 Standardize enum values and refine session handling
+- TA-93 Improve code robustness, security, and CI workflows
+- **association**: TA-93 embed notification endpoints
+
+### Perf
+
+- **volunteer**: Use nested transactions for notifications
+- TA-93 Enhance data validation, persistence, and type safety
+
 ## v0.2.0 (2026-01-10)
 
 ### Feat
