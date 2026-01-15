@@ -25,7 +25,8 @@ repos:
     - id: pyrefly-check
       name: Pyrefly (type checking)
       pass_filenames: false  # Recommended to do full repo checks. However, you can change this to `true` to only check changed files
-      language: system  # Use system-installed pyrefly
+      entry: uv run pyrefly check --summarize-errors
+      language: system  # Use uv run to access pyrefly from project dependencies
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0

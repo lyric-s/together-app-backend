@@ -136,22 +136,50 @@ class StorageService:
             raise
 
     def get_presigned_url(
-        self, object_name: str, expires_in_hours: int = 1
+        self,
+        object_name: str,
+        expires_in_hours: int = 1,
+        inline: bool = False,
     ) -> None | str:
         """
         Generates a presigned GET URL for temporary access to a file.
+
+        Args:
+            object_name: The MinIO object key/name (stored in database url_doc field)
+            expires_in_hours: URL expiration time in hours (default: 1)
+            inline: If True, sets Content-Disposition to 'inline' for browser preview.
+                   If False (default), browser will download the file.
+
+        Returns:
+            Presigned URL string or None if generation fails
+
+        Examples:
+            # For download (triggers browser download):
+            url = storage_service.get_presigned_url("user_5/doc.pdf")
+
+            # For preview (displays in browser):
+            url = storage_service.get_presigned_url("user_5/doc.pdf", inline=True)
         """
         if not object_name or not object_name.strip():
             logger.warning("object_name is empty; cannot generate presigned URL.")
             return None
 
         try:
+            # Build response headers for inline preview
+            response_headers: dict[str, str] | None = None
+            if inline:
+                response_headers = {"response-content-disposition": "inline"}
+
             url = self.client.presigned_get_object(
                 bucket_name=self.bucket_name,
                 object_name=object_name,
                 expires=timedelta(hours=expires_in_hours),
+                response_headers=response_headers,  # type: ignore
             )
-            logger.debug(f"Generated presigned URL for '{object_name}'")
+            logger.debug(
+                f"Generated {'inline preview' if inline else 'download'} "
+                f"presigned URL for '{object_name}'"
+            )
             return url
         except S3Error as e:
             logger.error(f"Failed to generate presigned URL for '{object_name}': {e}")

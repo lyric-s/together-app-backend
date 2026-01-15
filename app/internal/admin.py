@@ -285,6 +285,222 @@ def delete_document(
     session.commit()
 
 
+@router.get("/documents/{document_id}/download-url")
+def get_document_download_url(
+    *,
+    document_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> dict[str, str | int]:
+    """
+    Generate a temporary download URL for a document.
+
+    Creates a presigned URL that **triggers a file download** when accessed.
+    The URL expires after 1 hour. Admins can generate download URLs for any
+    document regardless of ownership or status.
+
+    **Behavior**: When the frontend opens this URL, the browser will **download**
+    the file (save to disk) instead of displaying it inline.
+
+    **Use this endpoint when**: You want users to save/download the document to their device.
+
+    **For browser preview/viewing**, use `/documents/{document_id}/preview-url` instead.
+
+    ## Use Cases
+
+    - **Download for Offline Review**: Download documents to review offline
+    - **Save Documents**: Allow admins to save documents locally
+    - **Attachment Downloads**: Trigger file download in browser
+
+    ## Authorization Required
+
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ## URL Expiration
+
+    The generated URL expires after **1 hour (3600 seconds)**. After expiration,
+    a new URL must be requested.
+
+    ## Example Response
+
+    ```json
+    {
+      "download_url": "http://your-minio-endpoint:9000/together-uploads/1/abc_certificate.pdf?X-Amz-Algorithm=...",
+      "expires_in": 3600
+    }
+    ```
+
+    **Note**: The actual URL domain depends on your `MINIO_ENDPOINT` configuration.
+
+    ## Frontend Usage Example
+
+    ```javascript
+    // Trigger download in browser
+    const response = await fetch('/admin/documents/123/download-url');
+    const { download_url } = await response.json();
+
+    // Open URL to trigger download
+    window.open(download_url, '_blank');
+    // or
+    window.location.href = download_url;
+    ```
+
+    Args:
+        `document_id`: The unique identifier of the document.
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+
+    Returns:
+        `dict`: Object containing:
+            - `download_url`: Temporary presigned URL that triggers file download
+            - `expires_in`: Time in seconds until the URL expires (3600 = 1 hour)
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `404 NotFoundError`: If document doesn't exist.
+    """
+    # Get document
+    document = document_service.get_document(session, document_id)
+    if not document:
+        raise NotFoundError("Document", document_id)
+
+    # Generate presigned URL for download (inline=False, default)
+    from app.services.storage import storage_service
+
+    download_url = storage_service.get_presigned_url(document.url_doc, inline=False)
+
+    return {
+        "download_url": download_url or "",
+        "expires_in": 3600,  # 1 hour expiry
+    }
+
+
+@router.get("/documents/{document_id}/preview-url")
+def get_document_preview_url(
+    *,
+    document_id: int,
+    session: Annotated[Session, Depends(get_session)],
+    current_admin: Annotated[Admin, Depends(get_current_admin)],
+) -> dict[str, str | int]:
+    """
+    Generate a temporary preview URL for a document.
+
+    Creates a presigned URL that **displays the document in the browser** when accessed.
+    The URL expires after 1 hour. Admins can generate preview URLs for any document
+    regardless of ownership or status.
+
+    **Behavior**: When the frontend opens this URL, the browser will **display**
+    the document inline (PDF viewer, image display) instead of downloading it.
+
+    **Use this endpoint when**: You want to preview/view documents directly in the browser.
+
+    **For file download**, use `/documents/{document_id}/download-url` instead.
+
+    ## Supported File Types
+
+    - **PDF files** (`.pdf`): Display in browser's built-in PDF viewer
+    - **Images** (`.jpg`, `.png`, `.gif`): Display inline as images
+    - **Other formats**: Browser behavior varies (may still trigger download)
+
+    ## Use Cases
+
+    - **Document Verification**: Quick preview during admin review process
+    - **PDF Viewer**: Display documents in browser without downloading
+    - **Image Preview**: Show uploaded images inline
+    - **Iframe Embedding**: Embed document preview in admin dashboard
+
+    ## Authorization Required
+
+    - **Admin authentication**: Requires valid admin access token
+    - **Admin mode**: Token must include "mode": "admin" claim
+
+    ## URL Expiration
+
+    The generated URL expires after **1 hour (3600 seconds)**. After expiration,
+    a new URL must be requested.
+
+    ## Example Response
+
+    ```json
+    {
+      "preview_url": "http://your-minio-endpoint:9000/together-uploads/1/abc_cert.pdf?response-content-disposition=inline&X-Amz-Algorithm=...",
+      "expires_in": 3600
+    }
+    ```
+
+    **Note**: The actual URL domain depends on your `MINIO_ENDPOINT` configuration.
+
+    ## Frontend Usage Examples
+
+    ### Option 1: Open in New Tab
+
+    ```javascript
+    const response = await fetch('/admin/documents/123/preview-url');
+    const { preview_url } = await response.json();
+
+    // Open document in new browser tab for preview
+    window.open(preview_url, '_blank');
+    ```
+
+    ### Option 2: Embed in Iframe
+
+    ```javascript
+    const response = await fetch('/admin/documents/123/preview-url');
+    const { preview_url } = await response.json();
+
+    // Display in iframe for in-dashboard preview
+    document.getElementById('doc-preview').src = preview_url;
+    ```
+
+    ```html
+    <iframe id="doc-preview" width="100%" height="600px"></iframe>
+    ```
+
+    ### Option 3: Direct Image Display
+
+    ```javascript
+    const response = await fetch('/admin/documents/123/preview-url');
+    const { preview_url } = await response.json();
+
+    // Display image inline
+    document.getElementById('doc-image').src = preview_url;
+    ```
+
+    ```html
+    <img id="doc-image" alt="Document preview" />
+    ```
+
+    Args:
+        `document_id`: The unique identifier of the document.
+        `session`: Database session (automatically injected).
+        `current_admin`: Authenticated admin (automatically injected from token).
+
+    Returns:
+        `dict`: Object containing:
+            - `preview_url`: Temporary presigned URL for inline browser display
+            - `expires_in`: Time in seconds until the URL expires (3600 = 1 hour)
+
+    Raises:
+        `401 Unauthorized`: If no valid admin authentication token is provided.
+        `404 NotFoundError`: If document doesn't exist.
+    """
+    # Get document
+    document = document_service.get_document(session, document_id)
+    if not document:
+        raise NotFoundError("Document", document_id)
+
+    # Generate presigned URL for inline preview (inline=True)
+    from app.services.storage import storage_service
+
+    preview_url = storage_service.get_presigned_url(document.url_doc, inline=True)
+
+    return {
+        "preview_url": preview_url or "",
+        "expires_in": 3600,  # 1 hour expiry
+    }
+
+
 # Association management endpoints
 
 
