@@ -416,9 +416,9 @@ The development and staging environments automatically load comprehensive sample
 
 **Associations** (Password: `password` for all):
 
-- **Green Earth** (`greenearth@example.com`) - APPROVED status, environmental missions
-- **Helping Hands** (`helpinghands@example.com`) - APPROVED status, community support
-- **Tech For Good** (`techforgood@example.com`) - PENDING status, technology-focused
+- **Green Earth** (`contact@greenearth.org`) - APPROVED status, environmental missions
+- **Helping Hands** (`contact@helpinghands.org`) - APPROVED status, community support
+- **Tech For Good** (`contact@techforgood.org`) - PENDING status, technology-focused
 
 #### What's Included
 
