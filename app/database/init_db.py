@@ -7,7 +7,7 @@ from app.models.admin import Admin
 from app.models.category import Category
 from app.core.password import get_password_hash
 from app.exceptions import AlreadyExistsError
-from app.database.init_dev_data import init_sample_data
+from app.database.init_sample_data import init_sample_data
 
 
 def init_db(session: Session) -> None:
