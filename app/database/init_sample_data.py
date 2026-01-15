@@ -325,7 +325,7 @@ def init_sample_data(session: Session) -> None:
     for label, key in [
         ("Biodiversité", "env"),
         ("Aide alimentaire", "social"),
-        ("Education", "edu"),
+        ("Mentorat", "mentor"),
     ]:
         cat = session.exec(select(Category).where(Category.label == label)).first()
         if cat:
@@ -452,7 +452,7 @@ def init_sample_data(session: Session) -> None:
             "key": "coding",
             "asso": "tech_for_good",
             "loc": "bordeaux",
-            "cat": "edu",
+            "cat": "mentor",
             "data": {
                 "name": "Coding for Seniors",
                 "description": "Teaching basic coding skills to elderly people.",
