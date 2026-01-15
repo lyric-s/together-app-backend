@@ -387,6 +387,7 @@ The backend automatically:
 - ✅ Starts MinIO object storage (S3-compatible)
 - ✅ Runs database migrations
 - ✅ Seeds initial data (including superuser)
+- ✅ **Loads comprehensive sample data for testing** (development/staging only)
 
 ### Default Credentials
 
@@ -400,6 +401,47 @@ Use these credentials to test authentication endpoints or admin features.
 
 > [!WARNING]
 > These are development credentials only. Never use these in production!
+
+### Sample Data for Testing
+
+The development and staging environments automatically load comprehensive sample data on first startup, making it easier for the frontend team to test and debug without manual data creation.
+
+#### Test Accounts
+
+**Volunteers** (Password: `testpass123` for all):
+
+- **Alice Johnson** (`alice@example.com`) - Active volunteer with completed missions, includes address for location testing
+- **Bob Smith** (`bob@example.com`) - New volunteer with pending applications
+- **Charlie Brown** (`charlie@example.com`) - Experienced volunteer with multiple engagements
+
+**Associations** (Password: `testpass123` for all):
+
+- **Green Earth** (`greenearth@example.com`) - APPROVED status, environmental missions
+- **Helping Hands** (`helpinghands@example.com`) - APPROVED status, community support
+- **Tech For Good** (`techforgood@example.com`) - PENDING status, technology-focused
+
+#### What's Included
+
+- **5 Missions** - Various dates, categories, and states (UPCOMING, PAST, FULL)
+- **6 Engagements** - Different states (PENDING, APPROVED, REJECTED)
+- **5 Reports** - Content moderation examples (2 PENDING, 2 APPROVED, 1 REJECTED)
+- **6 Documents** - Real PDF files uploaded to MinIO (3 PENDING, 2 APPROVED, 1 REJECTED)
+- **Multiple Notifications** - Association activity feed examples
+- **Test Locations** - Various addresses for mission mapping
+
+#### MinIO Document Storage
+
+All documents are real PDF files automatically generated and uploaded to MinIO:
+
+- Association verification documents (business certificates, ID cards)
+- Properly linked to database records with presigned URL generation
+- Accessible via API endpoints
+- Visible in MinIO Console at `http://localhost:9001`
+
+#### Idempotency & Safety
+
+- **Idempotent**: Sample data initialization safely detects existing data and skips initialization to prevent duplicates
+- **Production Safety**: Built-in guard prevents sample data from loading in production environments
 
 ### Customizing Environment Variables
 
@@ -438,13 +480,26 @@ docker compose -f docker-compose.backend.yml up
 docker compose -f docker-compose.backend.yml logs -f fastapi
 ```
 
-**Get Updates**:
+**Get Latest Backend Version**:
 
-Re-download the compose file to get updates, or pull the latest image:
+When a new version of the API is built and published, update your local environment:
+
+**Option 1: Update and keep existing data**
 
 ```bash
-docker compose -f docker-compose.backend.yml up --pull always
+docker compose -f docker-compose.backend.yml pull
+docker compose -f docker-compose.backend.yml up -d
 ```
+
+**Option 2: Fresh start with latest version (⚠️ deletes all data)**
+
+```bash
+docker compose -f docker-compose.backend.yml down -v
+docker compose -f docker-compose.backend.yml up -d --build
+```
+
+> [!WARNING]
+> Using `down -v` removes all database data and uploaded files. Use this when you want to start fresh with the latest sample data.
 
 ### Troubleshooting
 
@@ -489,7 +544,7 @@ Common causes:
 
 - Edit `docker-compose.backend.yml`
 - Add your origin: `BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://your-port`
-- Restart: `docker compose -f docker-compose.backend.yml restart`
+- Apply changes: `docker compose -f docker-compose.backend.yml down && docker compose -f docker-compose.backend.yml up -d`
 
 #### Problem: MinIO "Access Denied" errors
 

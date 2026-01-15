@@ -186,11 +186,13 @@ def init_sample_data(session: Session) -> None:
             },
             "profile": {
                 "first_name": "Alice",
-                "last_name": "Wonder",
+                "last_name": "Johnson",
                 "phone_number": "0601010101",
                 "birthdate": date(1990, 1, 1),
                 "bio": "Loves nature and helping people.",
                 "skills": "Gardening, First Aid",
+                "address": "15 Rue de la Paix",
+                "zip_code": "75002",
             },
         },
         {
@@ -203,7 +205,7 @@ def init_sample_data(session: Session) -> None:
             },
             "profile": {
                 "first_name": "Bob",
-                "last_name": "Builder",
+                "last_name": "Smith",
                 "phone_number": "0602020202",
                 "birthdate": date(1985, 5, 20),
                 "bio": "Can fix anything.",
@@ -220,7 +222,7 @@ def init_sample_data(session: Session) -> None:
             },
             "profile": {
                 "first_name": "Charlie",
-                "last_name": "Chaplin",
+                "last_name": "Brown",
                 "phone_number": "0603030303",
                 "birthdate": date(1995, 8, 15),
                 "bio": "Silent but hard working.",
