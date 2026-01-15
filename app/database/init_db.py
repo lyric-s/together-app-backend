@@ -7,6 +7,7 @@ from app.models.admin import Admin
 from app.models.category import Category
 from app.core.password import get_password_hash
 from app.exceptions import AlreadyExistsError
+from app.database.init_dev_data import init_sample_data
 
 
 def init_db(session: Session) -> None:
@@ -67,6 +68,10 @@ def init_db(session: Session) -> None:
 
     # Initialize categories
     init_categories(session)
+
+    # Initialize sample data for non-production environments
+    if settings.ENVIRONMENT in ("development", "staging"):
+        init_sample_data(session)
 
 
 def init_categories(session: Session) -> None:
