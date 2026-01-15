@@ -414,7 +414,7 @@ The development and staging environments automatically load comprehensive sample
 - **Bob Smith** (`bob@example.com`) - New volunteer with pending applications
 - **Charlie Brown** (`charlie@example.com`) - Experienced volunteer with multiple engagements
 
-**Associations** (Password: `testpass123` for all):
+**Associations** (Password: `password` for all):
 
 - **Green Earth** (`greenearth@example.com`) - APPROVED status, environmental missions
 - **Helping Hands** (`helpinghands@example.com`) - APPROVED status, community support
