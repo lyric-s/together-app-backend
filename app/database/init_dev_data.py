@@ -28,19 +28,22 @@ from app.models.user import UserCreate, User
 from app.models.volunteer import VolunteerCreate
 from app.models.association import AssociationCreate
 from app.models.mission import MissionCreate
-from app.models.location import Location
+from app.models.location import Location, LocationCreate
 from app.models.category import Category
 from app.models.enums import UserType, ProcessingStatus, ReportType, ReportTarget
 from app.models.engagement import Engagement
-from app.models.report import Report
+from app.models.report import Report, ReportCreate
 from app.models.document import Document
 from app.models.favorite import Favorite
-from app.models.notification import Notification, NotificationType
+from app.models.notification import Notification, NotificationType, NotificationCreate
 from app.models.badge import Badge
 from app.models.assign import Assign
 from app.services import volunteer as volunteer_service
 from app.services import association as association_service
 from app.services import mission as mission_service
+from app.services import notification as notification_service
+from app.services import report as report_service
+from app.services import location as location_service
 from app.services.storage import storage_service
 
 
@@ -375,8 +378,9 @@ def init_sample_data(session: Session) -> None:
 
     locations = {}
     for l_conf in locations_config:
-        loc = Location(**cast(dict[str, Any], l_conf["data"]))
-        session.add(loc)
+        # Use LocationCreate + service for proper validation
+        location_in = LocationCreate(**cast(dict[str, Any], l_conf["data"]))
+        loc = location_service.create_location(session, location_in)
         locations[l_conf["key"]] = loc
     session.flush()
 
@@ -576,17 +580,20 @@ def init_sample_data(session: Session) -> None:
 
     logger.info(f"Creating {len(reports_config)} Reports...")
     for r_conf in reports_config:
-        session.add(
-            Report(
-                id_user_reporter=r_conf["reporter"],
-                id_user_reported=r_conf["reported"],
-                type=r_conf["type"],
-                target=r_conf["target"],
-                reason=r_conf["reason"],
-                state=r_conf["state"],
-                date_reporting=r_conf["date"],
-            )
+        # Use ReportCreate + service for proper validation
+        report_in = ReportCreate(
+            type=r_conf["type"],
+            target=r_conf["target"],
+            reason=r_conf["reason"],
+            id_user_reported=r_conf["reported"],
         )
+        report = report_service.create_report(session, r_conf["reporter"], report_in)
+
+        # Update state and date if not PENDING (service creates as PENDING by default)
+        if r_conf["state"] != ProcessingStatus.PENDING:
+            report.state = r_conf["state"]
+        report.date_reporting = r_conf["date"]
+        session.add(report)
 
     # --- 7. Documents ---
     # Ensure MinIO bucket exists before uploading
@@ -731,21 +738,21 @@ def init_sample_data(session: Session) -> None:
     ]
 
     for n_conf in notifications_config:
-        session.add(
-            Notification(
-                id_asso=associations[n_conf["asso"]].id_asso,
-                notification_type=n_conf[
-                    "type"
-                ].value,  # Use .value to get string representation
-                message=n_conf["msg"],
-                related_mission_id=missions[n_conf["mission"]].id_mission,
-                related_user_id=(
-                    volunteers[n_conf["user"]].id_user if n_conf["user"] else None
-                ),
-                is_read=n_conf["read"],
-                created_at=n_conf["date"],
-            )
+        # Use NotificationCreate + service pattern for proper Pydantic validation
+        notification_in = NotificationCreate(
+            id_asso=associations[n_conf["asso"]].id_asso,
+            notification_type=n_conf["type"],
+            message=n_conf["msg"],
+            related_mission_id=missions[n_conf["mission"]].id_mission,
+            related_user_id=(
+                volunteers[n_conf["user"]].id_user if n_conf["user"] else None
+            ),
+            is_read=n_conf["read"],
         )
+        notification = notification_service.create_notification(session, notification_in)
+        # Update the timestamp to match our test data
+        notification.created_at = n_conf["date"]
+        session.add(notification)
 
     session.commit()
     logger.info(
