@@ -286,7 +286,6 @@ class AIModerationService:
         processed = 0
 
         for target, target_id, text in candidates:
-
             await self.moderate_content(db, target, target_id, text)
 
             # moderate_content will handle its own quota check and might skip processing
@@ -294,5 +293,3 @@ class AIModerationService:
             processed += 1
 
         logger.info(f"Daily maintenance scan completed. {processed} records analyzed.")
-
-        

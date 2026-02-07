@@ -77,7 +77,9 @@ async def test_moderate_content_toxic_no_score(session: Session, ai_service):
 
 
 @pytest.mark.asyncio
-async def test_skip_if_human_report_exists(session: Session, ai_service, volunteer_user):
+async def test_skip_if_human_report_exists(
+    session: Session, ai_service, volunteer_user
+):
     """Test that AI scan is skipped if a human report already exists."""
     target_id = volunteer_user.id_user
     # Create a human report
