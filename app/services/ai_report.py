@@ -2,7 +2,7 @@
 AI Report service module.
 
 This module provides CRUD operations for AI-generated moderation reports.
-It is primarily used by administrative interfaces to review and manage 
+It is primarily used by administrative interfaces to review and manage
 automatically flagged content.
 """
 
@@ -40,10 +40,7 @@ def get_ai_reports(
         list[AIReport]: A list of AI reports.
     """
     statement = (
-        select(AIReport)
-        .order_by(desc(AIReport.created_at))
-        .offset(offset)
-        .limit(limit)
+        select(AIReport).order_by(desc(AIReport.created_at)).offset(offset).limit(limit)
     )
     return list(session.exec(statement).all())
 
@@ -54,8 +51,8 @@ def update_ai_report_state(
     """
     Updates the moderation state of an AI report (e.g., APPROVED or REJECTED).
 
-    This function updates the state in memory and flushes the changes to the 
-    database, but does not commit the transaction. The caller (e.g., a router) 
+    This function updates the state in memory and flushes the changes to the
+    database, but does not commit the transaction. The caller (e.g., a router)
     is responsible for committing the changes.
 
     Args:

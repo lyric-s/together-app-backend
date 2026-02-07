@@ -1402,8 +1402,8 @@ def update_ai_report_state(
     """
     Update the processing state of an AI report (approve or reject).
 
-    Allows administrators to manually confirm or dismiss an AI-generated 
-    signalement. Approving a report indicates the content is indeed problematic, 
+    Allows administrators to manually confirm or dismiss an AI-generated
+    signalement. Approving a report indicates the content is indeed problematic,
     while rejecting it marks it as a false positive.
 
     ### Authorization Required:

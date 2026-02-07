@@ -34,7 +34,7 @@ class AIReport(SQLModel, table=True):
     )
     confidence_score: Optional[float] = Field(
         default=None,
-        description="The confidence score (0.0 to 1.0) associated with the classification, if provided."
+        description="The confidence score (0.0 to 1.0) associated with the classification, if provided.",
     )
     model_version: str = Field(
         description="The version of the AI model that performed the analysis."

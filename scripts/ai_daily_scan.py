@@ -16,7 +16,7 @@ from app.core.dependencies import get_ai_moderation_service
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    stream=sys.stdout
+    stream=sys.stdout,
 )
 logger = logging.getLogger("ai_daily_scan")
 
@@ -26,10 +26,10 @@ async def run_scan():
     Daily maintenance script to run AI moderation scan.
     """
     logger.info("Starting daily AI moderation scan...")
-    
+
     session_generator = None
     db = None
-    
+
     try:
         # Get a database session
         # Since we're outside a FastAPI request, we use the generator manually
@@ -38,11 +38,11 @@ async def run_scan():
 
         # Initialize the service
         ai_service = get_ai_moderation_service()
-        
+
         # Run the batch
         await ai_service.run_batch_moderation(db)
         db.commit()
-        
+
         logger.info("AI moderation scan completed successfully.")
     except Exception as e:
         logger.error(f"Critical error during AI scan: {e}", exc_info=True)

@@ -1,7 +1,7 @@
 """
 AI-specific test data initialization module.
 
-This module provides functions to seed the database with suspicious content 
+This module provides functions to seed the database with suspicious content
 (spam and toxic language) specifically designed to test the AI moderation system.
 It is intended for use in development and staging environments.
 """
@@ -24,6 +24,7 @@ from app.models.category import Category
 
 logger = logging.getLogger(__name__)
 
+
 def init_ai_test_data(session: Session) -> None:
     """
     Seeds the database with suspicious content to test AI moderation logic.
@@ -32,7 +33,7 @@ def init_ai_test_data(session: Session) -> None:
     - A volunteer with a spam-like bio.
     - A volunteer with toxic language in their bio.
     - A mission with a suspicious/fraudulent description.
-    
+
     The data is only created if it doesn't already exist (idempotent).
 
     Args:
@@ -42,7 +43,9 @@ def init_ai_test_data(session: Session) -> None:
     pwd = "password123"
 
     # 1. Suspicious Volunteer (Spam)
-    if not session.exec(select(User).where(User.email == "spam_user@example.com")).first():
+    if not session.exec(
+        select(User).where(User.email == "spam_user@example.com")
+    ).first():
         volunteer_service.create_volunteer(
             session,
             UserCreate(
@@ -62,7 +65,9 @@ def init_ai_test_data(session: Session) -> None:
         )
 
     # 2. Toxic Volunteer
-    if not session.exec(select(User).where(User.email == "toxic_user@example.com")).first():
+    if not session.exec(
+        select(User).where(User.email == "toxic_user@example.com")
+    ).first():
         volunteer_service.create_volunteer(
             session,
             UserCreate(
@@ -82,13 +87,15 @@ def init_ai_test_data(session: Session) -> None:
         )
 
     # 3. Suspicious Mission (Spam)
-    if not session.exec(select(User).where(User.email == "fake_asso@example.com")).first():
+    if not session.exec(
+        select(User).where(User.email == "fake_asso@example.com")
+    ).first():
         # Create a location first
         loc = location_service.create_location(
             session,
-            LocationCreate(address="Secret Street", country="France", zip_code="75000")
+            LocationCreate(address="Secret Street", country="France", zip_code="75000"),
         )
-        
+
         asso = association_service.create_association(
             session,
             UserCreate(
@@ -119,7 +126,7 @@ def init_ai_test_data(session: Session) -> None:
             existing_category = Category(label="Test Category")
             session.add(existing_category)
             session.flush()
-            
+
         category_id = existing_category.id_categ
 
         mission_service.create_mission(
@@ -127,15 +134,15 @@ def init_ai_test_data(session: Session) -> None:
             MissionCreate(
                 name="ARGENT FACILE ET RAPIDE",
                 description="Devenez riche en restant chez vous. Pas d'expérience requise. Offre limitée.",
-                id_asso=asso.id_asso, # type: ignore
-                id_location=loc.id_location, # type: ignore
-                category_ids=[category_id], 
+                id_asso=asso.id_asso,  # type: ignore
+                id_location=loc.id_location,  # type: ignore
+                category_ids=[category_id],
                 date_start=date.today(),
                 date_end=date.today(),
                 capacity_min=1,
                 capacity_max=100,
-                skills="Rien"
-            )
+                skills="Rien",
+            ),
         )
 
     session.commit()

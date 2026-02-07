@@ -13,10 +13,12 @@ from app.models.volunteer import Volunteer
 from app.services import user as user_service
 from tests.services.test_ai_moderation_service import MockAIModerationClient
 
+
 @pytest.fixture
 def ai_service():
     """AI service with mock client for benchmarks."""
     return AIModerationService(MockAIModerationClient())
+
 
 @pytest.fixture(name="volunteer_user")
 def volunteer_user_fixture(session: Session):
@@ -35,12 +37,13 @@ def volunteer_user_fixture(session: Session):
         last_name="Volunteer",
         phone_number="0123456789",
         birthdate=date(1990, 1, 1),
-        bio=""
+        bio="",
     )
     session.add(volunteer)
     session.commit()
     session.refresh(user)
     return user
+
 
 class TestAIModerationServiceBenchmarks:
     """Benchmark AI moderation service logic."""
@@ -53,17 +56,16 @@ class TestAIModerationServiceBenchmarks:
         volunteer_user,
     ):
         """Benchmark the moderate_content logic (with mock AI)."""
-        
+
         # On utilise l'ID réel de l'utilisateur créé pour le test
         user_id = volunteer_user.id_user
-        
+
         def sync_moderate():
-            asyncio.run(ai_service.moderate_content(
-                session, 
-                ReportTarget.PROFILE, 
-                user_id, 
-                "Normal text for benchmark"
-            ))
+            asyncio.run(
+                ai_service.moderate_content(
+                    session, ReportTarget.PROFILE, user_id, "Normal text for benchmark"
+                )
+            )
 
         benchmark(sync_moderate)
 
@@ -75,7 +77,7 @@ class TestAIModerationServiceBenchmarks:
         volunteer_user,
     ):
         """Benchmark the batch moderation candidate selection and processing logic."""
-        
+
         # Préparation des données
         volunteer_user.volunteer_profile.bio = "Benchmarking batch scan content"
         session.add(volunteer_user)
