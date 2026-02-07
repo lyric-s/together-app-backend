@@ -20,6 +20,7 @@ from app.services import association as association_service
 from app.services import mission as mission_service
 from app.services import location as location_service
 from app.models.location import LocationCreate
+from app.models.category import Category
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def init_ai_test_data(session: Session) -> None:
                 last_name="Bot",
                 phone_number="0699999999",
                 birthdate=date(1990, 1, 1),
-                bio="Gagnez 5000€ par jour sans rien faire ! Cliquez ici pour devenir riche !.",
+                bio="Gagnez 5000€ par jour sans rien faire ! Cliquez ici pour devenir riche spam spam !.",
                 skills="Fraud, Phishing",
             ),
         )
@@ -111,14 +112,14 @@ def init_ai_test_data(session: Session) -> None:
         session.add(asso)
         session.flush()
 
-        # Ensure a category exists or use an existing one
-        from app.models.category import Category
+        # Ensure a category exists
         existing_category = session.exec(select(Category).limit(1)).first()
         if not existing_category:
-            # Handle missing category or create one
-            logger.warning("No categories found in database for mission seeding")
-            session.commit()
-            return
+            # Create a default category if none exists (important for tests)
+            existing_category = Category(label="Test Category")
+            session.add(existing_category)
+            session.flush()
+            
         category_id = existing_category.id_categ
 
         mission_service.create_mission(

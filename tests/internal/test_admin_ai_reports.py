@@ -1,5 +1,5 @@
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 from fastapi.testclient import TestClient
 from app.models.admin import AdminCreate
 from app.services import admin as admin_service
@@ -59,7 +59,7 @@ def test_get_all_ai_reports_unauthorized(client: TestClient):
     response = client.get("/internal/admin/ai-reports")
     assert response.status_code == 401
 
-def test_update_ai_report_state(client: TestClient, admin_token: str, sample_ai_report: AIReport):
+def test_update_ai_report_state(client: TestClient, session: Session, admin_token: str, sample_ai_report: AIReport):
     """Test that an admin can update an AI report state."""
     response = client.patch(
         f"/internal/admin/ai-reports/{sample_ai_report.id_report}",
@@ -70,10 +70,11 @@ def test_update_ai_report_state(client: TestClient, admin_token: str, sample_ai_
     data = response.json()
     assert data["state"] == "APPROVED"
     
-    # Verify in DB
-    session = Session(client.app.extra["engine"]) if hasattr(client.app, "extra") else None
-    # For simplicity, we just trust the response or check the route logic
-    # The integration test via client is already strong.
+    # Verify in DB using the session fixture
+    session.expire_all() # Ensure we get fresh data
+    db_report = session.get(AIReport, sample_ai_report.id_report)
+    assert db_report is not None
+    assert db_report.state == ProcessingStatus.APPROVED
 
 def test_update_ai_report_state_not_found(client: TestClient, admin_token: str):
     """Test updating a non-existent AI report returns 404."""
