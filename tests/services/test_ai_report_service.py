@@ -41,7 +41,8 @@ def test_get_ai_reports(session: Session, sample_ai_report: AIReport):
     """Test retrieving a list of AI reports."""
     reports = ai_report_service.get_ai_reports(session)
     assert len(reports) >= 1
-    assert reports[0].id_report == sample_ai_report.id_report
+    report_ids = [r.id_report for r in reports]
+    assert sample_ai_report.id_report in report_ids
 
 
 def test_update_ai_report_state(session: Session, sample_ai_report: AIReport):

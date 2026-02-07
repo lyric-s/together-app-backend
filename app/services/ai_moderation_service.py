@@ -18,6 +18,7 @@ from datetime import datetime, time
 from typing import Any, List, cast
 
 from sqlmodel import Session, select, func
+from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.models.ai_report import AIReport
@@ -110,12 +111,20 @@ class AIModerationService:
             return db.exec(statement).first() is not None
 
         if target == ReportTarget.MISSION:
-            # Check if the association creating the mission has been reported for a mission-related issue
-            mission = db.get(Mission, target_id)
-            if mission:
+            # Eagerly load the association to get its user ID
+            mission_stmt = (
+                select(Mission)
+                .options(selectinload(Mission.association))
+                .where(Mission.id_mission == target_id)
+            )
+            mission = db.exec(mission_stmt).first()
+
+            if mission and mission.association:
+                # Compare the user ID of the mission's owner with the reported user ID
+                owner_user_id = mission.association.id_user
                 statement = select(Report).where(
                     Report.target == ReportTarget.MISSION,
-                    Report.id_user_reported == mission.id_asso,
+                    Report.id_user_reported == owner_user_id,
                 )
                 return db.exec(statement).first() is not None
 
@@ -231,6 +240,10 @@ class AIModerationService:
         users_stmt = (
             select(User)
             .where(~cast(Any, User.id_user).in_(user_subquery))
+            .options(
+                selectinload(User.volunteer_profile),
+                selectinload(User.association_profile),
+            )
             .order_by(func.random())
             .limit(500)
         )
@@ -271,11 +284,15 @@ class AIModerationService:
         random.shuffle(candidates)
 
         processed = 0
+
         for target, target_id, text in candidates:
-            # Re-check quota per iteration to stop as soon as limit is reached
-            if not self._check_quota(db):
-                break
+
             await self.moderate_content(db, target, target_id, text)
+
+            # moderate_content will handle its own quota check and might skip processing
+            # We only count what was actually *attempted* to be moderated, not necessarily reported
             processed += 1
 
         logger.info(f"Daily maintenance scan completed. {processed} records analyzed.")
+
+        

@@ -77,9 +77,9 @@ async def test_moderate_content_toxic_no_score(session: Session, ai_service):
 
 
 @pytest.mark.asyncio
-async def test_skip_if_human_report_exists(session: Session, ai_service):
+async def test_skip_if_human_report_exists(session: Session, ai_service, volunteer_user):
     """Test that AI scan is skipped if a human report already exists."""
-    target_id = 3
+    target_id = volunteer_user.id_user
     # Create a human report
     from app.models.enums import ReportType
 
@@ -88,7 +88,7 @@ async def test_skip_if_human_report_exists(session: Session, ai_service):
         target=ReportTarget.PROFILE,
         reason="Human already reported this",
         id_user_reported=target_id,
-        id_user_reporter=999,
+        id_user_reporter=volunteer_user.id_user,
     )
     session.add(human_report)
     session.commit()
