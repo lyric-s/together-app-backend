@@ -15,7 +15,7 @@ Key Responsibilities:
 import logging
 import random
 from datetime import datetime, time
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, cast
 
 from sqlmodel import Session, select, func
 
