@@ -1,12 +1,11 @@
 import pytest
-from unittest.mock import MagicMock
+from typing import Any
 from sqlmodel import Session, select
 
 from app.services.ai_moderation_service import AIModerationService
 from app.models.enums import AIContentCategory, ReportTarget, ProcessingStatus
 from app.models.ai_report import AIReport
 from app.models.report import Report
-from app.models.mission import Mission
 from app.models.user import User
 from app.services.ai_moderation_client import AIModerationClient
 
@@ -15,15 +14,19 @@ class MockAIModerationClient(AIModerationClient):
     Mock client for AI moderation that returns deterministic results without HTTP calls.
     """
     def __init__(self):
-        self.spam_url = "http://mock-spam"
-        self.toxicity_url = "http://mock-tox"
-        self.auth_token = "mock-token"
-        self.timeout = 5
-        # Deterministic logic based on text content for testing
+        # Initialize attributes needed by the service
+        self.spam_url: Any = "http://mock-spam"
+        self.toxicity_url: Any = "http://mock-tox"
+        self.auth_token: Any = "mock-token"
+        self.timeout: int = 5
+
+    async def analyze_text(self, text: str):
+        """
+        Deterministic logic based on text content for testing.
+        """
         if "spam" in text.lower():
             return AIContentCategory.SPAM_LIKE, 0.99
         if "toxic" in text.lower():
-            # Test case for toxicity without score
             return AIContentCategory.TOXIC_LANGUAGE, None
         return None
 
@@ -111,7 +114,7 @@ async def test_skip_if_pending_ai_report_exists(session: Session, ai_service):
     assert reports[0].model_version == "old-v1"
 
 @pytest.mark.asyncio
-async def test_batch_moderation_logic(session: Session, ai_service, volunteer_user, association_user):
+async def test_batch_moderation_logic(session: Session, ai_service, volunteer_user):
     """Test the batch moderation candidate selection and processing."""
     volunteer_user.volunteer_profile.bio = "Some spam content here"
     session.add(volunteer_user)

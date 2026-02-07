@@ -1,7 +1,7 @@
 import logging
 import random
 from datetime import datetime, time
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, cast
 
 from sqlmodel import Session, select, func
 
@@ -135,12 +135,12 @@ class AIModerationService:
         logger.info("Starting daily AI moderation batch scan...")
         
         # 1. Fetch random users who don't have a pending AI report
-        # We order by func.random() to ensure we don't scan the same users every night
         user_subquery = select(AIReport.target_id).where(
             AIReport.target == ReportTarget.PROFILE, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        users_stmt = select(User).where(User.id_user.not_in(user_subquery)).order_by(func.random()).limit(500)
+        # Using column.in_(subquery) == False to avoid static analysis issues with .not_in()
+        users_stmt = select(User).where(User.id_user.in_(user_subquery) == False).order_by(func.random()).limit(500)
         users = db.exec(users_stmt).all()
 
         # 2. Fetch random missions who don't have a pending AI report
@@ -148,7 +148,7 @@ class AIModerationService:
             AIReport.target == ReportTarget.MISSION, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        missions_stmt = select(Mission).where(Mission.id_mission.not_in(mission_subquery)).order_by(func.random()).limit(500)
+        missions_stmt = select(Mission).where(Mission.id_mission.in_(mission_subquery) == False).order_by(func.random()).limit(500)
         missions = db.exec(missions_stmt).all()
         
         candidates: List[Tuple[ReportTarget, int, str]] = []
@@ -160,22 +160,22 @@ class AIModerationService:
             elif user.association_profile:
                 text = f"{user.association_profile.description or ''} {user.association_profile.name or ''}"
             
-            if len(text.strip()) > 10:
-                candidates.append((ReportTarget.PROFILE, user.id_user, text))
+            if len(text.strip()) > 10 and user.id_user is not None:
+                candidates.append((ReportTarget.PROFILE, cast(int, user.id_user), text))
 
         for mission in missions:
             text = f"{mission.name} {mission.description}"
-            if len(text.strip()) > 10:
-                candidates.append((ReportTarget.MISSION, mission.id_mission, text))
+            if len(text.strip()) > 10 and mission.id_mission is not None:
+                candidates.append((ReportTarget.MISSION, cast(int, mission.id_mission), text))
 
         # Re-shuffle in Python to mix Users and Missions
         random.shuffle(candidates)
 
         processed = 0
         for target, target_id, text in candidates:
-             if not self._check_quota(db):
-                 break
-             await self.moderate_content(db, target, target_id, text)
-             processed += 1
-        
+            if not self._check_quota(db):
+                break
+            await self.moderate_content(db, target, target_id, text)
+            processed += 1
+    
         logger.info(f"Daily AI batch scan completed. {processed} items analyzed.")
