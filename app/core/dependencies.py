@@ -26,7 +26,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def get_ai_moderation_service() -> AIModerationService:
     """
-    Dependency to get the AI moderation service.
+    FastAPI dependency that provides an instance of the AIModerationService.
+
+    This function instantiates the AIModerationClient and wraps it within
+    the AIModerationService to provide a complete orchestration layer for
+    content moderation.
+
+    Returns:
+        AIModerationService: An initialized moderation service.
     """
     client = AIModerationClient()
     return AIModerationService(client)

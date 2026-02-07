@@ -41,6 +41,7 @@ async def run_scan():
         
         # Run the batch
         await ai_service.run_batch_moderation(db)
+        db.commit()
         
         logger.info("AI moderation scan completed successfully.")
     except Exception as e:

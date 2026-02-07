@@ -21,6 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Seed suspicious content for AI testing."""
+    from app.core.config import get_settings
+    settings = get_settings()
+    if settings.ENVIRONMENT == "production":
+        print("Skipping AI test data seeding in production.")
+        return
     bind = op.get_bind()
     session = Session(bind=bind)
     
@@ -31,8 +36,8 @@ def upgrade() -> None:
         init_ai_test_data(session)
     except Exception as e:
         print(f"Warning: Could not seed AI test data: {e}")
-        # We don't want to fail the whole migration if seeding fails (e.g. missing categories)
-        pass
+    finally:
+        session.close()
 
 
 def downgrade() -> None:

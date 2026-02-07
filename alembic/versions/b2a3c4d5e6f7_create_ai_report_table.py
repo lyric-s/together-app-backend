@@ -34,7 +34,7 @@ def upgrade() -> None:
         sa.Column('id_report', sa.Integer(), nullable=False),
         sa.Column(
             'target',
-            sa.Enum('PROFILE', 'MESSAGE', 'MISSION', 'OTHER', name='reporttarget'),
+            sa.Enum('PROFILE', 'MESSAGE', 'MISSION', 'OTHER', name='reporttarget', create_type=False),
             nullable=False
         ),
         sa.Column('target_id', sa.Integer(), nullable=False),
@@ -43,7 +43,8 @@ def upgrade() -> None:
             sa.Enum(
                 'NORMAL_CONTENT', 'TOXIC_LANGUAGE', 'INAPPROPRIATE_CONTENT',
                 'SPAM_LIKE', 'FRAUD_SUSPECTED', 'MISLEADING_INFORMATION', 'OTHER',
-                name='aicontentcategory'
+                name='aicontentcategory',
+                create_type=False
             ),
             nullable=False
         ),
@@ -51,7 +52,7 @@ def upgrade() -> None:
         sa.Column('model_version', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column(
             'state',
-            sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='processingstatus'),
+            sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='processingstatus', create_type=False),
             nullable=False
         ),
         sa.Column('created_at', sa.DateTime(), nullable=False),

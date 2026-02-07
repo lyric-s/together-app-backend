@@ -8,16 +8,17 @@ from app.models.ai_report import AIReport
 from app.models.report import Report
 from app.models.mission import Mission
 from app.models.user import User
+from app.services.ai_moderation_client import AIModerationClient
 
-class MockAIModerationClient:
+class MockAIModerationClient(AIModerationClient):
     """
     Mock client for AI moderation that returns deterministic results without HTTP calls.
     """
     def __init__(self):
         self.spam_url = "http://mock-spam"
         self.toxicity_url = "http://mock-tox"
-
-    async def analyze_text(self, text: str):
+        self.auth_token = "mock-token"
+        self.timeout = 5
         # Deterministic logic based on text content for testing
         if "spam" in text.lower():
             return AIContentCategory.SPAM_LIKE, 0.99

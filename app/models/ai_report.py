@@ -52,8 +52,6 @@ class AIReport(SQLModel, table=True):
         description="The timestamp when the AI report was created.",
     )
 
-    __tablename__ = "ai_report"
-
 
 class AIReportPublic(SQLModel):
     id_report: int

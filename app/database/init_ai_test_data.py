@@ -1,4 +1,10 @@
-"""Script for initializing AI-specific test data."""
+"""
+AI-specific test data initialization module.
+
+This module provides functions to seed the database with suspicious content 
+(spam and toxic language) specifically designed to test the AI moderation system.
+It is intended for use in development and staging environments.
+"""
 
 import logging
 from sqlmodel import Session, select
@@ -19,7 +25,17 @@ logger = logging.getLogger(__name__)
 
 def init_ai_test_data(session: Session) -> None:
     """
-    Seeds the database with suspicious content to test AI moderation.
+    Seeds the database with suspicious content to test AI moderation logic.
+
+    This function creates:
+    - A volunteer with a spam-like bio.
+    - A volunteer with toxic language in their bio.
+    - A mission with a suspicious/fraudulent description.
+    
+    The data is only created if it doesn't already exist (idempotent).
+
+    Args:
+        session (Session): The database session to use for seeding.
     """
     logger.info("Seeding AI test data...")
     pwd = "password123"
@@ -101,8 +117,9 @@ def init_ai_test_data(session: Session) -> None:
         if not existing_category:
             # Handle missing category or create one
             logger.warning("No categories found in database for mission seeding")
+            session.commit()
             return
-        category_id = existing_category.id_category
+        category_id = existing_category.id_categ
 
         mission_service.create_mission(
             session,
