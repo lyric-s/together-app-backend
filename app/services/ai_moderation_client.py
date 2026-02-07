@@ -42,7 +42,7 @@ class AIModerationClient:
             result = response.json()
             if isinstance(result, list) and len(result) > 0:
                 # Pipeline format [[{"label": "LABEL_1", "score": 0.98}]]
-                if isinstance(result[0], list):
+                if isinstance(result[0], list) and len(result[0]) > 0:
                     return result[0][0]
                 # Simple format [{"label": "LABEL_1", "score": 0.98}]
                 return result[0]

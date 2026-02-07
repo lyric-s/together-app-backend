@@ -95,6 +95,15 @@ def init_ai_test_data(session: Session) -> None:
         session.add(asso)
         session.flush()
 
+        # Ensure a category exists or use an existing one
+        from app.models.category import Category
+        existing_category = session.exec(select(Category).limit(1)).first()
+        if not existing_category:
+            # Handle missing category or create one
+            logger.warning("No categories found in database for mission seeding")
+            return
+        category_id = existing_category.id_category
+
         mission_service.create_mission(
             session,
             MissionCreate(
@@ -102,7 +111,7 @@ def init_ai_test_data(session: Session) -> None:
                 description="Devenez riche en restant chez vous. Pas d'expérience requise. Offre limitée.",
                 id_asso=asso.id_asso, # type: ignore
                 id_location=loc.id_location, # type: ignore
-                category_ids=[1], 
+                category_ids=[category_id], 
                 date_start=date.today(),
                 date_end=date.today(),
                 capacity_min=1,

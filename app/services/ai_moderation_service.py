@@ -1,9 +1,9 @@
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, time
 from typing import Dict, Any, Tuple, List
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from app.core.config import get_settings
 from app.models.ai_report import AIReport
@@ -15,62 +15,64 @@ from app.services.ai_moderation_client import AIModerationClient
 
 logger = logging.getLogger(__name__)
 
-# In-memory store for daily quota.
-_daily_ai_calls: Dict[str, Any] = {"count": 0, "last_reset_date": datetime.now().date()}
-
-
 class AIModerationService:
     """
-    Orchestrates the AI-assisted content moderation process.
-
-    This service is responsible for determining if and when to send content
-    to the AI moderation client, enforcing quotas and probabilistic selection,
-    and persisting the AI's findings in the database.
+    Orchestre le processus de modération assistée par IA.
+    Responsable de la vérification des quotas, du respect du cycle de vie des rapports
+    et de l'appel aux modèles de classification.
     """
 
     def __init__(self, ai_client: AIModerationClient):
         self.settings = get_settings()
         self.ai_client = ai_client
 
-    def _reset_daily_quota_if_needed(self):
+    def _check_quota(self, db: Session) -> bool:
         """
-        Resets the daily AI call quota if a new day has started.
+        Vérifie le quota quotidien en comptant les rapports créés en DB depuis minuit.
+        Cela garantit que le quota est partagé entre tous les processus (API, Scripts, Workers).
         """
-        current_date = datetime.now().date()
-        if current_date > _daily_ai_calls["last_reset_date"]:
-            _daily_ai_calls["count"] = 0
-            _daily_ai_calls["last_reset_date"] = current_date
-            logger.info("Daily AI moderation quota reset.")
-
-    def _check_quota(self) -> bool:
-        """
-        Checks if the daily quota allows for more AI calls.
-        """
-        self._reset_daily_quota_if_needed()
-        if _daily_ai_calls["count"] >= self.settings.AI_MODERATION_DAILY_QUOTA:
+        today_start = datetime.combine(datetime.now().date(), time.min)
+        
+        # Compte le nombre de signalements IA créés aujourd'hui
+        statement = select(func.count(AIReport.id_report)).where(AIReport.created_at >= today_start)
+        count = db.exec(statement).one()
+        
+        if count >= self.settings.AI_MODERATION_DAILY_QUOTA:
+            logger.info(f"Quota IA atteint pour aujourd'hui ({count}/{self.settings.AI_MODERATION_DAILY_QUOTA}).")
             return False
         return True
 
-    def _increment_quota(self):
-        """Increments the daily AI call count."""
-        _daily_ai_calls["count"] += 1
-
     def _has_human_report(self, db: Session, target: ReportTarget, target_id: int) -> bool:
         """
-        Checks if there is already a HUMAN report for this content.
+        Checks if a HUMAN report already exists for this content.
+
+        - For a PROFILE: target_id is the user ID.
+        - For a MISSION: target_id is the mission ID.
+        Since the Human Report table only stores id_user_reported,
+        we check if the mission's owner association has been reported.
         """
         if target == ReportTarget.PROFILE:
-             statement = select(Report).where(
+            statement = select(Report).where(
                 Report.target == ReportTarget.PROFILE,
                 Report.id_user_reported == target_id
             )
-             return db.exec(statement).first() is not None
+            return db.exec(statement).first() is not None
+        
+        if target == ReportTarget.MISSION:
+            # First, we try to find out who owns the mission.
+            mission = db.get(Mission, target_id)
+            if mission:
+                # We check if a human has reported a MISSION for this association
+                statement = select(Report).where(
+                    Report.target == ReportTarget.MISSION,
+                    Report.id_user_reported == mission.id_asso
+                )
+                return db.exec(statement).first() is not None
+                
         return False
 
     def _has_pending_ai_report(self, db: Session, target: ReportTarget, target_id: int) -> bool:
-        """
-        Checks if there is already a PENDING AI report for this content.
-        """
+        """Check if a pending AI report already exists for this content."""
         statement = select(AIReport).where(
             AIReport.target == target,
             AIReport.target_id == target_id,
@@ -85,37 +87,24 @@ class AIModerationService:
         target_id: int,
         text_content: str,
     ) -> None:
-        """
-        Initiates an asynchronous AI moderation analysis for given content.
-        """
+        """Initiates content analysis if business rules allow it."""
         if not self.ai_client.spam_url or not self.ai_client.toxicity_url:
             return
 
-        # 1. Check Lifecycle Rules
+        # 1. Business rules (Do not rescan what has already been scanned)
         if self._has_human_report(db, target, target_id):
-            logger.info(f"Skipping AI scan for {target.value}:{target_id} - Human report exists.")
             return
 
         if self._has_pending_ai_report(db, target, target_id):
-            logger.info(f"Skipping AI scan for {target.value}:{target_id} - Pending AI report exists.")
             return
 
-        # 2. Check Quota
-        if not self._check_quota():
-            logger.info(f"Skipping AI scan for {target.value}:{target_id} - Daily quota reached.")
+        # 2. Persistent Quota Verification
+        if not self._check_quota(db):
             return
 
-        # 3. Call AI
-        logger.info(
-            "Calling AI moderation service for %s:%s. Current daily count: %d",
-            target.value,
-            target_id,
-            _daily_ai_calls["count"],
-        )
-
+        # 3. AI analysis
         try:
             classification_result = await self.ai_client.analyze_text(text_content)
-            self._increment_quota()
 
             if classification_result:
                 classification_label, confidence_score = classification_result
@@ -131,70 +120,46 @@ class AIModerationService:
                 db.add(ai_report)
                 db.commit()
                 db.refresh(ai_report)
-                logger.info(
-                    "AI report created for %s:%s - Label: %s, Score: %s",
-                    target.value,
-                    target_id,
-                    classification_label.value,
-                    str(confidence_score),
-                )
-            else:
-                logger.debug(
-                    "AI moderation client returned no classification for %s:%s.",
-                    target.value,
-                    target_id,
-                )
+                logger.info(f"Signalement IA créé pour {target.value}:{target_id} - Label: {classification_label.value}")
         except Exception as e:
-            logger.error(
-                "Failed to process AI moderation for %s:%s: %s",
-                target.value,
-                target_id,
-                e,
-                exc_info=True,
-            )
+            logger.error(f"Erreur lors du traitement de modération IA : {e}")
 
     async def run_batch_moderation(self, db: Session):
-        """
-        Runs the daily batch moderation job.
-        """
+        """Performs the daily mass scan."""
         if not self.ai_client.spam_url or not self.ai_client.toxicity_url:
-            logger.info("AI Models URLs not configured. Skipping batch moderation.")
+            logger.warning("URLs des modèles IA non configurées. Abandon du scan batch.")
             return
         
-        if not self._check_quota():
-            logger.info("Daily quota reached. Skipping batch moderation.")
-            return
-
-        logger.info("Starting daily AI moderation batch job.")
+        logger.info("Démarrage du scan de modération IA quotidien...")
         
+        # We collect the candidates (limited to 500 for performance)
         users = db.exec(select(User).limit(500)).all()
         missions = db.exec(select(Mission).limit(500)).all()
         
-        candidates: List[Tuple[ReportTarget, int, str]] = []
-        
+        candidates = []
         for user in users:
             text = ""
             if user.volunteer_profile:
-                text = f"{user.volunteer_profile.bio or ''} {user.volunteer_profile.skills or ''} {user.volunteer_profile.address or ''}"
+                text = f"{user.volunteer_profile.bio or ''} {user.volunteer_profile.skills or ''}"
             elif user.association_profile:
-                text = f"{user.association_profile.description or ''} {user.association_profile.name or ''} {user.association_profile.company_name or ''}"
+                text = f"{user.association_profile.description or ''} {user.association_profile.name or ''}"
             
             if len(text.strip()) > 10:
-                candidates.append((ReportTarget.PROFILE, user.id_user, text)) # type: ignore
+                candidates.append((ReportTarget.PROFILE, user.id_user, text))
 
         for mission in missions:
-            text = f"{mission.name} {mission.description} {mission.skills or ''}"
+            text = f"{mission.name} {mission.description}"
             if len(text.strip()) > 10:
-                candidates.append((ReportTarget.MISSION, mission.id_mission, text)) # type: ignore
+                candidates.append((ReportTarget.MISSION, mission.id_mission, text))
 
+        # On mélange pour varier les contenus scannés chaque jour
         random.shuffle(candidates)
 
-        processed_count = 0
+        processed = 0
         for target, target_id, text in candidates:
-             if not self._check_quota():
+             if not self._check_quota(db):
                  break
-             
              await self.moderate_content(db, target, target_id, text)
-             processed_count += 1
+             processed += 1
         
-        logger.info(f"Daily AI batch job completed. Processed {processed_count} items.")
+        logger.info(f"Scan batch terminé. {processed} contenus analysés.")

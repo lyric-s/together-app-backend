@@ -27,12 +27,15 @@ async def run_scan():
     """
     logger.info("Starting daily AI moderation scan...")
     
-    # Get a database session
-    # Since we're outside a FastAPI request, we use the generator manually
-    session_generator = get_session()
-    db = next(session_generator)
+    session_generator = None
+    db = None
     
     try:
+        # Get a database session
+        # Since we're outside a FastAPI request, we use the generator manually
+        session_generator = get_session()
+        db = next(session_generator)
+
         # Initialize the service
         ai_service = get_ai_moderation_service()
         
@@ -44,7 +47,11 @@ async def run_scan():
         logger.error(f"Critical error during AI scan: {e}", exc_info=True)
         sys.exit(1)
     finally:
-        db.close()
+        if session_generator is not None:
+            try:
+                session_generator.close()
+            except StopIteration:
+                pass
 
 
 if __name__ == "__main__":

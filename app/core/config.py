@@ -78,7 +78,6 @@ class Settings(BaseSettings):
     AI_TOXICITY_MODEL_URL: HttpUrl | None = None
     AI_MODERATION_SERVICE_TOKEN: SecretStr | None = None
     AI_MODERATION_DAILY_QUOTA: int = 100  # Default daily quota for AI calls
-    AI_MODERATION_PROBABILITY: float = 0.1  # Default probability for AI call (10%)
     AI_MODERATION_TIMEOUT_SECONDS: int = 5  # Default timeout for AI service calls
     AI_MODEL_VERSION: str = "CamemBERT-v1.0" # Default AI model version
 

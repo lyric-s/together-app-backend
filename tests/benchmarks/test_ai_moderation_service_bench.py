@@ -50,14 +50,17 @@ class TestAIModerationServiceBenchmarks:
         benchmark: BenchmarkFixture,
         session: Session,
         ai_service,
+        volunteer_user,
     ):
         """Benchmark the moderate_content logic (with mock AI)."""
+        
+        user_id = volunteer_user.id_user
         
         def sync_moderate():
             asyncio.run(ai_service.moderate_content(
                 session, 
                 ReportTarget.PROFILE, 
-                1, 
+                user_id, 
                 "Normal text for benchmark"
             ))
 
