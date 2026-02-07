@@ -1,4 +1,3 @@
-import pytest
 from app.core.dependencies import get_ai_moderation_service
 from app.services.ai_moderation_service import AIModerationService
 from app.services.ai_moderation_client import AIModerationClient

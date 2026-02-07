@@ -1,4 +1,3 @@
-import pytest
 from sqlmodel import Session, select
 from app.database.init_ai_test_data import init_ai_test_data
 from app.models.user import User

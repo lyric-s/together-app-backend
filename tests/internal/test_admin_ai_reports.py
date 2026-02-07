@@ -1,5 +1,5 @@
 import pytest
-from sqlmodel import Session, select
+from sqlmodel import Session
 from fastapi.testclient import TestClient
 from app.models.admin import AdminCreate
 from app.services import admin as admin_service

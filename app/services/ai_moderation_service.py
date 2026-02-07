@@ -15,7 +15,7 @@ Key Responsibilities:
 import logging
 import random
 from datetime import datetime, time
-from typing import Any, Tuple, List, cast
+from typing import Any, List, cast
 
 from sqlmodel import Session, select, func
 
@@ -24,7 +24,7 @@ from app.models.ai_report import AIReport
 from app.models.report import Report
 from app.models.user import User
 from app.models.mission import Mission
-from app.models.enums import ProcessingStatus, ReportTarget, AIContentCategory
+from app.models.enums import ProcessingStatus, ReportTarget
 from app.services.ai_moderation_client import AIModerationClient
 
 logger = logging.getLogger(__name__)
@@ -214,16 +214,15 @@ class AIModerationService:
             AIReport.target == ReportTarget.PROFILE, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        # Using id_user.in_(subquery) == False to avoid static analysis issues with .not_in()
-        # and casting to Any to bypass type checker strictness on SQLAlchemy instrumented attributes
-        users_stmt = select(User).where(cast(Any, User.id_user).in_(user_subquery) == False).order_by(func.random()).limit(500)
+        # Using ~column.in_(subquery) to satisfy PEP8/ruff and SQLAlchemy best practices
+        users_stmt = select(User).where(~cast(Any, User.id_user).in_(user_subquery)).order_by(func.random()).limit(500)
         users = db.exec(users_stmt).all()
 
         mission_subquery = select(AIReport.target_id).where(
             AIReport.target == ReportTarget.MISSION, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        missions_stmt = select(Mission).where(cast(Any, Mission.id_mission).in_(mission_subquery) == False).order_by(func.random()).limit(500)
+        missions_stmt = select(Mission).where(~cast(Any, Mission.id_mission).in_(mission_subquery)).order_by(func.random()).limit(500)
         missions = db.exec(missions_stmt).all()
         
         # Using List[Any] to satisfy pyrefly regarding Optional[int] from model instances

@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.services.ai_moderation_service import AIModerationService
 from app.models.enums import ReportTarget, UserType
-from app.models.user import User, UserCreate
+from app.models.user import UserCreate
 from app.models.volunteer import Volunteer
 from app.services import user as user_service
 from tests.services.test_ai_moderation_service import MockAIModerationClient
@@ -54,6 +54,7 @@ class TestAIModerationServiceBenchmarks:
     ):
         """Benchmark the moderate_content logic (with mock AI)."""
         
+        # On utilise l'ID réel de l'utilisateur créé pour le test
         user_id = volunteer_user.id_user
         
         def sync_moderate():

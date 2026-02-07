@@ -6,7 +6,6 @@ from app.services.ai_moderation_service import AIModerationService
 from app.models.enums import AIContentCategory, ReportTarget, ProcessingStatus
 from app.models.ai_report import AIReport
 from app.models.report import Report
-from app.models.user import User
 from app.services.ai_moderation_client import AIModerationClient
 
 class MockAIModerationClient(AIModerationClient):
