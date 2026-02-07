@@ -140,7 +140,7 @@ class AIModerationService:
             AIReport.state == ProcessingStatus.PENDING
         )
         # Using column.in_(subquery) == False to avoid static analysis issues with .not_in()
-        users_stmt = select(User).where(User.id_user.in_(user_subquery) == False).order_by(func.random()).limit(500)
+        users_stmt = select(User).where(~User.id_user.in_(user_subquery)).order_by(func.random()).limit(500)
         users = db.exec(users_stmt).all()
 
         # 2. Fetch random missions who don't have a pending AI report
@@ -148,7 +148,7 @@ class AIModerationService:
             AIReport.target == ReportTarget.MISSION, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        missions_stmt = select(Mission).where(Mission.id_mission.in_(mission_subquery) == False).order_by(func.random()).limit(500)
+        missions_stmt = select(Mission).where(~Mission.id_mission.in_(mission_subquery)).order_by(func.random()).limit(500)
         missions = db.exec(missions_stmt).all()
         
         candidates: List[Tuple[ReportTarget, int, str]] = []
