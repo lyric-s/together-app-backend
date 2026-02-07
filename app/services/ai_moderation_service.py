@@ -114,7 +114,7 @@ class AIModerationService:
             # Eagerly load the association to get its user ID
             mission_stmt = (
                 select(Mission)
-                .options(selectinload(Mission.association))
+                .options(selectinload(cast(Any, Mission.association)))
                 .where(Mission.id_mission == target_id)
             )
             mission = db.exec(mission_stmt).first()
@@ -241,8 +241,8 @@ class AIModerationService:
             select(User)
             .where(~cast(Any, User.id_user).in_(user_subquery))
             .options(
-                selectinload(User.volunteer_profile),
-                selectinload(User.association_profile),
+                selectinload(cast(Any, User.volunteer_profile)),
+                selectinload(cast(Any, User.association_profile)),
             )
             .order_by(func.random())
             .limit(500)
