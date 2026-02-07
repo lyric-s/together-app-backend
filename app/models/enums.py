@@ -26,3 +26,20 @@ class ReportTarget(str, Enum):
     MESSAGE = "MESSAGE"
     MISSION = "MISSION"
     OTHER = "OTHER"
+
+class AIContentCategory(str, Enum):
+    NORMAL_CONTENT = "NORMAL_CONTENT"           
+    TOXIC_LANGUAGE = "TOXIC_LANGUAGE"           
+    INAPPROPRIATE_CONTENT = "INAPPROPRIATE_CONTENT"  
+    SPAM_LIKE = "SPAM_LIKE"                     
+    FRAUD_SUSPECTED = "FRAUD_SUSPECTED"         
+    MISLEADING_INFORMATION = "MISLEADING_INFORMATION" 
+    OTHER = "OTHER"                            
+
+class ContentType(str, Enum):
+    """
+    Specifies the type of content being moderated for the AI flagging system.
+    """
+
+    USER = "USER"
+    MISSION = "MISSION"

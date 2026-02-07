@@ -1,4 +1,5 @@
 from . import admin as admin  # noqa: F401
+from . import ai_report as ai_report  # noqa: F401
 from . import assign as assign  # noqa: F401
 from . import association as association  # noqa: F401
 from . import badge as badge  # noqa: F401

@@ -73,6 +73,15 @@ class Settings(BaseSettings):
     FRONTEND_URL: str | None = None
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # AI Moderation Service Settings
+    AI_SPAM_MODEL_URL: HttpUrl | None = None
+    AI_TOXICITY_MODEL_URL: HttpUrl | None = None
+    AI_MODERATION_SERVICE_TOKEN: SecretStr | None = None
+    AI_MODERATION_DAILY_QUOTA: int = 100  # Default daily quota for AI calls
+    AI_MODERATION_PROBABILITY: float = 0.1  # Default probability for AI call (10%)
+    AI_MODERATION_TIMEOUT_SECONDS: int = 5  # Default timeout for AI service calls
+    AI_MODEL_VERSION: str = "CamemBERT-v1.0" # Default AI model version
+
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content
     model_config = SettingsConfigDict(
