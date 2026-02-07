@@ -1,5 +1,5 @@
 import pytest
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.services import ai_report as ai_report_service
 from app.models.ai_report import AIReport, AIReportUpdate
 from app.models.enums import AIContentCategory, ReportTarget, ProcessingStatus
@@ -23,6 +23,7 @@ def sample_ai_report(session: Session) -> AIReport:
 
 def test_get_ai_report(session: Session, sample_ai_report: AIReport):
     """Test retrieving an AI report by ID."""
+    assert sample_ai_report.id_report is not None
     retrieved = ai_report_service.get_ai_report(session, sample_ai_report.id_report)
     assert retrieved is not None
     assert retrieved.id_report == sample_ai_report.id_report
@@ -40,6 +41,7 @@ def test_get_ai_reports(session: Session, sample_ai_report: AIReport):
 
 def test_update_ai_report_state(session: Session, sample_ai_report: AIReport):
     """Test updating an AI report's state."""
+    assert sample_ai_report.id_report is not None
     update_data = AIReportUpdate(state=ProcessingStatus.APPROVED)
     updated = ai_report_service.update_ai_report_state(session, sample_ai_report.id_report, update_data)
     
@@ -49,6 +51,7 @@ def test_update_ai_report_state(session: Session, sample_ai_report: AIReport):
     # Verify in DB
     session.commit()
     db_report = session.get(AIReport, sample_ai_report.id_report)
+    assert db_report is not None
     assert db_report.state == ProcessingStatus.APPROVED
 
 def test_update_ai_report_state_not_found(session: Session):

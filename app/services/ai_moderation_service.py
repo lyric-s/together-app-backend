@@ -1,7 +1,21 @@
+"""
+AI Moderation Service Module.
+
+This service acts as the central orchestrator for the AI-assisted moderation system.
+It implements the business logic for content selection, quota management, 
+and automated report generation.
+
+Key Responsibilities:
+- Managing global daily scan quotas persistent across server instances.
+- Enforcing lifecycle rules: skipping items with human reports or pending AI reviews.
+- Running large-scale batch scans for database maintenance.
+- Handling data minimization: only sending raw text to the AI layer.
+"""
+
 import logging
 import random
 from datetime import datetime, time
-from typing import Dict, Any, Tuple, List, cast
+from typing import Any, Tuple, List
 
 from sqlmodel import Session, select, func
 
@@ -17,28 +31,44 @@ logger = logging.getLogger(__name__)
 
 class AIModerationService:
     """
-    Orchestrates the AI-assisted content moderation process.
+    Service layer for coordinating AI-assisted content moderation.
 
-    This service manages:
-    - Daily scan quotas based on database records.
-    - Lifecycle rules to avoid redundant scans.
-    - Batch processing of users and missions for daily maintenance.
-    - Persistence of AI-generated reports in the database.
+    This class provides the high-level logic to decide which content should be 
+    analyzed and how the results should be stored. It ensures that AI analysis 
+    complements human moderation without causing redundancy or data overhead.
+
+    Attributes:
+        settings (Settings): Global application configuration.
+        ai_client (AIModerationClient): Low-level client for model communication.
     """
 
     def __init__(self, ai_client: AIModerationClient):
         """
-        Initializes the service with an AI client.
+        Initializes the moderation service.
+
+        Args:
+            ai_client (AIModerationClient): An instance of the AI moderation client.
         """
         self.settings = get_settings()
         self.ai_client = ai_client
 
     def _check_quota(self, db: Session) -> bool:
         """
-        Verifies if the daily AI moderation quota has been reached by counting
-        reports created today.
+        Validates the current daily AI scan quota.
+
+        This method counts total AIReports created today (since midnight UTC) 
+        in the database. This approach is distributed-safe, allowing multiple 
+        concurrent processes to respect the same global limit.
+
+        Args:
+            db (Session): The active database session.
+
+        Returns:
+            bool: True if the current count is below the configured daily limit.
         """
         today_start = datetime.combine(datetime.now().date(), time.min)
+        
+        # Use select(func.count()) for an efficient SQL COUNT query
         statement = select(func.count()).select_from(AIReport).where(AIReport.created_at >= today_start)
         count = db.exec(statement).one()
         
@@ -49,7 +79,19 @@ class AIModerationService:
 
     def _has_human_report(self, db: Session, target: ReportTarget, target_id: int) -> bool:
         """
-        Checks if a human-generated report already exists for the given content.
+        Determines if a human moderator has already flagged the content.
+
+        According to lifecycle rules, AI analysis is skipped if a human report 
+        exists to avoid interfering with manual investigation or creating 
+        noise for administrators.
+
+        Args:
+            db (Session): Database session.
+            target (ReportTarget): Type of target (PROFILE or MISSION).
+            target_id (int): ID of the specific target.
+
+        Returns:
+            bool: True if a human report is already registered for this content.
         """
         if target == ReportTarget.PROFILE:
             statement = select(Report).where(
@@ -59,6 +101,7 @@ class AIModerationService:
             return db.exec(statement).first() is not None
         
         if target == ReportTarget.MISSION:
+            # Check if the association creating the mission has been reported for a mission-related issue
             mission = db.get(Mission, target_id)
             if mission:
                 statement = select(Report).where(
@@ -71,7 +114,18 @@ class AIModerationService:
 
     def _has_pending_ai_report(self, db: Session, target: ReportTarget, target_id: int) -> bool:
         """
-        Checks if a PENDING AI report already exists for the given content.
+        Checks for an existing PENDING AI-generated report.
+
+        Prevents redundant AI calls if an item has already been flagged and 
+        is currently awaiting administrative review.
+
+        Args:
+            db (Session): Database session.
+            target (ReportTarget): Type of target.
+            target_id (int): ID of the target.
+
+        Returns:
+            bool: True if a pending report exists.
         """
         statement = select(AIReport).where(
             AIReport.target == target,
@@ -88,11 +142,22 @@ class AIModerationService:
         text_content: str,
     ) -> None:
         """
-        Initiates an AI moderation scan for a specific piece of content.
+        Triggers a moderation analysis for a specific content string.
+
+        This method performs all safety and business checks (quota, human reports, 
+        existing AI reports) before invoking the AI client. If the content is 
+        found non-compliant, it persists a new AIReport record.
+
+        Args:
+            db (Session): Database session.
+            target (ReportTarget): The type of the content (PROFILE/MISSION).
+            target_id (int): The primary key of the content in its respective table.
+            text_content (str): The raw text extracted from the profile or mission.
         """
         if not self.ai_client.spam_url or not self.ai_client.toxicity_url:
             return
 
+        # Core Lifecycle Guardrails
         if self._has_human_report(db, target, target_id):
             return
 
@@ -108,6 +173,7 @@ class AIModerationService:
             if classification_result:
                 classification_label, confidence_score = classification_result
                 
+                # Persistence of findings
                 ai_report = AIReport(
                     target=target,
                     target_id=target_id,
@@ -121,38 +187,49 @@ class AIModerationService:
                 db.refresh(ai_report)
                 logger.info(f"AI Report created for {target.value}:{target_id} - Label: {classification_label.value}")
         except Exception as e:
-            logger.error(f"Failed to process AI moderation: {e}")
+            # Failure in the AI layer should never crash core business operations
+            logger.error(f"Graceful failure in AI moderation processing: {e}")
 
     async def run_batch_moderation(self, db: Session):
         """
-        Executes a batch moderation scan using a randomized selection to avoid
-        repetition and ensure gradual coverage of all content.
+        Runs a mass moderation scan, typically called by a midnight maintenance job.
+
+        Selection Strategy:
+        - Fetches up to 500 users and 500 missions.
+        - Excludes items already under pending review to save quota.
+        - Shuffles candidates to ensure randomized probabilistic coverage over time.
+        - Processes items one by one until the daily quota is exhausted.
+
+        Args:
+            db (Session): Database session.
         """
         if not self.ai_client.spam_url or not self.ai_client.toxicity_url:
-            logger.warning("AI Model URLs not configured. Skipping batch moderation.")
+            logger.warning("AI Model URLs not configured. Skipping maintenance scan.")
             return
         
-        logger.info("Starting daily AI moderation batch scan...")
+        logger.info("Initiating daily AI moderation maintenance scan...")
         
-        # 1. Fetch random users who don't have a pending AI report
+        # Select candidates not currently under review
         user_subquery = select(AIReport.target_id).where(
             AIReport.target == ReportTarget.PROFILE, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        # Using column.in_(subquery) == False to avoid static analysis issues with .not_in()
-        users_stmt = select(User).where(~User.id_user.in_(user_subquery)).order_by(func.random()).limit(500)
+        # Using id_user.in_(subquery) == False to avoid static analysis issues with .not_in()
+        # and casting to Any to bypass type checker strictness on SQLAlchemy instrumented attributes
+        users_stmt = select(User).where(cast(Any, User.id_user).in_(user_subquery) == False).order_by(func.random()).limit(500)
         users = db.exec(users_stmt).all()
 
-        # 2. Fetch random missions who don't have a pending AI report
         mission_subquery = select(AIReport.target_id).where(
             AIReport.target == ReportTarget.MISSION, 
             AIReport.state == ProcessingStatus.PENDING
         )
-        missions_stmt = select(Mission).where(~Mission.id_mission.in_(mission_subquery)).order_by(func.random()).limit(500)
+        missions_stmt = select(Mission).where(cast(Any, Mission.id_mission).in_(mission_subquery) == False).order_by(func.random()).limit(500)
         missions = db.exec(missions_stmt).all()
         
-        candidates: List[Tuple[ReportTarget, int, str]] = []
+        # Using List[Any] to satisfy pyrefly regarding Optional[int] from model instances
+        candidates: List[Any] = []
         
+        # Prepare data for processing (Data Minimization: only text)
         for user in users:
             text = ""
             if user.volunteer_profile:
@@ -161,21 +238,22 @@ class AIModerationService:
                 text = f"{user.association_profile.description or ''} {user.association_profile.name or ''}"
             
             if len(text.strip()) > 10 and user.id_user is not None:
-                candidates.append((ReportTarget.PROFILE, cast(int, user.id_user), text))
+                candidates.append((ReportTarget.PROFILE, user.id_user, text))
 
         for mission in missions:
             text = f"{mission.name} {mission.description}"
             if len(text.strip()) > 10 and mission.id_mission is not None:
-                candidates.append((ReportTarget.MISSION, cast(int, mission.id_mission), text))
+                candidates.append((ReportTarget.MISSION, mission.id_mission, text))
 
-        # Re-shuffle in Python to mix Users and Missions
+        # Randomize order to vary daily coverage
         random.shuffle(candidates)
 
         processed = 0
         for target, target_id, text in candidates:
+            # Re-check quota per iteration to stop as soon as limit is reached
             if not self._check_quota(db):
                 break
             await self.moderate_content(db, target, target_id, text)
             processed += 1
     
-        logger.info(f"Daily AI batch scan completed. {processed} items analyzed.")
+        logger.info(f"Daily maintenance scan completed. {processed} records analyzed.")

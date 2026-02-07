@@ -1,4 +1,5 @@
 import pytest
+from typing import Any, cast
 from unittest.mock import patch, AsyncMock
 from app.services.ai_moderation_client import AIModerationClient
 from app.models.enums import AIContentCategory
@@ -9,8 +10,9 @@ async def test_analyze_text_full_flow():
     Test the AIModerationClient priority logic (Spam over Toxicity).
     """
     client = AIModerationClient()
-    client.spam_url = "https://mock-spam-api"
-    client.toxicity_url = "https://mock-tox-api"
+    # Force URLs for test if not set in environment
+    client.spam_url = cast(Any, "https://mock-spam-api")
+    client.toxicity_url = cast(Any, "https://mock-tox-api")
     
     text = "Test content"
     
@@ -34,8 +36,8 @@ async def test_analyze_text_full_flow():
 async def test_analyze_text_only_toxic():
     """Test when only the toxicity model flags the content."""
     client = AIModerationClient()
-    client.spam_url = "https://mock-spam-api"
-    client.toxicity_url = "https://mock-tox-api"
+    client.spam_url = cast(Any, "https://mock-spam-api")
+    client.toxicity_url = cast(Any, "https://mock-tox-api")
     
     with patch.object(client, '_call_model', new_callable=AsyncMock) as mock_call:
         mock_call.side_effect = [
@@ -54,8 +56,8 @@ async def test_analyze_text_only_toxic():
 async def test_analyze_text_no_flags():
     """Test when no model flags the content."""
     client = AIModerationClient()
-    client.spam_url = "https://mock-spam-api"
-    client.toxicity_url = "https://mock-tox-api"
+    client.spam_url = cast(Any, "https://mock-spam-api")
+    client.toxicity_url = cast(Any, "https://mock-tox-api")
     
     with patch.object(client, '_call_model', new_callable=AsyncMock) as mock_call:
         mock_call.side_effect = [

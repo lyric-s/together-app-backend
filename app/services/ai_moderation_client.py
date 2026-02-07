@@ -1,3 +1,17 @@
+"""
+AI Moderation Client Module.
+
+This module provides the low-level HTTP client responsible for communicating with 
+external AI models hosted on Hugging Face. it handles request formatting, 
+authentication via service-to-service tokens, parallel model execution, 
+and response parsing.
+
+Technological Context:
+- Uses CamemBERT-based models for French language processing.
+- Leverages HTTPX for asynchronous, non-blocking network calls.
+- Integrates with Hugging Face Inference API.
+"""
+
 import httpx
 import logging
 import asyncio
@@ -11,16 +25,26 @@ logger = logging.getLogger(__name__)
 
 class AIModerationClient:
     """
-    Client for interacting with CamemBERT models hosted on Hugging Face.
+    Client for interacting with CamemBERT models for content classification.
 
-    This client manages communication with two distinct models:
-    - A spam detector (e.g., nellaw/camembert-spam-detector-fr)
-    - A toxicity classifier (e.g., EIStakovskii/french_toxicity_classifier_plus_v2)
+    This client orchestrates calls to multiple specialized models to detect 
+    non-compliant content such as spam and toxic language. It abstracts the 
+    complexity of API communication and provides a unified interface for 
+    the service layer.
+
+    Attributes:
+        spam_url (Optional[str]): The endpoint for the spam detection model.
+        toxicity_url (Optional[str]): The endpoint for the toxicity classifier.
+        auth_token (Optional[str]): Bearer token for API authentication.
+        timeout (int): Network timeout in seconds for each request.
     """
 
     def __init__(self):
         """
         Initializes the AI moderation client with settings from the environment.
+        
+        Configurations are retrieved from the global settings object, specifically 
+        targeting URLs for specialized CamemBERT models.
         """
         settings = get_settings()
         self.spam_url = settings.AI_SPAM_MODEL_URL
@@ -30,15 +54,21 @@ class AIModerationClient:
 
     async def _call_model(self, client: httpx.AsyncClient, url: str, text: str) -> Optional[Dict]:
         """
-        Calls a specific AI model API endpoint.
+        Executes a POST request to a specific AI model endpoint.
+
+        This internal method handles the standard Hugging Face 'inputs' payload 
+        format and parses the resulting JSON. It includes error logging for 
+        network failures and non-200 HTTP statuses.
 
         Args:
-            client (httpx.AsyncClient): The HTTP client to use for the request.
-            url (str): The endpoint URL of the model.
-            text (str): The raw text content to analyze.
+            client (httpx.AsyncClient): The shared HTTP client for efficiency.
+            url (str): The specific model API URL.
+            text (str): The raw text string to be analyzed.
 
         Returns:
-            Optional[Dict]: The raw JSON response from the model if successful, None otherwise.
+            Optional[Dict]: The primary classification result (label and score) 
+                if successful, or None if the request failed or the response 
+                was malformed.
         """
         headers = {}
         if self.auth_token:
@@ -54,43 +84,55 @@ class AIModerationClient:
             response.raise_for_status()
             
             result = response.json()
+            # Handle different common Inference API response structures
             if isinstance(result, list) and len(result) > 0:
-                # Support for standard Hugging Face pipeline output formats
+                # Format: [[{"label": "...", "score": ...}]] (Pipeline)
                 if isinstance(result[0], list) and len(result[0]) > 0:
                     return result[0][0]
+                # Format: [{"label": "...", "score": ...}]
                 return result[0]
             return None
+        except httpx.HTTPStatusError as e:
+            logger.error(f"AI model API returned error {e.response.status_code} for {url}")
+            return None
         except Exception as e:
-            logger.error(f"Error calling AI model at {url}: {e}")
+            logger.error(f"Unexpected error during AI model call at {url}: {e}")
             return None
 
     async def analyze_text(self, text: str) -> Optional[Tuple[AIContentCategory, Optional[float]]]:
         """
-        Analyzes text using both spam and toxicity models and merges the results.
+        Analyzes raw text using all configured specialized models in parallel.
 
-        Priority logic:
-        1. If the spam model flags the content (LABEL_1), it returns SPAM_LIKE.
-        2. If the toxicity model flags the content (LABEL_1), it returns TOXIC_LANGUAGE.
-        3. Otherwise, returns None.
+        This is the main entry point for text analysis. it executes calls to 
+        the spam detector and the toxicity classifier simultaneously to 
+        minimize latency.
+
+        Priority Logic (Conflict Resolution):
+        1. If the spam model flags the content, it returns SPAM_LIKE.
+        2. If the toxicity model flags the content, it returns TOXIC_LANGUAGE.
+        3. If neither flags the content (LABEL_0), it returns None.
 
         Args:
-            text (str): The raw text to analyze.
+            text (str): The raw user-generated text content.
 
         Returns:
-            Optional[Tuple[AIContentCategory, Optional[float]]]: A tuple containing the 
-                classification category and the confidence score (if available).
+            Optional[Tuple[AIContentCategory, Optional[float]]]: A tuple of 
+                (Category, Score) if a violation is detected, otherwise None.
+                The score might be None if the model provides binary labels only.
         """
         if not self.spam_url or not self.toxicity_url:
+            logger.debug("AI model URLs missing in configuration. Skipping analysis.")
             return None
 
         async with httpx.AsyncClient() as client:
-            # Execute both model calls in parallel for better performance
+            # Use asyncio.gather for concurrent execution
             spam_task = self._call_model(client, str(self.spam_url), text)
             toxicity_task = self._call_model(client, str(self.toxicity_url), text)
             
             spam_res, tox_res = await asyncio.gather(spam_task, toxicity_task)
 
-        # Handle different label formats (some models use 'LABEL_1', others 'spam'/'toxic')
+        # Extraction and Label Mapping
+        # Note: We check for multiple label variations to ensure compatibility
         is_spam = spam_res and spam_res.get("label") in ["LABEL_1", "spam", "SPAM"]
         spam_score = spam_res.get("score") if spam_res else None
 
