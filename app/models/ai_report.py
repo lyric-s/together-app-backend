@@ -27,6 +27,10 @@ class AIReport(SQLModel, table=True):
     target_id: int = Field(
         description="The ID of the content that was flagged (e.g., user_id or mission_id)."
     )
+    id_user_reported: int = Field(
+        foreign_key="user.id_user",
+        description="The ID of the user responsible for the flagged content."
+    )
 
     # -- AI Analysis Results --
     classification: AIContentCategory = Field(
@@ -57,6 +61,7 @@ class AIReportPublic(SQLModel):
     id_report: int
     target: ReportTarget
     target_id: int
+    id_user_reported: int
     classification: AIContentCategory
     confidence_score: Optional[float] = None
     model_version: str

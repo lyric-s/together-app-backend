@@ -73,9 +73,15 @@ services:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
       - LOG_LEVEL=debug
+      # Add this to tell transformers where to cache models inside the container
+      # - HF_HOME=/root/.cache/huggingface
+      - HF_HOME=/home/appuser/.cache/huggingface
     volumes:
       - .:/app
       - /app/.venv
+      # Add this line to mount the persistent cache
+      # - huggingface_cache:/root/.cache/huggingface
+      - huggingface_cache:/home/appuser/.cache/huggingface
     entrypoint: ["./scripts/prestart.sh"]
     command: fastapi dev app/main.py --host 0.0.0.0 --port 8000
     depends_on:
@@ -95,3 +101,5 @@ networks:
 volumes:
   postgres_data_dev:
   minio_data_dev:
+  # Add this line to define the new volume
+  huggingface_cache:

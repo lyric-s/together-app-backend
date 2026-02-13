@@ -14,5 +14,7 @@ class MissionCategory(SQLModel, table=True):
     Composite primary key ensures each mission-category pair is unique.
     """
 
+    __tablename__ = "mission_category"
+
     id_mission: int = Field(foreign_key="mission.id_mission", primary_key=True)
     id_categ: int = Field(foreign_key="category.id_categ", primary_key=True)

@@ -1,59 +1,53 @@
-import asyncio
+"""
+Synchronous daily scan script for AI moderation.
+"""
+
 import logging
 import sys
 import os
+import asyncio
 
-
-# Add root directory to path to import the application
+# Add project root to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 from app.database.database import get_session
 from app.core.dependencies import get_ai_moderation_service
+from app.core.ai_loader import load_models
 
-
-# Configure logging to see progress in Coolify logs
+# Configure logging to see output in Coolify logs or terminal
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    stream=sys.stdout,
+    stream=sys.stdout
 )
 logger = logging.getLogger("ai_daily_scan")
 
-
-async def run_scan():
+def run_scan():
     """
-    Daily maintenance script to run AI moderation scan.
+    Daily maintenance script to run the AI moderation scan.
     """
     logger.info("Starting daily AI moderation scan...")
-
-    session_generator = None
-    db = None
-
+    
+    # Manually load models since this script runs outside the FastAPI app lifespan
+    load_models()
+    
+    # Get a database session manually
+    session_generator = get_session()
+    db = next(session_generator)
+    
     try:
-        # Get a database session
-        # Since we're outside a FastAPI request, we use the generator manually
-        session_generator = get_session()
-        db = next(session_generator)
-
-        # Initialize the service
+        # Initialize the AI service
         ai_service = get_ai_moderation_service()
-
-        # Run the batch
-        await ai_service.run_batch_moderation(db)
-        db.commit()
-
+        
+        # Run the asynchronous batch moderation
+        asyncio.run(ai_service.run_batch_moderation(db))
+        
         logger.info("AI moderation scan completed successfully.")
     except Exception as e:
-        logger.error(f"Critical error during AI scan: {e}", exc_info=True)
+        logger.error(f"A critical error occurred during the AI scan: {e}", exc_info=True)
         sys.exit(1)
     finally:
-        if session_generator is not None:
-            try:
-                session_generator.close()
-            except StopIteration:
-                pass
-
+        db.close()
 
 if __name__ == "__main__":
-    asyncio.run(run_scan())
+    run_scan()

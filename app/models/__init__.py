@@ -10,6 +10,7 @@ from . import enums as enums  # noqa: F401
 from . import favorite as favorite  # noqa: F401
 from . import location as location  # noqa: F401
 from . import mission as mission  # noqa: F401
+from . import mission_category as mission_category  # noqa: F401
 from . import notification as notification  # noqa: F401
 from . import report as report  # noqa: F401
 from . import token as token  # noqa: F401

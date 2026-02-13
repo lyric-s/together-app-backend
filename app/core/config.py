@@ -1,8 +1,13 @@
-from typing import Literal
-from pydantic.types import SecretStr
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal
+
+from dotenv import load_dotenv
 from pydantic import HttpUrl
+from pydantic.types import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Load environment variables from a .env file if it exists
+load_dotenv()
 
 
 def parse_comma_separated_origins(comma_list: str) -> list[str]:

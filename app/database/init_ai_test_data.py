@@ -120,9 +120,8 @@ def init_ai_test_data(session: Session) -> None:
         session.flush()
 
         # Ensure a category exists
-        existing_category = session.exec(select(Category).limit(1)).first()
+        existing_category = session.exec(select(Category).where(Category.label == "Test Category")).first()
         if not existing_category:
-            # Create a default category if none exists (important for tests)
             existing_category = Category(label="Test Category")
             session.add(existing_category)
             session.flush()
@@ -145,5 +144,5 @@ def init_ai_test_data(session: Session) -> None:
             ),
         )
 
-    session.commit()
+    session.flush()
     logger.info("AI test data seeded successfully.")

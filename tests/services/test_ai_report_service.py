@@ -12,6 +12,7 @@ def sample_ai_report(session: Session) -> AIReport:
     report = AIReport(
         target=ReportTarget.PROFILE,
         target_id=1,
+        id_user_reported=1,
         classification=AIContentCategory.SPAM_LIKE,
         confidence_score=0.9,
         model_version="test-v1",
