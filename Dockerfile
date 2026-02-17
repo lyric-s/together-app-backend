@@ -29,4 +29,4 @@ RUN chmod +x scripts/prestart.sh
 ENV PATH="/app/.venv/bin:$PATH"
 
 ENTRYPOINT ["./scripts/prestart.sh"]
-CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--forwarded-allow-ips="*""]
+CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--forwarded-allow-ips='*'"]
