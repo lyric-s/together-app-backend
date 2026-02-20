@@ -22,6 +22,7 @@ from app.services.utils import get_or_404
 from app.exceptions import NotFoundError, AlreadyExistsError, ValidationError
 from app.services import user as user_service
 from app.services import notification as notification_service
+from app.services import mission as mission_service
 from app.services.email import send_notification_email
 from app.utils.validation import ensure_id
 from app.utils.logger import logger
@@ -392,7 +393,7 @@ def get_volunteer_missions(
         )
 
     missions = session.exec(statement).all()
-    return [MissionPublic.model_validate(m) for m in missions]
+    return [mission_service.to_mission_public(session, m) for m in missions]
 
 
 # Favorite operations
@@ -416,7 +417,7 @@ def get_favorite_missions(session: Session, volunteer_id: int) -> list[MissionPu
         .order_by(Favorite.created_at.desc())  # type: ignore[union-attr]
     )
     missions = session.exec(statement).all()
-    return [MissionPublic.model_validate(m) for m in missions]
+    return [mission_service.to_mission_public(session, m) for m in missions]
 
 
 def add_favorite_mission(session: Session, volunteer_id: int, mission_id: int) -> None:
