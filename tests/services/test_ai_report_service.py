@@ -7,12 +7,12 @@ from app.exceptions import NotFoundError
 
 
 @pytest.fixture
-def sample_ai_report(session: Session) -> AIReport:
+def sample_ai_report(session: Session, reporter_user) -> AIReport:
     """Fixture to create a sample AI report in the database."""
     report = AIReport(
         target=ReportTarget.PROFILE,
         target_id=1,
-        id_user_reported=1,
+        id_user_reported=reporter_user.id_user,
         classification=AIContentCategory.SPAM_LIKE,
         confidence_score=0.9,
         model_version="test-v1",
