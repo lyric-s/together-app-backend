@@ -65,10 +65,8 @@ def load_models():
         spam_model = temp_model
 
         logger.info("AI models loaded successfully.")
-    except Exception as e:
-        logger.exception(
-            "Failed to load AI models. AI moderation will be disabled."
-        )
+    except Exception:
+        logger.exception("Failed to load AI models. AI moderation will be disabled.")
         # Ensure partial loads don't leave the system in an inconsistent state
         toxicity_pipeline = None
         spam_tokenizer = None
