@@ -84,3 +84,18 @@ def association_user_fixture(session: Session):
     session.commit()
     session.refresh(user)
     return user
+
+
+@pytest.fixture(name="reporter_user")
+def reporter_user_fixture(session: Session):
+    """Create a generic user to act as a reporter."""
+    user_create = UserCreate(
+        username="gen_reporter",
+        email="reporter@example.com",
+        password="Password123",
+        user_type=UserType.VOLUNTEER,
+    )
+    user = user_service.create_user(session, user_create)
+    session.commit()
+    session.refresh(user)
+    return user

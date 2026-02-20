@@ -2,7 +2,6 @@
 
 from datetime import date, datetime
 from collections import Counter
-from typing import cast
 from dateutil.relativedelta import relativedelta
 from sqlmodel import Session, select, func
 
@@ -73,9 +72,7 @@ def get_volunteers_by_month(session: Session, months: int = 12) -> list[dict]:
     """
     today = date.today()
     start_of_current_month = datetime(today.year, today.month, 1)
-    start_date: datetime = cast(
-        datetime, start_of_current_month - relativedelta(months=months - 1)
-    )
+    start_date: datetime = start_of_current_month - relativedelta(months=months - 1)
 
     # Query volunteer registrations in range
     statement = select(User).where(
@@ -92,7 +89,7 @@ def get_volunteers_by_month(session: Session, months: int = 12) -> list[dict]:
     for _ in range(months):
         month_str = current.strftime("%Y-%m")
         result.append({"month": month_str, "value": data_by_month[month_str]})
-        current = cast(datetime, current + relativedelta(months=1))
+        current = current + relativedelta(months=1)
     return result
 
 
@@ -109,9 +106,7 @@ def get_missions_by_month(session: Session, months: int = 12) -> list[dict]:
     """
     today = date.today()
     start_of_current_month = datetime(today.year, today.month, 1)
-    start_date_dt: datetime = cast(
-        datetime, start_of_current_month - relativedelta(months=months - 1)
-    )
+    start_date_dt: datetime = start_of_current_month - relativedelta(months=months - 1)
     start_date: date = start_date_dt.date()
 
     # Query completed missions dates in range (avoiding date_trunc for sqlite compat)
@@ -129,7 +124,7 @@ def get_missions_by_month(session: Session, months: int = 12) -> list[dict]:
     for _ in range(months):
         month_str = current.strftime("%Y-%m")
         result.append({"month": month_str, "value": data_by_month[month_str]})
-        current = cast(datetime, current + relativedelta(months=1))
+        current = current + relativedelta(months=1)
     return result
 
 

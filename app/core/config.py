@@ -1,8 +1,9 @@
-from typing import Literal
-from pydantic.types import SecretStr
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal
+
 from pydantic import HttpUrl
+from pydantic.types import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def parse_comma_separated_origins(comma_list: str) -> list[str]:
@@ -72,6 +73,11 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "Together Platform"
     FRONTEND_URL: str | None = None
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # AI Moderation Service Settings
+    AI_MODERATION_DAILY_QUOTA: int = 100  # Default daily quota for AI calls
+    AI_MODERATION_TIMEOUT_SECONDS: int = 10
+    AI_MODEL_VERSION: str = "CamemBERT-MultiModel-v1.0"  # Default AI model version
 
     # Read the env file not present in the repo for security reasons,
     # overrides the attributes above based on the env file content

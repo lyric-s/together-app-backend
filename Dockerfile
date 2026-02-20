@@ -5,6 +5,7 @@
 FROM python:3.12-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.9.16 /uv /uvx /bin/
 
+
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
@@ -13,7 +14,13 @@ RUN uv sync --frozen --no-cache --no-dev
 # STAGE 2: Runner (Production)
 FROM python:3.12-slim
 
+# Install dos2unix to fix line endings from Windows development environment
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix && rm -rf /var/lib/apt/lists/*
+
 RUN useradd -m -u 1000 appuser
+# Création du dossier de cache et attribution des droits à appuser
+RUN mkdir -p /home/appuser/.cache/huggingface && chown -R appuser:appuser /home/appuser/.cache
+
 WORKDIR /app
 USER appuser
 
@@ -29,4 +36,4 @@ RUN chmod +x scripts/prestart.sh
 ENV PATH="/app/.venv/bin:$PATH"
 
 ENTRYPOINT ["./scripts/prestart.sh"]
-CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
+CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--forwarded-allow-ips='*'"]
