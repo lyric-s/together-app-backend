@@ -63,7 +63,7 @@ services:
 
   # API (Dev Mode)
   fastapi:
-    build: .
+    image: ghcr.io/lyric-s/together-app-backend:latest
     container_name: dev-api
     ports:
       - "8000:8000"
@@ -85,6 +85,17 @@ services:
         condition: service_healthy
       minio-setup:
         condition: service_completed_successfully
+    networks:
+      - api_db
+
+  # OWASP ZAP - Security Testing
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: dev-zap
+    user: zap
+    ports:
+      - "8080:8080"  # ZAP API
+    command: zap.sh -daemon -host 0.0.0.0 -port 8080 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true -config api.disablekey=true
     networks:
       - api_db
 
