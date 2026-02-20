@@ -1,3 +1,9 @@
+## v0.3.2 (2026-02-20)
+
+### Fix
+
+- **volunteer**: fixed returning number of volunteers in favorites missions of a volunteer
+
 ## v0.3.1 (2026-02-20)
 
 ### Fix
