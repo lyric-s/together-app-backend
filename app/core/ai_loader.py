@@ -66,9 +66,8 @@ def load_models():
 
         logger.info("AI models loaded successfully.")
     except Exception as e:
-        logger.error(
-            f"Failed to load AI models. AI moderation will be disabled. Error: {e}",
-            exc_info=True,
+        logger.exception(
+            "Failed to load AI models. AI moderation will be disabled."
         )
         # Ensure partial loads don't leave the system in an inconsistent state
         toxicity_pipeline = None
