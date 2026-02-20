@@ -1,3 +1,9 @@
+## v0.3.3 (2026-02-20)
+
+### Refactor
+
+- TA-129 moved security folder to root
+
 ## v0.3.2 (2026-02-20)
 
 ### Fix
