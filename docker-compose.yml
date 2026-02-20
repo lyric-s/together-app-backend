@@ -73,9 +73,11 @@ services:
       - ENVIRONMENT=development
       - DATABASE_URL=postgresql+psycopg2://api_user:dev_pass@postgres:5432/together
       - LOG_LEVEL=debug
+      - HF_HOME=/home/appuser/.cache/huggingface
     volumes:
       - .:/app
       - /app/.venv
+      - huggingface_cache:/home/appuser/.cache/huggingface
     entrypoint: ["./scripts/prestart.sh"]
     command: fastapi dev app/main.py --host 0.0.0.0 --port 8000
     depends_on:
@@ -95,3 +97,4 @@ networks:
 volumes:
   postgres_data_dev:
   minio_data_dev:
+  huggingface_cache:

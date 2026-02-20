@@ -17,9 +17,26 @@ from app.services import volunteer as volunteer_service
 from app.services import association as association_service
 from app.exceptions import NotFoundError
 from app.utils.validation import ensure_id
+from app.services.ai_moderation_client import AIModerationClient
+from app.services.ai_moderation_service import AIModerationService
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+
+def get_ai_moderation_service() -> AIModerationService:
+    """
+    FastAPI dependency that provides an instance of the AIModerationService.
+
+    This function instantiates the AIModerationClient and wraps it within
+    the AIModerationService to provide a complete orchestration layer for
+    content moderation.
+
+    Returns:
+        AIModerationService: An initialized moderation service.
+    """
+    client = AIModerationClient()
+    return AIModerationService(client)
 
 
 def get_current_user(

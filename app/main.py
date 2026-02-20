@@ -23,6 +23,7 @@ from app.core.error_handlers import register_exception_handlers
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from app.core.limiter import limiter
+from app.core.ai_loader import load_models
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Ensure static directory exists before later mount
@@ -45,14 +46,12 @@ async def lifespan(app: FastAPI):
     """
     Run startup tasks required before the application begins serving requests.
 
-    Initializes logging and telemetry, and ensures the storage bucket exists. Intended to be used as an async lifespan context manager for a FastAPI application; yields control after startup tasks complete.
-
-    Parameters:
-        app (FastAPI): The FastAPI application instance used for telemetry initialization.
+    Initializes logging, telemetry, ensures the storage bucket exists, and loads AI models.
     """
     setup_logging()
     setup_telemetry(app)
     storage_service.ensure_bucket_exists()
+    load_models()  # Load AI models into memory
     yield
 
 
