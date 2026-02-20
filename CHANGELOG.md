@@ -1,3 +1,10 @@
+## v0.3.1 (2026-02-20)
+
+### Fix
+
+- start command likely failing to parse
+- proper forwarding for http traffic behind proxy
+
 ## v0.3.0 (2026-01-15)
 
 ### BREAKING CHANGE

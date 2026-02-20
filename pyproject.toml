@@ -1,6 +1,6 @@
 [project]
 name = "together-app-backend"
-version = "0.3.0"
+version = "0.3.1"
 description = "REST API of the Together platform"
 readme = "README.md"
 requires-python = ">=3.12"
