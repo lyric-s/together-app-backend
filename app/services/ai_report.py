@@ -1,77 +1,90 @@
-"""
-AI Report service module.
+from typing import List, Optional
 
-This module provides CRUD operations for AI-generated moderation reports.
-It is primarily used by administrative interfaces to review and manage
-automatically flagged content.
-"""
+from loguru import logger
+from sqlmodel import Session, select
+from fastapi import HTTPException
 
-from sqlmodel import Session, select, desc
 from app.models.ai_report import AIReport, AIReportUpdate
+from app.models.enums import ProcessingStatus
 from app.exceptions import NotFoundError
 
 
-def get_ai_report(session: Session, report_id: int) -> AIReport | None:
+def get_ai_report_by_id(db: Session, report_id: int) -> AIReport:
     """
-    Retrieves a single AI report by its unique identifier.
+    Retrieve a single AI report by its ID.
 
     Args:
-        session (Session): The database session.
-        report_id (int): The primary key of the AI report.
+        db (Session): The database session.
+        report_id (int): The ID of the AI report to retrieve.
 
     Returns:
-        Optional[AIReport]: The found AI report or None if not found.
+        AIReport: The requested AI report.
+
+    Raises:
+        NotFoundError: If no AI report with the given ID is found.
     """
-    return session.exec(select(AIReport).where(AIReport.id_report == report_id)).first()
+    db_report = db.get(AIReport, report_id)
+    if not db_report:
+        raise NotFoundError("AI Report", report_id)
+    return db_report
 
 
-def get_ai_reports(
-    session: Session, *, offset: int = 0, limit: int = 100
-) -> list[AIReport]:
+def get_all_ai_reports(
+    db: Session,
+    offset: int = 0,
+    limit: int = 100,
+    status: Optional[ProcessingStatus] = None,
+) -> List[AIReport]:
     """
-    Retrieves a paginated list of AI reports, ordered by creation date (newest first).
+    Retrieve a list of all AI reports with optional filtering by status.
 
     Args:
-        session (Session): The database session.
-        offset (int): Number of records to skip.
-        limit (int): Maximum number of records to return.
+        db (Session): The database session.
+        offset (int): The number of items to skip before returning results.
+        limit (int): The maximum number of items to return.
+        status (Optional[ProcessingStatus]): Filter reports by their processing status.
 
     Returns:
-        list[AIReport]: A list of AI reports.
+        List[AIReport]: A list of AI reports.
     """
-    statement = (
-        select(AIReport).order_by(desc(AIReport.created_at)).offset(offset).limit(limit)
-    )
-    return list(session.exec(statement).all())
+    query = select(AIReport)
+    if status:
+        query = query.where(AIReport.state == status)
+    reports = db.exec(query.offset(offset).limit(limit)).all()
+    return reports
 
 
 def update_ai_report_state(
-    session: Session, report_id: int, report_update: AIReportUpdate
+    db: Session, report_id: int, report_update: AIReportUpdate
 ) -> AIReport:
     """
-    Updates the moderation state of an AI report (e.g., APPROVED or REJECTED).
-
-    This function updates the state in memory and flushes the changes to the
-    database, but does not commit the transaction. The caller (e.g., a router)
-    is responsible for committing the changes.
+    Update the state of an existing AI report.
 
     Args:
-        session (Session): The database session.
-        report_id (int): The unique identifier of the report to update.
-        report_update (AIReportUpdate): The new state data.
+        db (Session): The database session.
+        report_id (int): The ID of the AI report to update.
+        report_update (AIReportUpdate): The update schema containing the new state.
 
     Returns:
-        AIReport: The updated AI report instance.
+        AIReport: The updated AI report.
 
     Raises:
-        NotFoundError: If the AI report with the given ID does not exist.
+        NotFoundError: If no AI report with the given ID is found.
     """
-    db_report = get_ai_report(session, report_id)
-    if not db_report:
-        raise NotFoundError("AIReport", report_id)
+    db_report = get_ai_report_by_id(
+        db, report_id
+    )  # Reuse existing getter for validation
+
+    # Ensure only PENDING reports can be updated to APPROVED/REJECTED
+    if db_report.state != ProcessingStatus.PENDING:
+        raise HTTPException(
+            status_code=400,
+            detail=f"AI Report with ID {report_id} is already in state '{db_report.state.value}'. Only PENDING reports can be updated.",
+        )
 
     db_report.state = report_update.state
-    session.add(db_report)
-    session.flush()
-
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    logger.info(f"AI Report {report_id} updated to state {db_report.state.value}.")
     return db_report

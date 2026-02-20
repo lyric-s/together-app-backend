@@ -12,7 +12,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database.database import get_session
 from app.core.dependencies import get_ai_moderation_service
-from app.core.ai_loader import load_models
 
 # Configure logging to see output in Coolify logs or terminal
 logging.basicConfig(
@@ -29,17 +28,14 @@ def run_scan():
     """
     logger.info("Starting daily AI moderation scan...")
 
-    # Manually load models since this script runs outside the FastAPI app lifespan
-    load_models()
-
-    # Get a database session manually
+    # Get a database session and AI moderation service using dependencies
     session_generator = get_session()
     db = next(session_generator)
+    ai_service = (
+        get_ai_moderation_service()
+    )  # Uses internally loaded models via AIModerationClient
 
     try:
-        # Initialize the AI service
-        ai_service = get_ai_moderation_service()
-
         # Run the asynchronous batch moderation
         asyncio.run(ai_service.run_batch_moderation(db))
         db.commit()

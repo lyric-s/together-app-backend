@@ -758,6 +758,54 @@ def init_sample_data(session: Session) -> None:
         notification.created_at = n_conf["date"]
         session.add(notification)
 
+    # --- 11. AI Reports ---
+    from app.models.ai_report import AIReport
+    from app.models.enums import AIContentCategory
+
+    logger.info("Creating AI Reports...")
+    ai_reports_config: list[dict[str, Any]] = [
+        {
+            "target": ReportTarget.PROFILE,
+            "target_id": volunteers["bob"].id_user,
+            "id_user_reported": volunteers["bob"].id_user,
+            "classification": AIContentCategory.TOXIC_LANGUAGE,
+            "confidence_score": 0.92,
+            "created_at": now_utc - timedelta(days=5),
+        },
+        {
+            "target": ReportTarget.MISSION,
+            "target_id": missions["coding"].id_mission,
+            "id_user_reported": associations["tech_for_good"].id_user,
+            "classification": AIContentCategory.SPAM_LIKE,
+            "confidence_score": 0.85,
+            "created_at": now_utc - timedelta(days=2),
+        },
+        {
+            "target": ReportTarget.PROFILE,
+            "target_id": associations["green_earth"].id_user,
+            "id_user_reported": associations["green_earth"].id_user,
+            "classification": AIContentCategory.NORMAL_CONTENT,
+            "confidence_score": 0.60,
+            "state": ProcessingStatus.APPROVED,  # Example of an already reviewed AI report
+            "created_at": now_utc - timedelta(days=10),
+        },
+    ]
+
+    model_version = get_settings().AI_MODEL_VERSION
+
+    for ar_conf in ai_reports_config:
+        ai_report = AIReport(
+            target=ar_conf["target"],
+            target_id=ar_conf["target_id"],
+            id_user_reported=ar_conf["id_user_reported"],
+            classification=ar_conf["classification"],
+            confidence_score=ar_conf.get("confidence_score"),
+            model_version=model_version,
+            state=ar_conf.get("state", ProcessingStatus.PENDING),
+            created_at=ar_conf["created_at"],
+        )
+        session.add(ai_report)
+
     session.commit()
     logger.info(
         f"Sample data initialized successfully for {settings.ENVIRONMENT} environment"

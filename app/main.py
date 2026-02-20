@@ -16,6 +16,7 @@ from app.routers import (
     document,
     mission,
     category,
+    ai_report,  # New AI report router
 )
 from app.core.telemetry import setup_telemetry
 from app.services.storage import storage_service
@@ -124,3 +125,4 @@ app.include_router(mission.router)
 app.include_router(category.router)
 app.include_router(report.router)
 app.include_router(admin.router)
+app.include_router(ai_report.router)  # Include the new AI Report router
